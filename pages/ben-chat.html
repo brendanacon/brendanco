@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ask Ben Thompson</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/brendanacon/brendanco/refs/heads/main/ChatGPT%20Image%20Feb%2014%2C%202026%2C%2007_38_19%20PM.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            min-height: 100vh;
+        }
+
+        .page-wrapper {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- Profile Header --- */
+        .profile-header {
+            text-align: center;
+            padding: 48px 0 32px;
+        }
+
+        .avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .profile-header .tagline {
+            font-size: 15px;
+            color: #666;
+            max-width: 400px;
+            margin: 0 auto 16px;
+            line-height: 1.5;
+        }
+
+        .feed-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .feed-status-pill .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .feed-status-pill .status-dot.loaded { background: #22c55e; }
+        .feed-status-pill .status-dot.empty { background: #ef4444; }
+        .feed-status-pill .status-dot.loading {
+            background: #f59e0b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* --- Feed Actions --- */
+        .feed-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .feed-btn {
+            background: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .feed-btn:hover {
+            background: #f5f5f5;
+            border-color: #bbb;
+        }
+
+        .feed-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .feed-btn.primary {
+            background: #1a1a1a;
+            color: #fff;
+            border-color: #1a1a1a;
+        }
+
+        .feed-btn.primary:hover {
+            background: #333;
+        }
+
+        /* --- Setup Panel --- */
+        .setup-panel {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .setup-panel.visible { display: block; }
+
+        .setup-panel h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .setup-panel label {
+            color: #555;
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .setup-panel input[type="url"],
+        .setup-panel input[type="password"] {
+            width: 100%;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #1a1a1a;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 8px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .setup-panel input[type="url"]:focus,
+        .setup-panel input[type="password"]:focus {
+            border-color: #FAA634;
+        }
+
+        .setup-panel .hint {
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .setup-panel hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 20px 0;
+        }
+
+        .setup-panel textarea {
+            width: 100%;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #1a1a1a;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            resize: vertical;
+            outline: none;
+        }
+
+        .setup-panel textarea:focus {
+            border-color: #FAA634;
+        }
+
+        /* --- Chat Window --- */
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-window {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            height: 420px;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-window::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-window::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-message.user {
+            text-align: right;
+        }
+
+        .chat-message.user .msg-bubble {
+            background: #1a1a1a;
+            display: inline-block;
+            text-align: left;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px 16px 4px 16px;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-message.ben .msg-bubble {
+            background: #f5f5f5;
+            display: inline-block;
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px 16px 16px 4px;
+            color: #1a1a1a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .chat-message .msg-sender {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            opacity: 0.5;
+            color: #666;
+        }
+
+        .chat-message.user .msg-sender { color: #999; }
+        .chat-message.ben .msg-sender { color: #666; }
+
+        .msg-bubble .article-ref {
+            display: block;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            font-size: 12px;
+            color: #888;
+        }
+
+        .msg-bubble .article-title {
+            color: #FAA634;
+            font-weight: 600;
+        }
+
+        a.article-title {
+            text-decoration: none;
+        }
+
+        a.article-title:hover {
+            text-decoration: underline;
+        }
+
+        .msg-bubble .article-date {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .msg-bubble .excerpt {
+            margin-top: 6px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .msg-bubble .excerpt mark {
+            background: rgba(250, 166, 52, 0.12);
+            color: #FAA634;
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+
+        .msg-bubble h1, .msg-bubble h2, .msg-bubble h3, .msg-bubble h4 {
+            margin: 8px 0 4px;
+            line-height: 1.3;
+        }
+        .msg-bubble h1 { font-size: 18px; }
+        .msg-bubble h2 { font-size: 16px; }
+        .msg-bubble h3 { font-size: 15px; }
+        .msg-bubble h4 { font-size: 14px; }
+        .msg-bubble ul, .msg-bubble ol {
+            margin: 4px 0 4px 20px;
+            padding: 0;
+        }
+        .msg-bubble li {
+            margin: 2px 0;
+        }
+        .msg-bubble code {
+            background: rgba(0,0,0,0.06);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 13px;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+        .msg-bubble pre {
+            background: rgba(0,0,0,0.06);
+            padding: 8px 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 6px 0;
+        }
+        .msg-bubble pre code {
+            background: none;
+            padding: 0;
+        }
+        .msg-bubble blockquote {
+            border-left: 3px solid rgba(250,166,52,0.4);
+            padding-left: 10px;
+            margin: 6px 0;
+            color: #555;
+        }
+        .msg-bubble a {
+            color: #FAA634;
+            text-decoration: underline;
+        }
+        .msg-bubble hr {
+            border: none;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin: 8px 0;
+        }
+        .msg-bubble p {
+            margin: 4px 0;
+        }
+
+        /* --- Chat Input --- */
+        .chat-input-wrapper {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 16px;
+            transition: border-color 0.15s;
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: #FAA634;
+            box-shadow: 0 0 0 3px rgba(250, 166, 52, 0.08);
+        }
+
+        .chat-input-area {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px;
+            color: #1a1a1a;
+            font-family: inherit;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            min-height: 22px;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .chat-input::placeholder {
+            color: #aaa;
+        }
+
+        .send-btn {
+            background: #FAA634;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+
+        .send-btn:hover { background: #E8922A; }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* --- Topic Chips --- */
+        .topic-chips {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 0 32px;
+        }
+
+        .topic-chip {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: #444;
+            padding: 8px 16px;
+            border-radius: 24px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .topic-chip:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        /* --- How it works --- */
+        .how-it-works {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .how-it-works summary {
+            color: #1a1a1a;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .how-it-works ul {
+            margin: 10px 0 0;
+            padding-left: 20px;
+        }
+
+        .how-it-works li {
+            margin: 5px 0;
+        }
+
+        .articles-count {
+            color: #FAA634;
+            font-weight: 600;
+        }
+
+        #archiveStats .expand-arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+            margin-left: 4px;
+            font-size: 10px;
+        }
+        #archiveStats .expand-arrow.open {
+            transform: rotate(90deg);
+        }
+        .archive-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            gap: 12px;
+        }
+        .archive-item:last-child {
+            border-bottom: none;
+        }
+        .archive-item a {
+            color: #1a1a1a;
+            text-decoration: none;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .archive-item a:hover {
+            color: #FAA634;
+        }
+        .archive-item .archive-date {
+            color: #999;
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* --- Speaker Button --- */
+        .tts-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 8px;
+            transition: all 0.15s;
+        }
+        .tts-btn:hover {
+            border-color: #FAA634;
+            color: #FAA634;
+        }
+        .tts-btn.playing {
+            border-color: #FAA634;
+            color: #FAA634;
+        }
+        .tts-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* --- Response Format Chips --- */
+        .format-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 6px 12px 8px;
+        }
+        .format-chip {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: #888;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .format-chip:hover {
+            border-color: #ccc;
+            color: #555;
+        }
+        .format-chip.active {
+            background: #FAA634;
+            border-color: #FAA634;
+            color: #fff;
+        }
+        .format-chip-divider {
+            width: 1px;
+            background: #e0e0e0;
+            margin: 2px 4px;
+        }
+
+        /* --- Fullscreen Mode --- */
+        .fullscreen-btn {
+            background: none;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            color: #888;
+            font-size: 16px;
+            line-height: 1;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fullscreen-btn:hover {
+            border-color: #FAA634;
+            color: #FAA634;
+        }
+
+        .chat-section.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            background: #fafafa;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-section.fullscreen .chat-window {
+            height: auto;
+            flex: 1;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 0;
+        }
+        .chat-section.fullscreen .chat-input-wrapper {
+            border-radius: 0 0 12px 12px;
+            margin-bottom: 12px;
+            border-top: none;
+        }
+        .chat-section.fullscreen .how-it-works {
+            display: none;
+        }
+        .chat-section.fullscreen .topic-chips {
+            display: none;
+        }
+        .chat-header-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 640px) {
+            .profile-header {
+                padding: 32px 0 24px;
+            }
+
+            .profile-header h1 {
+                font-size: 24px;
+            }
+
+            .chat-window {
+                height: 320px;
+            }
+
+            .chat-message.user .msg-bubble,
+            .chat-message.ben .msg-bubble {
+                max-width: 92%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="avatar"><img src="https://raw.githubusercontent.com/brendanacon/brendanco/refs/heads/main/ChatGPT%20Image%20Feb%2014%2C%202026%2C%2007_38_19%20PM.png" alt="Ben Thompson"></div>
+            <h1>Ben Thompson</h1>
+            <p class="tagline">Sharp analysis on tech strategy, platforms, and the business of technology</p>
+            <div class="feed-status-pill" id="topPill" style="cursor:pointer;" onclick="toggleTopArticleList()">
+                <span class="status-dot empty" id="statusDot"></span>
+                <span id="statusText">No feed loaded</span>
+                <span id="articleCount"></span>
+                <span class="expand-arrow" id="topPillArrow" style="display:none;">&#9654;</span>
+            </div>
+            <div id="topArticleList" style="display:none;max-height:320px;overflow-y:auto;margin-top:10px;border:1px solid #eee;border-radius:8px;background:#fff;text-align:left;"></div>
+            <div class="feed-actions">
+                <button class="feed-btn primary" id="refreshBtn" onclick="refreshFeed()">Refresh Feed</button>
+                <button class="feed-btn" id="settingsBtn" onclick="toggleSetup()">Settings</button>
+            </div>
+        </div>
+
+        <!-- Setup panel -->
+        <div class="setup-panel" id="setupPanel">
+            <h3>Feed Setup</h3>
+            <label for="feedUrl">Stratechery RSS Feed URL</label>
+            <input type="url" id="feedUrl" placeholder="https://stratechery.passport.online/feed/rss/..." />
+            <p class="hint">Your personal subscriber RSS URL from Stratechery. Stored locally in your browser only.</p>
+            <button class="feed-btn primary" onclick="saveFeedUrl()">Save & Fetch</button>
+
+            <hr>
+            <h3>OpenAI API Key</h3>
+            <label for="apiKeyInput">API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="sk-..." />
+            <p class="hint">Your OpenAI API key for AI-powered responses. Stored locally in your browser only. Never sent anywhere except OpenAI.</p>
+            <button class="feed-btn primary" onclick="saveApiKey()">Save Key</button>
+
+            <hr>
+            <h3>Voice (ElevenLabs)</h3>
+            <label for="elevenKeyInput">ElevenLabs API Key</label>
+            <input type="password" id="elevenKeyInput" placeholder="sk_..." />
+            <p class="hint">Your ElevenLabs API key for text-to-speech. Get one free at elevenlabs.io.</p>
+            <label for="elevenVoiceInput">Voice ID</label>
+            <input type="password" id="elevenVoiceInput" placeholder="F5BvNpkaTyWWSzDFXxgG" />
+            <p class="hint">Custom cloned voice ID. Leave blank to use the default Ben Thompson voice.</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <input type="checkbox" id="elevenAutoplay" style="margin:0;">
+                <label for="elevenAutoplay" style="margin:0;cursor:pointer;">Auto-play voice on new responses</label>
+            </div>
+            <button class="feed-btn primary" onclick="saveElevenLabsSettings()">Save Voice Settings</button>
+
+            <hr>
+            <h3>Article Archive</h3>
+            <p class="hint" id="archiveStats" style="cursor:pointer;user-select:none;" onclick="toggleArticleList()">Loading archive stats...</p>
+            <div id="articleList" style="display:none;max-height:320px;overflow-y:auto;margin-bottom:10px;border:1px solid #eee;border-radius:8px;background:#fff;"></div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                <button class="feed-btn" onclick="document.getElementById('importJsonInput').click()">Import JSON</button>
+                <button class="feed-btn" onclick="exportArchive()">Export Archive</button>
+                <button class="feed-btn" onclick="clearArchive()">Clear Archive</button>
+                <input type="file" id="importJsonInput" accept=".json" style="display:none" onchange="importArchive(this)">
+            </div>
+
+            <hr>
+            <h3>Manual Paste</h3>
+            <label for="pasteXml">Paste RSS XML here</label>
+            <textarea id="pasteXml" rows="6" placeholder="Open the RSS URL in your browser, Select All, Copy, then paste here..."></textarea>
+            <p class="hint">Open your RSS feed URL directly in your browser, copy the page content (Ctrl+A, Ctrl+C), and paste it above.</p>
+            <button class="feed-btn primary" onclick="loadPastedFeed()">Load Pasted Feed</button>
+        </div>
+
+        <div class="chat-section" id="chatSection">
+            <div class="chat-header-bar">
+                <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle fullscreen">
+                    <svg id="fullscreenIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                    </svg>
+                </button>
+            </div>
+            <details class="how-it-works">
+                <summary>How does this work?</summary>
+                <ul>
+                    <li>This page fetches Ben Thompson's Stratechery RSS feed and caches it locally in your browser.</li>
+                    <li>When you ask a question, it searches through the cached articles to find relevant passages.</li>
+                    <li>Responses are actual excerpts from Ben's writing &mdash; his real words and views.</li>
+                    <li>Your RSS feed URL and all data stays in your browser only &mdash; nothing is sent to any server.</li>
+                </ul>
+            </details>
+
+            <!-- Chat window -->
+            <div class="chat-window" id="chatWindow">
+                <div class="chat-message ben">
+                    <div class="msg-sender">Stratechery</div>
+                    <div class="msg-bubble">
+                        Welcome! I'll search through Ben Thompson's Stratechery articles to answer your questions using his actual words and analysis.
+                        <br><br>
+                        Load the RSS feed using the Refresh button above, then ask me anything about tech, strategy, AI, platforms, or whatever Ben has been writing about.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="chat-input-wrapper">
+                <div class="chat-input-area">
+                    <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask Ben anything..."
+                             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+                    <button class="send-btn" onclick="sendMessage()">Ask</button>
+                </div>
+                <div class="format-chips">
+                    <button class="format-chip" data-group="words" data-value="50" onclick="toggleFormatChip(this)">50 words</button>
+                    <button class="format-chip active" data-group="words" data-value="100" onclick="toggleFormatChip(this)">100 words</button>
+                    <button class="format-chip" data-group="words" data-value="200" onclick="toggleFormatChip(this)">200 words</button>
+                    <button class="format-chip" data-group="words" data-value="500" onclick="toggleFormatChip(this)">500 words</button>
+                    <div class="format-chip-divider"></div>
+                    <button class="format-chip" data-group="format" data-value="bullets" onclick="toggleFormatChip(this)">Bullet points</button>
+                </div>
+            </div>
+
+            <!-- Suggested topics -->
+            <div class="topic-chips" id="topicChips">
+                <button class="topic-chip" onclick="askQuestion(this.textContent)">What does Ben think about AI?</button>
+                <button class="topic-chip" onclick="askQuestion(this.textContent)">Apple's strategy</button>
+                <button class="topic-chip" onclick="askQuestion(this.textContent)">Google and antitrust</button>
+                <button class="topic-chip" onclick="askQuestion(this.textContent)">Aggregation theory</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // --- Constants ---
+        const URL_KEY = 'ben-chat-feed-url';
+        const API_KEY_KEY = 'ben-chat-openai-key';
+        const LAST_FETCH_KEY = 'ben-chat-last-fetch';
+        const DB_NAME = 'ben-chat-archive';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'articles';
+        const ELEVEN_KEY_KEY = 'ben-chat-elevenlabs-key';
+        const ELEVEN_VOICE_KEY = 'ben-chat-elevenlabs-voice';
+        const ELEVEN_AUTOPLAY_KEY = 'ben-chat-elevenlabs-autoplay';
+        const DEFAULT_VOICE_ID = 'F5BvNpkaTyWWSzDFXxgG';
+        const REFRESH_COOLDOWN = 5 * 60 * 1000;        // 5 minutes
+        const DEFAULT_FEED_URL = 'https://stratechery.passport.online/feed/rss/CKPS49J7qPJbN4eYcQDpR';
+        const CORS_PROXIES = [
+            { name: 'cf-worker', url: url => 'https://rss-proxy.brendanaconnaughton.workers.dev/?url=' + encodeURIComponent(url), json: false },
+            { name: 'allorigins-json', url: url => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url), json: true },
+            { name: 'allorigins-raw', url: url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url), json: false },
+            { name: 'corsproxy', url: url => 'https://corsproxy.io/?' + encodeURIComponent(url), json: false },
+            { name: 'rss2json', url: url => 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url), rss2json: true },
+        ];
+
+        // Stop words for search
+        const STOP_WORDS = new Set([
+            'a','an','the','is','are','was','were','be','been','being',
+            'have','has','had','do','does','did','will','would','could',
+            'should','may','might','shall','can','need','dare','ought',
+            'used','to','of','in','for','on','with','at','by','from',
+            'as','into','through','during','before','after','above',
+            'below','between','out','off','over','under','again',
+            'further','then','once','here','there','when','where',
+            'why','how','all','both','each','few','more','most',
+            'other','some','such','no','nor','not','only','own',
+            'same','so','than','too','very','just','because','but',
+            'and','or','if','while','about','up','what','which',
+            'who','whom','this','that','these','those','am','i',
+            'me','my','we','our','you','your','he','him','his',
+            'she','her','it','its','they','them','their','ben',
+            'thompson','think','does','say','said','like','also',
+            'really','much','many','get','got','make','thing','things',
+            'going','know','dont','want','way','one','well'
+        ]);
+
+        let articles = [];
+        let db = null;
+        let conversationHistory = []; // stores last 3 Q&A pairs as {role, content}
+        let currentAudio = null;
+
+        // --- DOM refs ---
+        const chatWindow = document.getElementById('chatWindow');
+        const chatInput = document.getElementById('chatInput');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const articleCount = document.getElementById('articleCount');
+        const setupPanel = document.getElementById('setupPanel');
+        const feedUrlInput = document.getElementById('feedUrl');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const topicChips = document.getElementById('topicChips');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const archiveStats = document.getElementById('archiveStats');
+        const elevenKeyInput = document.getElementById('elevenKeyInput');
+        const elevenVoiceInput = document.getElementById('elevenVoiceInput');
+        const elevenAutoplay = document.getElementById('elevenAutoplay');
+
+        // =====================================================
+        // IndexedDB Article Archive
+        // =====================================================
+        function openDB() {
+            return new Promise(function(resolve, reject) {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = function(e) {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        const store = database.createObjectStore(STORE_NAME, { keyPath: 'link' });
+                        store.createIndex('date', 'date', { unique: false });
+                        store.createIndex('title', 'title', { unique: false });
+                    }
+                };
+                req.onsuccess = function(e) { resolve(e.target.result); };
+                req.onerror = function(e) { reject(e.target.error); };
+            });
+        }
+
+        function loadAllArticles() {
+            return new Promise(function(resolve, reject) {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = function() { resolve(req.result || []); };
+                req.onerror = function() { reject(req.error); };
+            });
+        }
+
+        function mergeArticles(newArticles) {
+            return new Promise(function(resolve, reject) {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                let added = 0;
+
+                newArticles.forEach(function(article) {
+                    if (!article.link) return;
+                    const getReq = store.get(article.link);
+                    getReq.onsuccess = function() {
+                        if (!getReq.result) {
+                            store.put(article);
+                            added++;
+                        } else {
+                            // Backfill missing content/paragraphs on existing records
+                            var existing = getReq.result;
+                            var updated = false;
+                            if (!existing.paragraphs && article.paragraphs) {
+                                existing.paragraphs = article.paragraphs;
+                                updated = true;
+                            }
+                            if (!existing.description && article.description) {
+                                existing.description = article.description;
+                                updated = true;
+                            }
+                            if (!existing.content && article.content) {
+                                existing.content = article.content;
+                                updated = true;
+                            }
+                            if (updated) store.put(existing);
+                        }
+                    };
+                });
+
+                tx.oncomplete = function() { resolve(added); };
+                tx.onerror = function() { reject(tx.error); };
+            });
+        }
+
+        function clearAllArticles() {
+            return new Promise(function(resolve, reject) {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.clear();
+                req.onsuccess = function() { resolve(); };
+                req.onerror = function() { reject(req.error); };
+            });
+        }
+
+        function updateArchiveStats() {
+            if (!db) return;
+            loadAllArticles().then(function(all) {
+                const arrow = archiveStats.querySelector('.expand-arrow');
+                const isOpen = arrow && arrow.classList.contains('open');
+                archiveStats.innerHTML = all.length + ' articles in archive' +
+                    (all.length > 0 ? ' <span class="expand-arrow' + (isOpen ? ' open' : '') + '">&#9654;</span>' : '');
+
+                // Build article list
+                const listEl = document.getElementById('articleList');
+                const topListEl = document.getElementById('topArticleList');
+                const topArrow = document.getElementById('topPillArrow');
+                if (all.length === 0) {
+                    listEl.style.display = 'none';
+                    listEl.innerHTML = '';
+                    topListEl.style.display = 'none';
+                    topListEl.innerHTML = '';
+                    topArrow.style.display = 'none';
+                    return;
+                }
+                // Sort by date descending (parse into Date objects for correct chronological order)
+                all.sort(function(a, b) {
+                    var da = a.date ? new Date(a.date).getTime() : 0;
+                    var db = b.date ? new Date(b.date).getTime() : 0;
+                    if (isNaN(da)) da = 0;
+                    if (isNaN(db)) db = 0;
+                    return db - da;
+                });
+                var listHTML = all.map(function(a) {
+                    var title = escapeHTML(a.title || 'Untitled');
+                    var date = a.date ? '<span class="archive-date">' + escapeHTML(a.date) + '</span>' : '';
+                    var link = a.link ? '<a href="' + escapeHTML(a.link) + '" target="_blank" rel="noopener" title="' + title + '">' + title + '</a>' : '<span>' + title + '</span>';
+                    return '<div class="archive-item">' + link + date + '</div>';
+                }).join('');
+                listEl.innerHTML = listHTML;
+                topListEl.innerHTML = listHTML;
+                topArrow.style.display = 'inline-block';
+            });
+        }
+
+        window.toggleArticleList = function() {
+            const listEl = document.getElementById('articleList');
+            const arrow = archiveStats.querySelector('.expand-arrow');
+            if (!arrow) return;
+            const isOpen = listEl.style.display !== 'none';
+            listEl.style.display = isOpen ? 'none' : 'block';
+            arrow.classList.toggle('open', !isOpen);
+        };
+
+        window.toggleTopArticleList = function() {
+            const listEl = document.getElementById('topArticleList');
+            const arrow = document.getElementById('topPillArrow');
+            if (!arrow || arrow.style.display === 'none') return;
+            const isOpen = listEl.style.display !== 'none';
+            listEl.style.display = isOpen ? 'none' : 'block';
+            arrow.classList.toggle('open', !isOpen);
+        };
+
+        // =====================================================
+        // Init
+        // =====================================================
+        async function init() {
+            // Open IndexedDB
+            try {
+                db = await openDB();
+            } catch(e) {
+                console.error('IndexedDB failed:', e);
+            }
+
+            // Set default URL if none saved
+            if (!localStorage.getItem(URL_KEY)) {
+                localStorage.setItem(URL_KEY, DEFAULT_FEED_URL);
+            }
+
+            feedUrlInput.value = localStorage.getItem(URL_KEY);
+
+            // Load saved API key
+            const savedKey = localStorage.getItem(API_KEY_KEY);
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+            }
+
+            // Load ElevenLabs settings
+            const savedElevenKey = localStorage.getItem(ELEVEN_KEY_KEY);
+            if (savedElevenKey) elevenKeyInput.value = savedElevenKey;
+            const savedVoice = localStorage.getItem(ELEVEN_VOICE_KEY);
+            if (savedVoice) elevenVoiceInput.value = savedVoice;
+            elevenAutoplay.checked = localStorage.getItem(ELEVEN_AUTOPLAY_KEY) === 'true';
+
+            // Migrate old localStorage cache to IndexedDB
+            try {
+                const oldCache = localStorage.getItem('ben-chat-feed-cache');
+                if (oldCache && db) {
+                    const data = JSON.parse(oldCache);
+                    if (data.articles && data.articles.length > 0) {
+                        await mergeArticles(data.articles);
+                        localStorage.removeItem('ben-chat-feed-cache');
+                    }
+                }
+            } catch(e) {}
+
+            // Load articles from IndexedDB
+            if (db) {
+                articles = await loadAllArticles();
+            }
+
+            if (articles.length > 0) {
+                updateStatus('loaded', articles.length + ' articles in archive', articles.length);
+                buildTopicChips();
+            } else {
+                updateStatus('empty', 'Click Refresh to load the feed');
+            }
+
+            updateRefreshButton();
+            updateArchiveStats();
+        }
+
+        // =====================================================
+        // Refresh cooldown
+        // =====================================================
+        function getCacheAge() {
+            const last = parseInt(localStorage.getItem(LAST_FETCH_KEY) || '0');
+            return Date.now() - last;
+        }
+
+        function canRefresh() {
+            return getCacheAge() >= REFRESH_COOLDOWN;
+        }
+
+        function updateRefreshButton() {
+            const age = getCacheAge();
+            if (age < REFRESH_COOLDOWN) {
+                const remaining = Math.ceil((REFRESH_COOLDOWN - age) / 60000);
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = 'Cooldown: ' + remaining + 'm';
+                setTimeout(updateRefreshButton, 60000);
+            } else {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Refresh Feed';
+            }
+        }
+
+        // --- Status ---
+        function updateStatus(state, text, count) {
+            statusDot.className = 'status-dot ' + state;
+            statusText.textContent = text;
+            if (count !== undefined) {
+                articleCount.textContent = ' (' + count + ' articles)';
+            } else {
+                articleCount.textContent = '';
+            }
+        }
+
+        // =====================================================
+        // Settings
+        // =====================================================
+        window.toggleSetup = function() {
+            setupPanel.classList.toggle('visible');
+            updateArchiveStats();
+        };
+
+        window.saveFeedUrl = function() {
+            const url = feedUrlInput.value.trim();
+            if (!url) return;
+            localStorage.setItem(URL_KEY, url);
+            setupPanel.classList.remove('visible');
+            refreshFeed();
+        };
+
+        window.saveApiKey = function() {
+            const key = apiKeyInput.value.trim();
+            if (!key) return;
+            localStorage.setItem(API_KEY_KEY, key);
+            addBenMessage('API key saved. Your responses will now be powered by AI.');
+        };
+
+        window.saveElevenLabsSettings = function() {
+            const key = elevenKeyInput.value.trim();
+            if (key) localStorage.setItem(ELEVEN_KEY_KEY, key);
+            const voice = elevenVoiceInput.value.trim();
+            localStorage.setItem(ELEVEN_VOICE_KEY, voice || DEFAULT_VOICE_ID);
+            localStorage.setItem(ELEVEN_AUTOPLAY_KEY, elevenAutoplay.checked ? 'true' : 'false');
+            addBenMessage('Voice settings saved.' + (elevenAutoplay.checked ? ' Auto-play is enabled.' : ''));
+        };
+
+        window.exportArchive = async function() {
+            const all = await loadAllArticles();
+            const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'stratechery-archive-' + new Date().toISOString().slice(0, 10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        function normalizeImportedArticles(rawList) {
+            return rawList.map(function(item) {
+                // Already in internal format (has link + title)
+                if (item.link && item.title) return item;
+                // Stratechery scraped JSON format
+                if (item['wp-block-post-title'] || item['_container']) {
+                    var title = item['wp-block-post-title'] || item['_container'] || '';
+                    var link = item['wp-block-post-title_link'] || item['_container_link'] || '';
+                    var date = item['wp-block-post-date'] || '';
+                    // Extract article body content (p, h2, h3, blockquote, li, etc.)
+                    var contentParts = [];
+                    Object.keys(item).forEach(function(key) {
+                        if (key.match(/^(p|h[2-6]|blockquote|li|ol|ul|figcaption)(_\d+)?$/) && item[key]) {
+                            contentParts.push(item[key]);
+                        }
+                    });
+                    var result = { title: title, link: link, date: date };
+                    if (contentParts.length > 0) {
+                        var fullText = contentParts.join('\n\n');
+                        result.content = fullText;
+                        result.description = fullText.substring(0, 300);
+                        result.paragraphs = splitIntoParagraphs(fullText);
+                    }
+                    return result;
+                }
+                return item;
+            }).filter(function(a) { return a.link; });
+        }
+
+        window.importArchive = async function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const rawList = Array.isArray(data) ? data : (data.articles || []);
+                const importedArticles = normalizeImportedArticles(rawList);
+                if (importedArticles.length === 0) {
+                    addBenMessage('No articles found in that file. Expected a JSON array of articles or an object with an "articles" key.');
+                    return;
+                }
+                const added = await mergeArticles(importedArticles);
+                articles = await loadAllArticles();
+                updateStatus('loaded', 'Imported ' + added + ' new articles', articles.length);
+                updateArchiveStats();
+                addBenMessage('Imported <strong>' + added + ' new articles</strong> from file. Total archive: <strong>' + articles.length + ' articles</strong>. Ask me anything.');
+            } catch (e) {
+                addBenMessage('Failed to import: ' + e.message);
+            }
+            input.value = '';
+        };
+
+        window.clearArchive = async function() {
+            if (!confirm('This will delete all archived articles. Are you sure?')) return;
+            await clearAllArticles();
+            articles = [];
+            updateStatus('empty', 'Archive cleared');
+            updateArchiveStats();
+            addBenMessage('Archive cleared.');
+        };
+
+        // =====================================================
+        // Fetch RSS
+        // =====================================================
+        window.refreshFeed = async function() {
+            const feedUrl = localStorage.getItem(URL_KEY);
+            if (!feedUrl) {
+                setupPanel.classList.add('visible');
+                addBenMessage('Please set your Stratechery RSS feed URL in Settings first.');
+                return;
+            }
+
+            if (!canRefresh() && articles.length > 0) {
+                addBenMessage('Feed was refreshed recently. Please wait for the cooldown to expire.');
+                return;
+            }
+
+            updateStatus('loading', 'Fetching feed...');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Fetching...';
+
+            const errors = [];
+            let fetchedArticles = [];
+
+            // Try each CORS proxy
+            for (let i = 0; i < CORS_PROXIES.length; i++) {
+                const proxy = CORS_PROXIES[i];
+                try {
+                    const proxyUrl = proxy.url(feedUrl);
+                    updateStatus('loading', 'Trying ' + proxy.name + '...');
+
+                    const resp = await fetch(proxyUrl, {
+                        headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, application/json, */*' }
+                    });
+
+                    if (!resp.ok) {
+                        let body = '';
+                        try { body = (await resp.text()).substring(0, 120); } catch(ignored) {}
+                        errors.push(proxy.name + ': HTTP ' + resp.status + ' ' + resp.statusText + (body ? ' — ' + body : ''));
+                        continue;
+                    }
+
+                    if (proxy.rss2json) {
+                        const json = await resp.json();
+                        if (json.status === 'ok' && json.items && json.items.length > 0) {
+                            fetchedArticles = parseRSS2JSON(json);
+                            if (fetchedArticles.length > 0) break;
+                        }
+                        errors.push(proxy.name + ': ' + (json.message || 'no items'));
+                        continue;
+                    }
+
+                    let xml;
+                    if (proxy.json) {
+                        const json = await resp.json();
+                        xml = json.contents;
+                    } else {
+                        xml = await resp.text();
+                    }
+
+                    if (xml && xml.length > 100) {
+                        fetchedArticles = parseRSS(xml);
+                        if (fetchedArticles.length > 0) break;
+                        errors.push(proxy.name + ': XML fetched but 0 articles parsed');
+                    } else {
+                        errors.push(proxy.name + ': empty/short response');
+                    }
+                } catch(e) {
+                    errors.push(proxy.name + ': ' + (e.message || 'network error'));
+                }
+            }
+
+            // Fallback: direct fetch
+            if (fetchedArticles.length === 0) {
+                try {
+                    updateStatus('loading', 'Trying direct fetch...');
+                    const resp = await fetch(feedUrl);
+                    if (resp.ok) {
+                        const xml = await resp.text();
+                        if (xml && xml.length > 100) {
+                            fetchedArticles = parseRSS(xml);
+                        }
+                    }
+                    if (fetchedArticles.length === 0) errors.push('direct: failed or empty');
+                } catch(e) {
+                    errors.push('direct: ' + (e.message || 'blocked'));
+                }
+            }
+
+            // Process results
+            if (fetchedArticles.length > 0) {
+                localStorage.setItem(LAST_FETCH_KEY, Date.now().toString());
+
+                // Merge into IndexedDB archive
+                if (db) {
+                    const added = await mergeArticles(fetchedArticles);
+                    articles = await loadAllArticles();
+                    updateStatus('loaded', 'Added ' + added + ' new articles', articles.length);
+                    addBenMessage('Feed refreshed! Added <strong>' + added + ' new articles</strong> to the archive. Total: <strong>' + articles.length + ' articles</strong>. Ask me anything.');
+                } else {
+                    articles = fetchedArticles;
+                    updateStatus('loaded', 'Feed loaded', articles.length);
+                    addBenMessage('Feed loaded with ' + articles.length + ' articles.');
+                }
+
+                updateRefreshButton();
+                buildTopicChips();
+                updateArchiveStats();
+                return;
+            }
+
+            // All methods failed
+            updateStatus('empty', 'All fetch methods failed');
+            refreshBtn.textContent = 'Retry';
+            refreshBtn.disabled = false;
+
+            let errorDetail = '<strong>Could not fetch the RSS feed.</strong> Tried ' + errors.length + ' methods, all failed:<br><br>';
+            errorDetail += '<div style="font-size:0.85em;color:#b91c1c;font-family:monospace;background:rgba(239,68,68,0.08);padding:10px;border-radius:6px;margin-bottom:10px;">';
+            errors.forEach(function(e, i) { errorDetail += (i + 1) + '. ' + escapeHTML(e) + '<br>'; });
+            errorDetail += '</div>';
+            errorDetail += '<div style="font-size:0.85em;color:#888;">Feed URL: ' + escapeHTML(feedUrl) + '</div><br>';
+            errorDetail += '<strong>Workaround:</strong> Open Settings, scroll down to "Manual Paste", open the RSS URL directly in your browser, copy the page source (Ctrl+U then Ctrl+A, Ctrl+C), and paste it in.';
+            addBenMessage(errorDetail);
+        };
+
+        // =====================================================
+        // RSS Parsing
+        // =====================================================
+        function parseRSS2JSON(json) {
+            const parsed = [];
+            (json.items || []).forEach(function(item) {
+                const textContent = stripHTML(item.content || item.description || '');
+                const descText = stripHTML(item.description || '');
+                if (item.title || textContent) {
+                    parsed.push({
+                        title: item.title || 'Untitled',
+                        description: descText.substring(0, 300),
+                        content: textContent,
+                        date: item.pubDate ? formatDate(item.pubDate) : '',
+                        link: item.link || '',
+                        categories: item.categories || [],
+                        paragraphs: splitIntoParagraphs(textContent)
+                    });
+                }
+            });
+            return parsed;
+        }
+
+        window.loadPastedFeed = async function() {
+            const pasteArea = document.getElementById('pasteXml');
+            const xml = pasteArea.value.trim();
+            if (!xml) {
+                addBenMessage('Please paste the RSS feed XML content first.');
+                return;
+            }
+
+            const parsed = parseRSS(xml);
+            if (parsed.length === 0) {
+                addBenMessage('Could not parse any articles from the pasted content. Make sure you copied the full XML source of the RSS feed (try Ctrl+U in the browser to view source, then copy all).');
+                return;
+            }
+
+            if (db) {
+                const added = await mergeArticles(parsed);
+                articles = await loadAllArticles();
+                addBenMessage('Added <strong>' + added + ' new articles</strong> from paste. Total archive: <strong>' + articles.length + '</strong>.');
+            } else {
+                articles = parsed;
+                addBenMessage('Feed loaded with ' + articles.length + ' articles from pasted content.');
+            }
+
+            localStorage.setItem(LAST_FETCH_KEY, Date.now().toString());
+            updateStatus('loaded', articles.length + ' articles in archive', articles.length);
+            updateRefreshButton();
+            buildTopicChips();
+            updateArchiveStats();
+            setupPanel.classList.remove('visible');
+            pasteArea.value = '';
+        };
+
+        function parseRSS(xml) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(xml, 'text/xml');
+                const items = doc.querySelectorAll('item');
+                const parsed = [];
+
+                items.forEach(function(item) {
+                    const title = getTagText(item, 'title');
+                    const description = getTagText(item, 'description');
+                    const contentEncoded = getTagText(item, 'content\\:encoded') || getTagText(item, 'content:encoded');
+                    const pubDate = getTagText(item, 'pubDate');
+                    const link = getTagText(item, 'link');
+                    const categories = [];
+                    item.querySelectorAll('category').forEach(function(cat) {
+                        categories.push(cat.textContent.trim());
+                    });
+
+                    const rawContent = contentEncoded || description || '';
+                    const textContent = stripHTML(rawContent);
+                    const descText = stripHTML(description || '');
+
+                    if (title || textContent) {
+                        parsed.push({
+                            title: title || 'Untitled',
+                            description: descText.substring(0, 300),
+                            content: textContent,
+                            date: pubDate ? formatDate(pubDate) : '',
+                            link: link || '',
+                            categories: categories,
+                            paragraphs: splitIntoParagraphs(textContent)
+                        });
+                    }
+                });
+
+                return parsed;
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function getTagText(parent, tagName) {
+            const el = parent.querySelector(tagName) || parent.getElementsByTagName(tagName)[0];
+            if (!el) return '';
+            return el.textContent || el.innerHTML || '';
+        }
+
+        function stripHTML(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.textContent || div.innerText || '';
+        }
+
+        function formatDate(dateStr) {
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function splitIntoParagraphs(text) {
+            return text.split(/\n\n+|\.\s+/)
+                .map(function(p) { return p.trim(); })
+                .filter(function(p) { return p.length > 40; });
+        }
+
+        // =====================================================
+        // Search Engine
+        // =====================================================
+        function extractKeywords(query) {
+            return query.toLowerCase()
+                .replace(/[^\w\s]/g, '')
+                .split(/\s+/)
+                .filter(function(w) { return w.length > 1 && !STOP_WORDS.has(w); });
+        }
+
+        function scoreParagraph(paragraph, keywords) {
+            const lower = paragraph.toLowerCase();
+            let score = 0;
+            let matched = 0;
+
+            keywords.forEach(function(kw) {
+                const regex = new RegExp('\\b' + escapeRegex(kw) + '\\w*', 'gi');
+                const matches = lower.match(regex);
+                if (matches) {
+                    score += matches.length;
+                    matched++;
+                }
+            });
+
+            if (matched > 1) score *= (1 + matched * 0.3);
+            if (paragraph.length > 1000) score *= 0.9;
+
+            return { score: score, matched: matched };
+        }
+
+        function escapeRegex(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function search(query, maxResults) {
+            if (articles.length === 0) return [];
+            const keywords = extractKeywords(query);
+            if (keywords.length === 0) return [];
+
+            const results = [];
+
+            articles.forEach(function(article) {
+                const titleScore = scoreParagraph(article.title, keywords);
+                let bestPara = null;
+                let bestParaScore = 0;
+
+                (article.paragraphs || []).forEach(function(para) {
+                    const ps = scoreParagraph(para, keywords);
+                    if (ps.score > bestParaScore) {
+                        bestParaScore = ps.score;
+                        bestPara = para;
+                    }
+                });
+
+                const descScore = scoreParagraph(article.description || '', keywords);
+                const totalScore = (titleScore.score * 3) + bestParaScore + descScore.score;
+
+                if (totalScore > 0) {
+                    results.push({
+                        article: article,
+                        score: totalScore,
+                        bestParagraph: bestPara || article.description || '',
+                        titleMatch: titleScore.score > 0
+                    });
+                }
+            });
+
+            results.sort(function(a, b) { return b.score - a.score; });
+            return results.slice(0, maxResults || 5);
+        }
+
+        function escapeHTML(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        // =====================================================
+        // Chat Messages
+        // =====================================================
+        function isNearBottom() {
+            return chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight < 80;
+        }
+
+        function scrollToBottomIfNear() {
+            if (isNearBottom()) {
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        }
+
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'chat-message user';
+            div.innerHTML = '<div class="msg-sender">You</div><div class="msg-bubble">' + escapeHTML(text) + '</div>';
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function addBenMessage(html) {
+            const div = document.createElement('div');
+            div.className = 'chat-message ben';
+            div.innerHTML = '<div class="msg-sender">Stratechery</div><div class="msg-bubble">' + html + '</div>';
+            chatWindow.appendChild(div);
+            scrollToBottomIfNear();
+        }
+
+        // Creates a streaming message element, returns an object to append text
+        function addStreamingMessage() {
+            const div = document.createElement('div');
+            div.className = 'chat-message ben';
+            const sender = document.createElement('div');
+            sender.className = 'msg-sender';
+            sender.textContent = 'Stratechery';
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble';
+            bubble.innerHTML = '<span class="streaming-cursor" style="display:inline-block;width:6px;height:14px;background:#FAA634;border-radius:1px;animation:pulse 0.8s infinite;vertical-align:text-bottom;"></span>';
+            div.appendChild(sender);
+            div.appendChild(bubble);
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            let fullText = '';
+            return {
+                append: function(chunk) {
+                    fullText += chunk;
+                    bubble.innerHTML = formatAIResponse(fullText) +
+                        '<span class="streaming-cursor" style="display:inline-block;width:6px;height:14px;background:#FAA634;border-radius:1px;animation:pulse 0.8s infinite;vertical-align:text-bottom;margin-left:2px;"></span>';
+                    scrollToBottomIfNear();
+                },
+                finish: function(sources) {
+                    let html = formatAIResponse(fullText);
+                    if (sources && sources.length > 0) {
+                        html += '<div class="article-ref" style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.08);">';
+                        html += '<strong style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#999;">Sources</strong><br>';
+                        sources.forEach(function(s) {
+                            var linkUrl = s.link ? escapeHTML(s.link) : '';
+                            if (linkUrl) {
+                                html += '<a href="' + linkUrl + '" target="_blank" rel="noopener" class="article-title">' + escapeHTML(s.title) + '</a>';
+                            } else {
+                                html += '<span class="article-title">' + escapeHTML(s.title) + '</span>';
+                            }
+                            if (s.date) html += ' <span class="article-date">(' + escapeHTML(s.date) + ')</span>';
+                            html += '<br>';
+                        });
+                        html += '</div>';
+                    }
+                    bubble.innerHTML = html;
+
+                    // Add speaker button if ElevenLabs is configured
+                    var speakerBtn = createSpeakerButton(fullText);
+                    if (speakerBtn) {
+                        bubble.appendChild(speakerBtn);
+                        // Auto-play if enabled
+                        var config = getElevenLabsConfig();
+                        if (config && config.autoPlay) {
+                            playTTS(fullText, speakerBtn);
+                        }
+                    }
+
+                    scrollToBottomIfNear();
+                },
+                getText: function() { return fullText; }
+            };
+        }
+
+        function formatAIResponse(text) {
+            // Process code blocks first (before escaping)
+            var codeBlocks = [];
+            text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function(m, lang, code) {
+                codeBlocks.push('<pre><code>' + escapeHTML(code.replace(/\n$/, '')) + '</code></pre>');
+                return '\x00CODEBLOCK' + (codeBlocks.length - 1) + '\x00';
+            });
+
+            // Escape remaining HTML
+            let html = escapeHTML(text);
+
+            // Restore code blocks
+            html = html.replace(/\x00CODEBLOCK(\d+)\x00/g, function(m, i) {
+                return codeBlocks[parseInt(i)];
+            });
+
+            // Strip image markdown ![alt](url)
+            html = html.replace(/!\[([^\]]*)\]\([^)]+\)/g, '');
+
+            // Links [text](url)
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+            // Headings (must be at line start)
+            html = html.replace(/(^|\n)#### (.+)/g, '$1<h4>$2</h4>');
+            html = html.replace(/(^|\n)### (.+)/g, '$1<h3>$2</h3>');
+            html = html.replace(/(^|\n)## (.+)/g, '$1<h2>$2</h2>');
+            html = html.replace(/(^|\n)# (.+)/g, '$1<h1>$2</h1>');
+
+            // Bold and italic
+            html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Blockquotes
+            html = html.replace(/(^|\n)&gt; (.+)/g, '$1<blockquote>$2</blockquote>');
+
+            // Horizontal rules
+            html = html.replace(/(^|\n)---(\n|$)/g, '$1<hr>$2');
+
+            // Unordered lists: gather consecutive "- " lines
+            html = html.replace(/(^|\n)(- .+(?:\n- .+)*)/g, function(m, pre, block) {
+                var items = block.split('\n').map(function(line) {
+                    return '<li>' + line.replace(/^- /, '') + '</li>';
+                }).join('');
+                return pre + '<ul>' + items + '</ul>';
+            });
+
+            // Ordered lists: gather consecutive "1. " lines
+            html = html.replace(/(^|\n)(\d+\. .+(?:\n\d+\. .+)*)/g, function(m, pre, block) {
+                var items = block.split('\n').map(function(line) {
+                    return '<li>' + line.replace(/^\d+\. /, '') + '</li>';
+                }).join('');
+                return pre + '<ol>' + items + '</ol>';
+            });
+
+            // Wrap remaining plain text lines in paragraphs, convert double newlines to paragraph breaks
+            html = html.replace(/\n{2,}/g, '</p><p>');
+            html = html.replace(/\n/g, '<br>');
+            html = '<p>' + html + '</p>';
+
+            // Clean up empty paragraphs and paragraphs wrapping block elements
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            html = html.replace(/<p>(<(?:h[1-4]|ul|ol|pre|blockquote|hr))/g, '$1');
+            html = html.replace(/(<\/(?:h[1-4]|ul|ol|pre|blockquote)>|<hr>)<\/p>/g, '$1');
+
+            return html;
+        }
+
+        // =====================================================
+        // ElevenLabs TTS
+        // =====================================================
+        function getElevenLabsConfig() {
+            const key = localStorage.getItem(ELEVEN_KEY_KEY);
+            if (!key) return null;
+            return {
+                apiKey: key,
+                voiceId: localStorage.getItem(ELEVEN_VOICE_KEY) || DEFAULT_VOICE_ID,
+                autoPlay: localStorage.getItem(ELEVEN_AUTOPLAY_KEY) === 'true'
+            };
+        }
+
+        function createSpeakerButton(text) {
+            const config = getElevenLabsConfig();
+            if (!config) return null;
+
+            const btn = document.createElement('button');
+            btn.className = 'tts-btn';
+            btn.innerHTML = '&#x1f50a; Listen';
+            btn.onclick = function() { playTTS(text, btn); };
+            return btn;
+        }
+
+        async function playTTS(text, btn) {
+            const config = getElevenLabsConfig();
+            if (!config) return;
+
+            // Stop any currently playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+                // Reset all playing buttons
+                document.querySelectorAll('.tts-btn.playing').forEach(function(b) {
+                    b.classList.remove('playing');
+                    b.innerHTML = '&#x1f50a; Listen';
+                });
+            }
+
+            // If this button was already playing, just stop
+            if (btn.dataset.playing === 'true') {
+                btn.dataset.playing = '';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '&#x23f3; Loading...';
+
+            try {
+                // Strip markdown/html for cleaner speech
+                var cleanText = text
+                    .replace(/```[\s\S]*?```/g, '')
+                    .replace(/\*\*(.+?)\*\*/g, '$1')
+                    .replace(/\*(.+?)\*/g, '$1')
+                    .replace(/#{1,4}\s*/g, '')
+                    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                    .replace(/`([^`]+)`/g, '$1')
+                    .replace(/>\s*/g, '')
+                    .replace(/---/g, '')
+                    .trim();
+
+                // ElevenLabs has a limit; truncate if very long
+                if (cleanText.length > 4500) {
+                    cleanText = cleanText.substring(0, 4500) + '...';
+                }
+
+                const resp = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + config.voiceId + '/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'xi-api-key': config.apiKey
+                    },
+                    body: JSON.stringify({
+                        text: cleanText,
+                        model_id: 'eleven_turbo_v2_5',
+                        voice_settings: {
+                            stability: 0.45,
+                            similarity_boost: 0.8,
+                            style: 0.55,
+                            use_speaker_boost: true
+                        }
+                    })
+                });
+
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    btn.disabled = false;
+                    btn.innerHTML = '&#x1f50a; Listen';
+                    if (resp.status === 401) {
+                        addBenMessage('ElevenLabs API key is invalid. Update it in Settings.');
+                    } else {
+                        addBenMessage('Voice error: HTTP ' + resp.status + '. ' + escapeHTML(errText.substring(0, 150)));
+                    }
+                    return;
+                }
+
+                const audioBlob = await resp.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.playbackRate = 0.8; // 20% slower
+                currentAudio = audio;
+
+                btn.disabled = false;
+                btn.classList.add('playing');
+                btn.innerHTML = '&#x23f9; Stop';
+                btn.dataset.playing = 'true';
+
+                audio.onended = function() {
+                    btn.classList.remove('playing');
+                    btn.innerHTML = '&#x1f50a; Listen';
+                    btn.dataset.playing = '';
+                    currentAudio = null;
+                    URL.revokeObjectURL(audioUrl);
+                };
+
+                audio.play();
+            } catch(e) {
+                btn.disabled = false;
+                btn.innerHTML = '&#x1f50a; Listen';
+                addBenMessage('Voice playback failed: ' + escapeHTML(e.message));
+            }
+        }
+
+        // =====================================================
+        // OpenAI Integration
+        // =====================================================
+        async function chatWithAI(query, searchResults) {
+            const apiKey = localStorage.getItem(API_KEY_KEY);
+            if (!apiKey) return null;
+
+            // Build context from top search results
+            let context = '';
+            const sources = [];
+            searchResults.forEach(function(r, i) {
+                const article = r.article;
+                sources.push({ title: article.title, date: article.date, link: article.link });
+
+                var excerpt;
+                if (r.titleMatch && article.content) {
+                    // Strong title match: send full article content so AI can summarize
+                    excerpt = article.content;
+                    var cap = 6000;
+                    if (excerpt.length > cap) excerpt = excerpt.substring(0, cap) + '...';
+                } else if (r.titleMatch && article.paragraphs && article.paragraphs.length > 0) {
+                    // Title match with paragraphs but no content field
+                    excerpt = article.paragraphs.join('\n\n');
+                    if (excerpt.length > 6000) excerpt = excerpt.substring(0, 6000) + '...';
+                } else {
+                    // Keyword match: use best paragraph or description
+                    excerpt = r.bestParagraph || article.content || article.description || '';
+                    if (excerpt.length > 1500) excerpt = excerpt.substring(0, 1500) + '...';
+                }
+                context += '\n\n---\nArticle ' + (i + 1) + ': "' + article.title + '" (' + article.date + ')\n' + excerpt;
+            });
+
+            const prefs = getFormatPreferences();
+            var formatInstructions = 'Keep your response to approximately ' + prefs.wordCount + ' words. ';
+            if (prefs.bullets) {
+                formatInstructions += 'Format your response as bullet points. ';
+            }
+
+            const systemPrompt = 'You are an AI assistant that helps users understand Ben Thompson\'s analysis from Stratechery. ' +
+                'Answer the user\'s question based on the article excerpts provided below. ' +
+                'Synthesize insights from across the excerpts into a coherent, conversational answer. ' +
+                'Present the analysis naturally as if explaining Ben\'s views. ' +
+                'If the excerpts don\'t fully address the question, say so honestly. ' +
+                formatInstructions +
+                'Use Ben\'s frameworks and terminology where appropriate (e.g., Aggregation Theory, commoditization, integration). ' +
+                'Do not make up information that isn\'t in the excerpts.\n\n' +
+                'ARTICLE EXCERPTS:' + context;
+
+            const stream = addStreamingMessage();
+
+            try {
+                const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-5.2',
+                        messages: [
+                            { role: 'system', content: systemPrompt }
+                        ].concat(conversationHistory).concat([
+                            { role: 'user', content: query }
+                        ]),
+                        stream: true,
+                        max_completion_tokens: 1000
+                    })
+                });
+
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    stream.finish();
+                    if (resp.status === 401) {
+                        addBenMessage('OpenAI API key is invalid. Please update it in Settings.');
+                    } else {
+                        addBenMessage('OpenAI API error: HTTP ' + resp.status + '. ' + escapeHTML(errText.substring(0, 200)));
+                    }
+                    return;
+                }
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                        const data = trimmed.slice(6);
+                        if (data === '[DONE]') break;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content;
+                            if (content) {
+                                stream.append(content);
+                            }
+                        } catch(e) {}
+                    }
+                }
+
+                stream.finish(sources);
+
+                // Record this exchange in conversation history (keep last 3 pairs)
+                conversationHistory.push({ role: 'user', content: query });
+                conversationHistory.push({ role: 'assistant', content: stream.getText() });
+                while (conversationHistory.length > 6) {
+                    conversationHistory.shift();
+                }
+            } catch(e) {
+                stream.finish();
+                addBenMessage('Failed to connect to OpenAI: ' + escapeHTML(e.message));
+            }
+        }
+
+        // =====================================================
+        // Send Message
+        // =====================================================
+        window.sendMessage = async function() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            addUserMessage(text);
+
+            if (articles.length === 0) {
+                addBenMessage('I don\'t have any articles loaded yet. Please load the RSS feed first using the Refresh button above, or set your feed URL in Settings.');
+                return;
+            }
+
+            const results = search(text, 5);
+
+            if (results.length === 0) {
+                addBenMessage('I couldn\'t find any articles matching that topic in the archive. Try different keywords or browse the topics below.');
+                return;
+            }
+
+            // If we have an API key, use AI response
+            const apiKey = localStorage.getItem(API_KEY_KEY);
+            if (apiKey) {
+                await chatWithAI(text, results);
+                return;
+            }
+
+            // Fallback: show raw search results (no API key)
+            let response = 'I found <strong>' + results.length + ' relevant articles</strong>:<br><br>';
+            results.forEach(function(r, i) {
+                let excerpt = r.bestParagraph || '';
+                if (excerpt.length > 400) excerpt = excerpt.substring(0, 400) + '...';
+                if (i > 0) response += '<br><br>';
+                response += '<div class="excerpt">' + escapeHTML(excerpt) + '</div>';
+                response += '<div class="article-ref">';
+                response += '<span class="article-title">' + escapeHTML(r.article.title) + '</span>';
+                if (r.article.date) response += ' <span class="article-date">(' + escapeHTML(r.article.date) + ')</span>';
+                response += '</div>';
+            });
+            response += '<br><div style="font-size:12px;color:#999;">Add your OpenAI API key in Settings for AI-powered conversational answers.</div>';
+            addBenMessage(response);
+        };
+
+        window.askQuestion = function(text) {
+            chatInput.value = text;
+            sendMessage();
+        };
+
+        // =====================================================
+        // Topic Chips
+        // =====================================================
+        function buildTopicChips() {
+            const topicFreq = {};
+            articles.forEach(function(a) {
+                (a.categories || []).forEach(function(cat) {
+                    const key = cat.toLowerCase().trim();
+                    if (key.length > 2 && key.length < 30) {
+                        topicFreq[key] = (topicFreq[key] || 0) + 1;
+                    }
+                });
+            });
+
+            const sorted = Object.keys(topicFreq).sort(function(a, b) { return topicFreq[b] - topicFreq[a]; });
+            const topTopics = sorted.slice(0, 6);
+
+            if (topTopics.length > 0) {
+                topicChips.innerHTML = '';
+                topTopics.forEach(function(topic) {
+                    const btn = document.createElement('button');
+                    btn.className = 'topic-chip';
+                    btn.textContent = topic;
+                    btn.onclick = function() { askQuestion(topic); };
+                    topicChips.appendChild(btn);
+                });
+            }
+        }
+
+        // --- Format chips ---
+        window.toggleFormatChip = function(chip) {
+            const group = chip.dataset.group;
+            if (group === 'words') {
+                // Radio behavior: one active at a time, must have one selected
+                document.querySelectorAll('.format-chip[data-group="words"]').forEach(function(c) {
+                    c.classList.remove('active');
+                });
+                chip.classList.add('active');
+            } else {
+                // Toggle behavior for format chips
+                chip.classList.toggle('active');
+            }
+        };
+
+        function getFormatPreferences() {
+            var wordChip = document.querySelector('.format-chip[data-group="words"].active');
+            var wordCount = wordChip ? wordChip.dataset.value : '100';
+            var bullets = document.querySelector('.format-chip[data-group="format"][data-value="bullets"].active') !== null;
+            return { wordCount: wordCount, bullets: bullets };
+        }
+
+        // --- Auto-resize textarea ---
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // --- Fullscreen toggle ---
+        window.toggleFullscreen = function() {
+            const section = document.getElementById('chatSection');
+            const icon = document.getElementById('fullscreenIcon');
+            section.classList.toggle('fullscreen');
+            if (section.classList.contains('fullscreen')) {
+                // Switch to collapse/minimize icon
+                icon.innerHTML = '<path d="M4 14h6v6m10-10h-6V4m0 6l7-7M3 21l7-7"/>';
+                document.body.style.overflow = 'hidden';
+            } else {
+                // Switch back to expand icon
+                icon.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+                document.body.style.overflow = '';
+            }
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
+
+        // Escape key to exit fullscreen
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const section = document.getElementById('chatSection');
+                if (section.classList.contains('fullscreen')) {
+                    toggleFullscreen();
+                }
+            }
+        });
+
+        // --- Boot ---
+        init();
+    })();
+    </script>
+</body>
+</html>
