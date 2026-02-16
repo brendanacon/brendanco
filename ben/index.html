@@ -709,7 +709,7 @@
         <div class="setup-panel" id="setupPanel">
             <h3>Feed Setup</h3>
             <label for="feedUrl">Stratechery RSS Feed URL</label>
-            <input type="url" id="feedUrl" placeholder="https://stratechery.passport.online/feed/rss/..." />
+            <input type="password" id="feedUrl" placeholder="Paste your Stratechery RSS feed URL..." />
             <p class="hint">Your personal subscriber RSS URL from Stratechery. Stored locally in your browser only.</p>
             <button class="feed-btn primary" onclick="saveFeedUrl()">Save & Fetch</button>
 
@@ -826,7 +826,7 @@
         const ELEVEN_AUTOPLAY_KEY = 'ben-chat-elevenlabs-autoplay';
         const DEFAULT_VOICE_ID = 'F5BvNpkaTyWWSzDFXxgG';
         const REFRESH_COOLDOWN = 5 * 60 * 1000;        // 5 minutes
-        const DEFAULT_FEED_URL = 'https://stratechery.passport.online/feed/rss/CKPS49J7qPJbN4eYcQDpR';
+        // No default feed URL - must be entered by user and stored in localStorage only
         const CORS_PROXIES = [
             { name: 'cf-worker', url: url => 'https://rss-proxy.brendanaconnaughton.workers.dev/?url=' + encodeURIComponent(url), json: false },
             { name: 'allorigins-json', url: url => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url), json: true },
@@ -1024,12 +1024,14 @@
                 console.error('IndexedDB failed:', e);
             }
 
-            // Set default URL if none saved
-            if (!localStorage.getItem(URL_KEY)) {
-                localStorage.setItem(URL_KEY, DEFAULT_FEED_URL);
+            // Load saved feed URL, or prompt user to enter one
+            const savedFeedUrl = localStorage.getItem(URL_KEY);
+            if (savedFeedUrl) {
+                feedUrlInput.value = savedFeedUrl;
+            } else {
+                setupPanel.classList.add('visible');
+                addBenMessage('Welcome! Please enter your Stratechery RSS feed URL in Settings to get started. It will be stored locally in your browser only.');
             }
-
-            feedUrlInput.value = localStorage.getItem(URL_KEY);
 
             // Load saved API key
             const savedKey = localStorage.getItem(API_KEY_KEY);
