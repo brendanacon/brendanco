@@ -827,11 +827,13 @@
         const DEFAULT_VOICE_ID = 'F5BvNpkaTyWWSzDFXxgG';
         const REFRESH_COOLDOWN = 5 * 60 * 1000;        // 5 minutes
         // No default feed URL - must be entered by user and stored in localStorage only
+        const PROXY_TIMEOUT_MS = 12000; // 12s per proxy attempt
         const CORS_PROXIES = [
             { name: 'cf-worker', url: url => 'https://rss-proxy.brendanaconnaughton.workers.dev/?url=' + encodeURIComponent(url), json: false },
-            { name: 'allorigins-json', url: url => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url), json: true },
-            { name: 'allorigins-raw', url: url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url), json: false },
             { name: 'corsproxy', url: url => 'https://corsproxy.io/?' + encodeURIComponent(url), json: false },
+            { name: 'allorigins-raw', url: url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url), json: false },
+            { name: 'allorigins-json', url: url => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url), json: true },
+            { name: 'htmldriven', url: url => 'https://cors-proxy.htmldriven.com/?url=' + encodeURIComponent(url), json: false },
             { name: 'rss2json', url: url => 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url), rss2json: true },
         ];
 
@@ -1293,9 +1295,17 @@
                     const proxyUrl = proxy.url(feedUrl);
                     updateStatus('loading', 'Trying ' + proxy.name + '...');
 
-                    const resp = await fetch(proxyUrl, {
-                        headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, application/json, */*' }
-                    });
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(function() { controller.abort(); }, PROXY_TIMEOUT_MS);
+                    let resp;
+                    try {
+                        resp = await fetch(proxyUrl, {
+                            signal: controller.signal,
+                            headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, application/json, */*' }
+                        });
+                    } finally {
+                        clearTimeout(timeoutId);
+                    }
 
                     if (!resp.ok) {
                         let body = '';
@@ -1330,7 +1340,8 @@
                         errors.push(proxy.name + ': empty/short response');
                     }
                 } catch(e) {
-                    errors.push(proxy.name + ': ' + (e.message || 'network error'));
+                    var msg = e.name === 'AbortError' ? 'timed out after ' + (PROXY_TIMEOUT_MS / 1000) + 's' : (e.message || 'network error');
+                    errors.push(proxy.name + ': ' + msg);
                 }
             }
 
@@ -1338,7 +1349,14 @@
             if (fetchedArticles.length === 0) {
                 try {
                     updateStatus('loading', 'Trying direct fetch...');
-                    const resp = await fetch(feedUrl);
+                    const directController = new AbortController();
+                    const directTimeout = setTimeout(function() { directController.abort(); }, PROXY_TIMEOUT_MS);
+                    let resp;
+                    try {
+                        resp = await fetch(feedUrl, { signal: directController.signal });
+                    } finally {
+                        clearTimeout(directTimeout);
+                    }
                     if (resp.ok) {
                         const xml = await resp.text();
                         if (xml && xml.length > 100) {
