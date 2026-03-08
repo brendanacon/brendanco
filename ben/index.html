@@ -901,47 +901,96 @@
                 const tx = db.transaction(STORE_NAME, 'readonly');
                 const store = tx.objectStore(STORE_NAME);
                 const req = store.getAll();
-                req.onsuccess = function() { resolve(req.result || []); };
+                req.onsuccess = function() { resolve(deduplicateArticles(req.result || [])); };
                 req.onerror = function() { reject(req.error); };
             });
         }
 
+        // Returns a YYYY-MM-DD string for dedup keying (one article per day rule)
+        function articleDateKey(article) {
+            if (!article.date) return null;
+            try {
+                var d = new Date(article.date);
+                if (isNaN(d.getTime())) return null;
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            } catch(e) { return null; }
+        }
+
+        // Returns a content-length score to pick the richest duplicate
+        function articleContentScore(article) {
+            return (article.content || '').length + (article.description || '').length + ((article.paragraphs || []).join('').length);
+        }
+
+        // Deduplicate an array of articles: one per calendar day, keeping the richest
+        function deduplicateArticles(list) {
+            var byDate = {};
+            var noDates = [];
+            list.forEach(function(a) {
+                var dk = articleDateKey(a);
+                if (!dk) { noDates.push(a); return; }
+                if (!byDate[dk] || articleContentScore(a) > articleContentScore(byDate[dk])) {
+                    byDate[dk] = a;
+                }
+            });
+            return Object.values(byDate).concat(noDates);
+        }
+
         function mergeArticles(newArticles) {
             return new Promise(function(resolve, reject) {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                let added = 0;
+                // First load all existing articles so we can check by date too
+                var getAllReq = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+                getAllReq.onsuccess = function() {
+                    var existing = getAllReq.result || [];
+                    // Build lookup: dateKey -> existing article
+                    var existingByDate = {};
+                    existing.forEach(function(a) {
+                        var dk = articleDateKey(a);
+                        if (dk) existingByDate[dk] = a;
+                    });
 
-                newArticles.forEach(function(article) {
-                    if (!article.link) return;
-                    const getReq = store.get(article.link);
-                    getReq.onsuccess = function() {
-                        if (!getReq.result) {
-                            store.put(article);
-                            added++;
-                        } else {
-                            // Backfill missing content/paragraphs on existing records
-                            var existing = getReq.result;
-                            var updated = false;
-                            if (!existing.paragraphs && article.paragraphs) {
-                                existing.paragraphs = article.paragraphs;
-                                updated = true;
-                            }
-                            if (!existing.description && article.description) {
-                                existing.description = article.description;
-                                updated = true;
-                            }
-                            if (!existing.content && article.content) {
-                                existing.content = article.content;
-                                updated = true;
-                            }
-                            if (updated) store.put(existing);
-                        }
-                    };
-                });
+                    var tx = db.transaction(STORE_NAME, 'readwrite');
+                    var store = tx.objectStore(STORE_NAME);
+                    var added = 0;
 
-                tx.oncomplete = function() { resolve(added); };
-                tx.onerror = function() { reject(tx.error); };
+                    newArticles.forEach(function(article) {
+                        if (!article.link) return;
+                        var dk = articleDateKey(article);
+
+                        // Check exact link match first
+                        var getReq = store.get(article.link);
+                        getReq.onsuccess = function() {
+                            if (!getReq.result) {
+                                // No exact link match — check if we already have an article for this date
+                                if (dk && existingByDate[dk]) {
+                                    var dup = existingByDate[dk];
+                                    // Backfill richer content onto the existing record
+                                    var updated = false;
+                                    if (!dup.paragraphs && article.paragraphs) { dup.paragraphs = article.paragraphs; updated = true; }
+                                    if (!dup.description && article.description) { dup.description = article.description; updated = true; }
+                                    if (!dup.content && article.content) { dup.content = article.content; updated = true; }
+                                    if (updated) store.put(dup);
+                                    // Don't increment added — this is a duplicate day
+                                } else {
+                                    store.put(article);
+                                    added++;
+                                    if (dk) existingByDate[dk] = article;
+                                }
+                            } else {
+                                // Exact link exists — backfill missing content/paragraphs
+                                var rec = getReq.result;
+                                var updated = false;
+                                if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
+                                if (!rec.description && article.description) { rec.description = article.description; updated = true; }
+                                if (!rec.content && article.content) { rec.content = article.content; updated = true; }
+                                if (updated) store.put(rec);
+                            }
+                        };
+                    });
+
+                    tx.oncomplete = function() { resolve(added); };
+                    tx.onerror = function() { reject(tx.error); };
+                };
+                getAllReq.onerror = function() { reject(getAllReq.error); };
             });
         }
 
