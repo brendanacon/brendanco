@@ -1333,11 +1333,17 @@
                     }
 
                     if (xml && xml.length > 100) {
+                        const preview = xml.substring(0, 120).replace(/\s+/g, ' ').trim();
+                        const looksLikeHtml = /^\s*(<\!DOCTYPE|<html)/i.test(xml);
                         fetchedArticles = parseRSS(xml);
                         if (fetchedArticles.length > 0) break;
-                        errors.push(proxy.name + ': XML fetched but 0 articles parsed');
+                        if (looksLikeHtml) {
+                            errors.push(proxy.name + ': got HTML (login/redirect page) — "' + preview + '"');
+                        } else {
+                            errors.push(proxy.name + ': parsed 0 articles — response starts: "' + preview + '"');
+                        }
                     } else {
-                        errors.push(proxy.name + ': empty/short response');
+                        errors.push(proxy.name + ': empty/short response (' + (xml ? xml.length : 0) + ' chars)');
                     }
                 } catch(e) {
                     var msg = e.name === 'AbortError' ? 'timed out after ' + (PROXY_TIMEOUT_MS / 1000) + 's' : (e.message || 'network error');
@@ -1396,10 +1402,14 @@
             refreshBtn.textContent = 'Retry';
             refreshBtn.disabled = false;
 
+            const hasHtmlRedirect = errors.some(function(e) { return e.includes('login/redirect page'); });
             let errorDetail = '<strong>Could not fetch the RSS feed.</strong> Tried ' + errors.length + ' methods, all failed:<br><br>';
             errorDetail += '<div style="font-size:0.85em;color:#b91c1c;font-family:monospace;background:rgba(239,68,68,0.08);padding:10px;border-radius:6px;margin-bottom:10px;">';
             errors.forEach(function(e, i) { errorDetail += (i + 1) + '. ' + escapeHTML(e) + '<br>'; });
             errorDetail += '</div>';
+            if (hasHtmlRedirect) {
+                errorDetail += '<div style="font-size:0.9em;color:#b45309;background:rgba(251,191,36,0.1);padding:8px;border-radius:6px;margin-bottom:10px;">⚠️ Proxies are receiving an HTML login/redirect page instead of RSS XML. Your RSS token may have expired — try opening the feed URL directly in your browser to confirm it still works, then update it in Settings.</div>';
+            }
             errorDetail += '<div style="font-size:0.85em;color:#888;">Feed URL: ' + escapeHTML(feedUrl) + '</div><br>';
             errorDetail += '<strong>Workaround:</strong> Open Settings, scroll down to "Manual Paste", open the RSS URL directly in your browser, copy the page source (Ctrl+U then Ctrl+A, Ctrl+C), and paste it in.';
             addBenMessage(errorDetail);
