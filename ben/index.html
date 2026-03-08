@@ -1474,30 +1474,48 @@
             try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(xml, 'text/xml');
-                const items = doc.querySelectorAll('item');
+
+                // DOMParser returns a parsererror document for invalid XML — bail early
+                if (doc.querySelector('parsererror')) return [];
+
+                // Support both RSS (<item>) and Atom (<entry>) formats
+                const isAtom = doc.querySelector('feed') !== null;
+                const itemSelector = isAtom ? 'entry' : 'item';
+                const items = doc.querySelectorAll(itemSelector);
                 const parsed = [];
 
                 items.forEach(function(item) {
                     const title = getTagText(item, 'title');
+
+                    // RSS fields
                     const description = getTagText(item, 'description');
-                    const contentEncoded = getTagText(item, 'content\\:encoded') || getTagText(item, 'content:encoded');
+                    // content:encoded — try namespace-aware lookup first, then fallback
+                    const contentNS = item.getElementsByTagNameNS('http://purl.org/rss/1.0/modules/content/', 'encoded')[0];
+                    const contentEncoded = (contentNS && (contentNS.textContent || contentNS.innerHTML)) ||
+                                           getTagText(item, 'content\\:encoded') || getTagText(item, 'content:encoded');
                     const pubDate = getTagText(item, 'pubDate');
-                    const link = getTagText(item, 'link');
+                    const link = item.querySelector('link') ? (item.querySelector('link').getAttribute('href') || getTagText(item, 'link')) : '';
+
+                    // Atom fields
+                    const atomContent = isAtom ? (getTagText(item, 'content') || getTagText(item, 'summary')) : '';
+                    const atomDate = isAtom ? (getTagText(item, 'updated') || getTagText(item, 'published')) : '';
+
                     const categories = [];
                     item.querySelectorAll('category').forEach(function(cat) {
-                        categories.push(cat.textContent.trim());
+                        categories.push((cat.getAttribute('term') || cat.textContent || '').trim());
                     });
 
-                    const rawContent = contentEncoded || description || '';
+                    const rawContent = contentEncoded || atomContent || description || '';
                     const textContent = stripHTML(rawContent);
-                    const descText = stripHTML(description || '');
+                    const descText = stripHTML(description || atomContent || '');
+                    const date = pubDate || atomDate || '';
 
                     if (title || textContent) {
                         parsed.push({
                             title: title || 'Untitled',
                             description: descText.substring(0, 300),
                             content: textContent,
-                            date: pubDate ? formatDate(pubDate) : '',
+                            date: date ? formatDate(date) : '',
                             link: link || '',
                             categories: categories,
                             paragraphs: splitIntoParagraphs(textContent)
