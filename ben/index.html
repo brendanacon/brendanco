@@ -1435,90 +1435,139 @@
             pasteArea.value = '';
         };
 
+        // Extract text content from a named XML/RSS tag, stripping CDATA wrappers.
+        // Works on raw XML strings — no DOM required.
+        function extractRSSTagText(xml, tagName) {
+            var re = new RegExp('<' + tagName + '[^>]*>([\\s\\S]*?)<\\/' + tagName + '>', 'i');
+            var m = xml.match(re);
+            if (!m) return '';
+            var val = m[1];
+            var cdata = val.match(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/);
+            return cdata ? cdata[1] : val;
+        }
+
+        // Regex-based RSS parser — fallback when DOMParser has namespace/encoding issues.
+        // Handles standard RSS 2.0 with content:encoded and CDATA sections.
+        function parseRSSRegex(xml) {
+            var parsed = [];
+            var isAtom = /<feed[\s>]/i.test(xml.substring(0, 500));
+            var itemTag = isAtom ? 'entry' : 'item';
+            var itemRe = new RegExp('<' + itemTag + '[\\s>]([\\s\\S]*?)<\\/' + itemTag + '>', 'gi');
+            var m;
+            while ((m = itemRe.exec(xml)) !== null) {
+                var chunk = m[1];
+                var title = extractRSSTagText(chunk, 'title');
+                // content:encoded before description so we get the full article body
+                var content = extractRSSTagText(chunk, 'content:encoded') ||
+                              extractRSSTagText(chunk, 'content') ||
+                              extractRSSTagText(chunk, 'summary') ||
+                              extractRSSTagText(chunk, 'description');
+                var description = extractRSSTagText(chunk, 'description') ||
+                                  extractRSSTagText(chunk, 'summary');
+                var pubDate = extractRSSTagText(chunk, 'pubDate') ||
+                              extractRSSTagText(chunk, 'updated') ||
+                              extractRSSTagText(chunk, 'published');
+                // <link href="..."/> (Atom) or <link>url</link> (RSS)
+                var linkHref = chunk.match(/<link[^>]+href=["']([^"']+)["']/i);
+                var link = linkHref ? linkHref[1] : extractRSSTagText(chunk, 'link');
+
+                var textContent = stripHTML(content);
+                var descText = stripHTML(description);
+                if (title || textContent) {
+                    parsed.push({
+                        title: title.trim() || 'Untitled',
+                        description: descText.substring(0, 300),
+                        content: textContent,
+                        date: pubDate ? formatDate(pubDate.trim()) : '',
+                        link: link.trim(),
+                        categories: [],
+                        paragraphs: splitIntoParagraphs(textContent)
+                    });
+                }
+            }
+            return parsed;
+        }
+
         function parseRSS(xml) {
             try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(xml, 'text/xml');
 
-                // DOMParser returns a parsererror document for invalid XML
-                // getElementsByTagName is more reliable than querySelector in XML docs
-                if (doc.getElementsByTagName('parsererror').length > 0) return [];
+                // If DOMParser fails, fall through to regex parser below
+                if (doc.getElementsByTagName('parsererror').length === 0) {
+                    const rootName = (doc.documentElement.localName || doc.documentElement.tagName || '').toLowerCase();
+                    const isAtom = rootName === 'feed';
+                    const items = isAtom
+                        ? doc.getElementsByTagName('entry')
+                        : doc.getElementsByTagName('item');
+                    const parsed = [];
 
-                // Detect format by root element (more reliable than querySelector in XML)
-                const rootName = (doc.documentElement.localName || doc.documentElement.tagName || '').toLowerCase();
-                const isAtom = rootName === 'feed';
+                    for (var i = 0; i < items.length; i++) {
+                        var item = items[i];
 
-                // getElementsByTagName is more reliable than querySelectorAll in XML docs,
-                // especially on Safari/WebKit which has known querySelectorAll bugs for XML
-                const items = isAtom
-                    ? doc.getElementsByTagName('entry')
-                    : doc.getElementsByTagName('item');
-                const parsed = [];
+                        var titleEls = item.getElementsByTagName('title');
+                        var title = titleEls.length ? (titleEls[0].textContent || '') : '';
 
-                for (var i = 0; i < items.length; i++) {
-                    var item = items[i];
+                        // content:encoded via namespace URI — most reliable cross-browser method
+                        var contentNS = item.getElementsByTagNameNS('http://purl.org/rss/1.0/modules/content/', 'encoded')[0];
+                        var contentEncoded = contentNS ? (contentNS.textContent || '') : '';
 
-                    var titleEls = item.getElementsByTagName('title');
-                    var title = titleEls.length ? (titleEls[0].textContent || '') : '';
+                        var descEls = item.getElementsByTagName('description');
+                        var description = descEls.length ? (descEls[0].textContent || '') : '';
 
-                    // content:encoded via namespace URI — most reliable cross-browser method
-                    var contentNS = item.getElementsByTagNameNS('http://purl.org/rss/1.0/modules/content/', 'encoded')[0];
-                    var contentEncoded = contentNS ? (contentNS.textContent || '') : '';
+                        var pubDateEls = item.getElementsByTagName('pubDate');
+                        var pubDate = pubDateEls.length ? (pubDateEls[0].textContent || '') : '';
 
-                    var descEls = item.getElementsByTagName('description');
-                    var description = descEls.length ? (descEls[0].textContent || '') : '';
+                        var atomContent = '';
+                        var atomDate = '';
+                        if (isAtom) {
+                            var contentEls = item.getElementsByTagName('content');
+                            var summaryEls = item.getElementsByTagName('summary');
+                            atomContent = contentEls.length ? (contentEls[0].textContent || '') :
+                                          summaryEls.length ? (summaryEls[0].textContent || '') : '';
+                            var updatedEls = item.getElementsByTagName('updated');
+                            var publishedEls = item.getElementsByTagName('published');
+                            atomDate = updatedEls.length ? (updatedEls[0].textContent || '') :
+                                       publishedEls.length ? (publishedEls[0].textContent || '') : '';
+                        }
 
-                    var pubDateEls = item.getElementsByTagName('pubDate');
-                    var pubDate = pubDateEls.length ? (pubDateEls[0].textContent || '') : '';
+                        var link = '';
+                        var linkEls = item.getElementsByTagName('link');
+                        if (linkEls.length) {
+                            link = linkEls[0].getAttribute('href') || linkEls[0].textContent || '';
+                        }
 
-                    var atomContent = '';
-                    var atomDate = '';
-                    if (isAtom) {
-                        var contentEls = item.getElementsByTagName('content');
-                        var summaryEls = item.getElementsByTagName('summary');
-                        atomContent = contentEls.length ? (contentEls[0].textContent || '') :
-                                      summaryEls.length ? (summaryEls[0].textContent || '') : '';
-                        var updatedEls = item.getElementsByTagName('updated');
-                        var publishedEls = item.getElementsByTagName('published');
-                        atomDate = updatedEls.length ? (updatedEls[0].textContent || '') :
-                                   publishedEls.length ? (publishedEls[0].textContent || '') : '';
+                        var categories = [];
+                        var catEls = item.getElementsByTagName('category');
+                        for (var j = 0; j < catEls.length; j++) {
+                            categories.push((catEls[j].getAttribute('term') || catEls[j].textContent || '').trim());
+                        }
+
+                        var rawContent = contentEncoded || atomContent || description || '';
+                        var textContent = stripHTML(rawContent);
+                        var descText = stripHTML(description || atomContent || '');
+                        var date = pubDate || atomDate || '';
+
+                        if (title || textContent) {
+                            parsed.push({
+                                title: title || 'Untitled',
+                                description: descText.substring(0, 300),
+                                content: textContent,
+                                date: date ? formatDate(date) : '',
+                                link: link.trim(),
+                                categories: categories,
+                                paragraphs: splitIntoParagraphs(textContent)
+                            });
+                        }
                     }
 
-                    // Atom uses <link href="..."/>, RSS uses <link>text</link>
-                    var link = '';
-                    var linkEls = item.getElementsByTagName('link');
-                    if (linkEls.length) {
-                        link = linkEls[0].getAttribute('href') || linkEls[0].textContent || '';
-                    }
-
-                    var categories = [];
-                    var catEls = item.getElementsByTagName('category');
-                    for (var j = 0; j < catEls.length; j++) {
-                        categories.push((catEls[j].getAttribute('term') || catEls[j].textContent || '').trim());
-                    }
-
-                    var rawContent = contentEncoded || atomContent || description || '';
-                    var textContent = stripHTML(rawContent);
-                    var descText = stripHTML(description || atomContent || '');
-                    var date = pubDate || atomDate || '';
-
-                    if (title || textContent) {
-                        parsed.push({
-                            title: title || 'Untitled',
-                            description: descText.substring(0, 300),
-                            content: textContent,
-                            date: date ? formatDate(date) : '',
-                            link: link.trim(),
-                            categories: categories,
-                            paragraphs: splitIntoParagraphs(textContent)
-                        });
-                    }
+                    if (parsed.length > 0) return parsed;
                 }
+            } catch(e) { /* fall through to regex parser */ }
 
-                return parsed;
-            } catch(e) {
-                return [];
-            }
+            // Fallback: regex-based parser that bypasses all DOM/namespace issues.
+            // Handles Safari/WebKit XML quirks and any encoding edge cases.
+            return parseRSSRegex(xml);
         }
 
         function getTagText(parent, tagName) {
