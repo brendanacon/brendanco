@@ -908,18 +908,34 @@
             });
         }
 
-        // Deduplicate an array of articles by link (URL) — keeps the richest copy per URL
+        // Normalize a URL for dedup comparison: https, no trailing slash, no tracking params.
+        function normalizeLink(url) {
+            if (!url) return '';
+            url = url.trim();
+            try {
+                var u = new URL(url);
+                u.protocol = 'https:';
+                u.pathname = u.pathname.replace(/\/+$/, '') || '/';
+                ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','ref','source'].forEach(function(p) {
+                    u.searchParams.delete(p);
+                });
+                return u.origin.toLowerCase() + u.pathname + u.search;
+            } catch(e) {
+                return url.toLowerCase().replace(/\/+$/, '');
+            }
+        }
+
+        // Deduplicate an array of articles by normalized URL — keeps the richest copy.
         function deduplicateArticles(list) {
             var byLink = {};
             var noLinks = [];
             list.forEach(function(a) {
-                var key = (a.link || '').trim();
+                var key = normalizeLink(a.link);
                 if (!key) { noLinks.push(a); return; }
                 var existing = byLink[key];
                 if (!existing) {
                     byLink[key] = a;
                 } else {
-                    // Keep the one with more content
                     var aScore = (a.content || '').length + (a.description || '').length;
                     var eScore = (existing.content || '').length + (existing.description || '').length;
                     if (aScore > eScore) byLink[key] = a;
@@ -930,34 +946,59 @@
 
         function mergeArticles(newArticles) {
             return new Promise(function(resolve, reject) {
-                var tx = db.transaction(STORE_NAME, 'readwrite');
-                var store = tx.objectStore(STORE_NAME);
-                var added = 0;
+                // Load all existing records to build a normalized-URL lookup
+                var getAllReq = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+                getAllReq.onsuccess = function() {
+                    var existing = getAllReq.result || [];
+                    // Map: normalizedLink -> stored article.link (the actual DB key)
+                    var normToKey = {};
+                    existing.forEach(function(a) { if (a.link) normToKey[normalizeLink(a.link)] = a.link; });
 
-                newArticles.forEach(function(article) {
-                    if (!article.link) return;
+                    var tx = db.transaction(STORE_NAME, 'readwrite');
+                    var store = tx.objectStore(STORE_NAME);
+                    var added = 0;
 
-                    // Check for exact link match
-                    var getReq = store.get(article.link);
-                    getReq.onsuccess = function() {
-                        if (!getReq.result) {
-                            // New article — insert it
+                    newArticles.forEach(function(article) {
+                        if (!article.link) return;
+                        var norm = normalizeLink(article.link);
+                        var existingKey = norm ? normToKey[norm] : null;
+
+                        if (!existingKey) {
+                            // Genuinely new article
                             store.put(article);
                             added++;
+                            if (norm) normToKey[norm] = article.link;
+                        } else if (existingKey !== article.link) {
+                            // Same article, different URL variant — backfill content onto existing record
+                            var getReq = store.get(existingKey);
+                            getReq.onsuccess = function() {
+                                var rec = getReq.result;
+                                if (!rec) return;
+                                var updated = false;
+                                if (!rec.content && article.content) { rec.content = article.content; updated = true; }
+                                if (!rec.description && article.description) { rec.description = article.description; updated = true; }
+                                if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
+                                if (updated) store.put(rec);
+                            };
                         } else {
-                            // Same link exists — backfill missing content/paragraphs only
-                            var rec = getReq.result;
-                            var updated = false;
-                            if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
-                            if (!rec.description && article.description) { rec.description = article.description; updated = true; }
-                            if (!rec.content && article.content) { rec.content = article.content; updated = true; }
-                            if (updated) store.put(rec);
+                            // Exact same URL — backfill missing fields only
+                            var getReq2 = store.get(existingKey);
+                            getReq2.onsuccess = function() {
+                                var rec = getReq2.result;
+                                if (!rec) return;
+                                var updated = false;
+                                if (!rec.content && article.content) { rec.content = article.content; updated = true; }
+                                if (!rec.description && article.description) { rec.description = article.description; updated = true; }
+                                if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
+                                if (updated) store.put(rec);
+                            };
                         }
-                    };
-                });
+                    });
 
-                tx.oncomplete = function() { resolve(added); };
-                tx.onerror = function() { reject(tx.error); };
+                    tx.oncomplete = function() { resolve(added); };
+                    tx.onerror = function() { reject(tx.error); };
+                };
+                getAllReq.onerror = function() { reject(getAllReq.error); };
             });
         }
 
