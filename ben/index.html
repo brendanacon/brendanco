@@ -908,91 +908,56 @@
             });
         }
 
-        // Returns a YYYY-MM-DD string for dedup keying (one article per day rule)
-        function articleDateKey(article) {
-            if (!article.date) return null;
-            try {
-                var d = new Date(article.date);
-                if (isNaN(d.getTime())) return null;
-                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-            } catch(e) { return null; }
-        }
-
-        // Returns a content-length score to pick the richest duplicate
-        function articleContentScore(article) {
-            return (article.content || '').length + (article.description || '').length + ((article.paragraphs || []).join('').length);
-        }
-
-        // Deduplicate an array of articles: one per calendar day, keeping the richest
+        // Deduplicate an array of articles by link (URL) — keeps the richest copy per URL
         function deduplicateArticles(list) {
-            var byDate = {};
-            var noDates = [];
+            var byLink = {};
+            var noLinks = [];
             list.forEach(function(a) {
-                var dk = articleDateKey(a);
-                if (!dk) { noDates.push(a); return; }
-                if (!byDate[dk] || articleContentScore(a) > articleContentScore(byDate[dk])) {
-                    byDate[dk] = a;
+                var key = (a.link || '').trim();
+                if (!key) { noLinks.push(a); return; }
+                var existing = byLink[key];
+                if (!existing) {
+                    byLink[key] = a;
+                } else {
+                    // Keep the one with more content
+                    var aScore = (a.content || '').length + (a.description || '').length;
+                    var eScore = (existing.content || '').length + (existing.description || '').length;
+                    if (aScore > eScore) byLink[key] = a;
                 }
             });
-            return Object.values(byDate).concat(noDates);
+            return Object.values(byLink).concat(noLinks);
         }
 
         function mergeArticles(newArticles) {
             return new Promise(function(resolve, reject) {
-                // First load all existing articles so we can check by date too
-                var getAllReq = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
-                getAllReq.onsuccess = function() {
-                    var existing = getAllReq.result || [];
-                    // Build lookup: dateKey -> existing article
-                    var existingByDate = {};
-                    existing.forEach(function(a) {
-                        var dk = articleDateKey(a);
-                        if (dk) existingByDate[dk] = a;
-                    });
+                var tx = db.transaction(STORE_NAME, 'readwrite');
+                var store = tx.objectStore(STORE_NAME);
+                var added = 0;
 
-                    var tx = db.transaction(STORE_NAME, 'readwrite');
-                    var store = tx.objectStore(STORE_NAME);
-                    var added = 0;
+                newArticles.forEach(function(article) {
+                    if (!article.link) return;
 
-                    newArticles.forEach(function(article) {
-                        if (!article.link) return;
-                        var dk = articleDateKey(article);
+                    // Check for exact link match
+                    var getReq = store.get(article.link);
+                    getReq.onsuccess = function() {
+                        if (!getReq.result) {
+                            // New article — insert it
+                            store.put(article);
+                            added++;
+                        } else {
+                            // Same link exists — backfill missing content/paragraphs only
+                            var rec = getReq.result;
+                            var updated = false;
+                            if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
+                            if (!rec.description && article.description) { rec.description = article.description; updated = true; }
+                            if (!rec.content && article.content) { rec.content = article.content; updated = true; }
+                            if (updated) store.put(rec);
+                        }
+                    };
+                });
 
-                        // Check exact link match first
-                        var getReq = store.get(article.link);
-                        getReq.onsuccess = function() {
-                            if (!getReq.result) {
-                                // No exact link match — check if we already have an article for this date
-                                if (dk && existingByDate[dk]) {
-                                    var dup = existingByDate[dk];
-                                    // Backfill richer content onto the existing record
-                                    var updated = false;
-                                    if (!dup.paragraphs && article.paragraphs) { dup.paragraphs = article.paragraphs; updated = true; }
-                                    if (!dup.description && article.description) { dup.description = article.description; updated = true; }
-                                    if (!dup.content && article.content) { dup.content = article.content; updated = true; }
-                                    if (updated) store.put(dup);
-                                    // Don't increment added — this is a duplicate day
-                                } else {
-                                    store.put(article);
-                                    added++;
-                                    if (dk) existingByDate[dk] = article;
-                                }
-                            } else {
-                                // Exact link exists — backfill missing content/paragraphs
-                                var rec = getReq.result;
-                                var updated = false;
-                                if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
-                                if (!rec.description && article.description) { rec.description = article.description; updated = true; }
-                                if (!rec.content && article.content) { rec.content = article.content; updated = true; }
-                                if (updated) store.put(rec);
-                            }
-                        };
-                    });
-
-                    tx.oncomplete = function() { resolve(added); };
-                    tx.onerror = function() { reject(tx.error); };
-                };
-                getAllReq.onerror = function() { reject(getAllReq.error); };
+                tx.oncomplete = function() { resolve(added); };
+                tx.onerror = function() { reject(tx.error); };
             });
         }
 
@@ -1333,11 +1298,17 @@
                     }
 
                     if (xml && xml.length > 100) {
+                        const preview = xml.substring(0, 120).replace(/\s+/g, ' ').trim();
+                        const looksLikeHtml = /^\s*(<\!DOCTYPE|<html)/i.test(xml);
                         fetchedArticles = parseRSS(xml);
                         if (fetchedArticles.length > 0) break;
-                        errors.push(proxy.name + ': XML fetched but 0 articles parsed');
+                        if (looksLikeHtml) {
+                            errors.push(proxy.name + ': got HTML (login/redirect page) — "' + preview + '"');
+                        } else {
+                            errors.push(proxy.name + ': parsed 0 articles — response starts: "' + preview + '"');
+                        }
                     } else {
-                        errors.push(proxy.name + ': empty/short response');
+                        errors.push(proxy.name + ': empty/short response (' + (xml ? xml.length : 0) + ' chars)');
                     }
                 } catch(e) {
                     var msg = e.name === 'AbortError' ? 'timed out after ' + (PROXY_TIMEOUT_MS / 1000) + 's' : (e.message || 'network error');
@@ -1396,10 +1367,14 @@
             refreshBtn.textContent = 'Retry';
             refreshBtn.disabled = false;
 
+            const hasHtmlRedirect = errors.some(function(e) { return e.includes('login/redirect page'); });
             let errorDetail = '<strong>Could not fetch the RSS feed.</strong> Tried ' + errors.length + ' methods, all failed:<br><br>';
             errorDetail += '<div style="font-size:0.85em;color:#b91c1c;font-family:monospace;background:rgba(239,68,68,0.08);padding:10px;border-radius:6px;margin-bottom:10px;">';
             errors.forEach(function(e, i) { errorDetail += (i + 1) + '. ' + escapeHTML(e) + '<br>'; });
             errorDetail += '</div>';
+            if (hasHtmlRedirect) {
+                errorDetail += '<div style="font-size:0.9em;color:#b45309;background:rgba(251,191,36,0.1);padding:8px;border-radius:6px;margin-bottom:10px;">⚠️ Proxies are receiving an HTML login/redirect page instead of RSS XML. Your RSS token may have expired — try opening the feed URL directly in your browser to confirm it still works, then update it in Settings.</div>';
+            }
             errorDetail += '<div style="font-size:0.85em;color:#888;">Feed URL: ' + escapeHTML(feedUrl) + '</div><br>';
             errorDetail += '<strong>Workaround:</strong> Open Settings, scroll down to "Manual Paste", open the RSS URL directly in your browser, copy the page source (Ctrl+U then Ctrl+A, Ctrl+C), and paste it in.';
             addBenMessage(errorDetail);
@@ -1464,36 +1439,81 @@
             try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(xml, 'text/xml');
-                const items = doc.querySelectorAll('item');
+
+                // DOMParser returns a parsererror document for invalid XML
+                // getElementsByTagName is more reliable than querySelector in XML docs
+                if (doc.getElementsByTagName('parsererror').length > 0) return [];
+
+                // Detect format by root element (more reliable than querySelector in XML)
+                const rootName = (doc.documentElement.localName || doc.documentElement.tagName || '').toLowerCase();
+                const isAtom = rootName === 'feed';
+
+                // getElementsByTagName is more reliable than querySelectorAll in XML docs,
+                // especially on Safari/WebKit which has known querySelectorAll bugs for XML
+                const items = isAtom
+                    ? doc.getElementsByTagName('entry')
+                    : doc.getElementsByTagName('item');
                 const parsed = [];
 
-                items.forEach(function(item) {
-                    const title = getTagText(item, 'title');
-                    const description = getTagText(item, 'description');
-                    const contentEncoded = getTagText(item, 'content\\:encoded') || getTagText(item, 'content:encoded');
-                    const pubDate = getTagText(item, 'pubDate');
-                    const link = getTagText(item, 'link');
-                    const categories = [];
-                    item.querySelectorAll('category').forEach(function(cat) {
-                        categories.push(cat.textContent.trim());
-                    });
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
 
-                    const rawContent = contentEncoded || description || '';
-                    const textContent = stripHTML(rawContent);
-                    const descText = stripHTML(description || '');
+                    var titleEls = item.getElementsByTagName('title');
+                    var title = titleEls.length ? (titleEls[0].textContent || '') : '';
+
+                    // content:encoded via namespace URI — most reliable cross-browser method
+                    var contentNS = item.getElementsByTagNameNS('http://purl.org/rss/1.0/modules/content/', 'encoded')[0];
+                    var contentEncoded = contentNS ? (contentNS.textContent || '') : '';
+
+                    var descEls = item.getElementsByTagName('description');
+                    var description = descEls.length ? (descEls[0].textContent || '') : '';
+
+                    var pubDateEls = item.getElementsByTagName('pubDate');
+                    var pubDate = pubDateEls.length ? (pubDateEls[0].textContent || '') : '';
+
+                    var atomContent = '';
+                    var atomDate = '';
+                    if (isAtom) {
+                        var contentEls = item.getElementsByTagName('content');
+                        var summaryEls = item.getElementsByTagName('summary');
+                        atomContent = contentEls.length ? (contentEls[0].textContent || '') :
+                                      summaryEls.length ? (summaryEls[0].textContent || '') : '';
+                        var updatedEls = item.getElementsByTagName('updated');
+                        var publishedEls = item.getElementsByTagName('published');
+                        atomDate = updatedEls.length ? (updatedEls[0].textContent || '') :
+                                   publishedEls.length ? (publishedEls[0].textContent || '') : '';
+                    }
+
+                    // Atom uses <link href="..."/>, RSS uses <link>text</link>
+                    var link = '';
+                    var linkEls = item.getElementsByTagName('link');
+                    if (linkEls.length) {
+                        link = linkEls[0].getAttribute('href') || linkEls[0].textContent || '';
+                    }
+
+                    var categories = [];
+                    var catEls = item.getElementsByTagName('category');
+                    for (var j = 0; j < catEls.length; j++) {
+                        categories.push((catEls[j].getAttribute('term') || catEls[j].textContent || '').trim());
+                    }
+
+                    var rawContent = contentEncoded || atomContent || description || '';
+                    var textContent = stripHTML(rawContent);
+                    var descText = stripHTML(description || atomContent || '');
+                    var date = pubDate || atomDate || '';
 
                     if (title || textContent) {
                         parsed.push({
                             title: title || 'Untitled',
                             description: descText.substring(0, 300),
                             content: textContent,
-                            date: pubDate ? formatDate(pubDate) : '',
-                            link: link || '',
+                            date: date ? formatDate(date) : '',
+                            link: link.trim(),
                             categories: categories,
                             paragraphs: splitIntoParagraphs(textContent)
                         });
                     }
-                });
+                }
 
                 return parsed;
             } catch(e) {
