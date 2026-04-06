@@ -908,7 +908,9 @@
             });
         }
 
-        // Normalize a URL for dedup comparison: https, no trailing slash, no tracking params.
+        // Normalize a URL for dedup comparison: https, no trailing slash, no query params.
+        // Stratechery links include ?access_token=eyJ... which changes on every fetch,
+        // so strip ALL query params — article identity is fully encoded in the path.
         function normalizeLink(url) {
             if (!url) return '';
             url = url.trim();
@@ -916,12 +918,10 @@
                 var u = new URL(url);
                 u.protocol = 'https:';
                 u.pathname = u.pathname.replace(/\/+$/, '') || '/';
-                ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','ref','source'].forEach(function(p) {
-                    u.searchParams.delete(p);
-                });
-                return u.origin.toLowerCase() + u.pathname + u.search;
+                u.search = '';
+                return u.origin.toLowerCase() + u.pathname;
             } catch(e) {
-                return url.toLowerCase().replace(/\/+$/, '');
+                return url.toLowerCase().replace(/\?.*$/, '').replace(/\/+$/, '');
             }
         }
 
