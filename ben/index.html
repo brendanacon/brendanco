@@ -741,6 +741,7 @@
             <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
                 <button class="feed-btn" onclick="document.getElementById('importJsonInput').click()">Import JSON</button>
                 <button class="feed-btn" onclick="exportArchive()">Export Archive</button>
+                <button class="feed-btn" onclick="dedupeArchive()">Remove Duplicates</button>
                 <button class="feed-btn" onclick="clearArchive()">Clear Archive</button>
                 <input type="file" id="importJsonInput" accept=".json" style="display:none" onchange="importArchive(this)">
             </div>
@@ -1012,6 +1013,37 @@
             });
         }
 
+        // Remove duplicate articles from IndexedDB, keeping the richest copy per URL.
+        function dedupeStoredArticles() {
+            return new Promise(function(resolve, reject) {
+                var getAllReq = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+                getAllReq.onsuccess = function() {
+                    var all = getAllReq.result || [];
+                    // Group by normalized link, keep richest
+                    var byNorm = {};
+                    var noLink = [];
+                    all.forEach(function(a) {
+                        var norm = normalizeLink(a.link);
+                        if (!norm) { noLink.push(a); return; }
+                        var ex = byNorm[norm];
+                        if (!ex) { byNorm[norm] = a; return; }
+                        var aScore = (a.content || '').length + (a.description || '').length;
+                        var eScore = (ex.content || '').length + (ex.description || '').length;
+                        if (aScore > eScore) byNorm[norm] = a;
+                    });
+                    var keepers = new Set(Object.values(byNorm).concat(noLink).map(function(a) { return a.link; }));
+                    var toDelete = all.filter(function(a) { return !keepers.has(a.link); });
+                    if (toDelete.length === 0) { resolve(0); return; }
+                    var tx = db.transaction(STORE_NAME, 'readwrite');
+                    var store = tx.objectStore(STORE_NAME);
+                    toDelete.forEach(function(a) { store.delete(a.link); });
+                    tx.oncomplete = function() { resolve(toDelete.length); };
+                    tx.onerror = function() { reject(tx.error); };
+                };
+                getAllReq.onerror = function() { reject(getAllReq.error); };
+            });
+        }
+
         function updateArchiveStats() {
             if (!db) return;
             loadAllArticles().then(function(all) {
@@ -1269,6 +1301,14 @@
             updateStatus('empty', 'Archive cleared');
             updateArchiveStats();
             addBenMessage('Archive cleared.');
+        };
+
+        window.dedupeArchive = async function() {
+            const removed = await dedupeStoredArticles();
+            articles = await loadAllArticles();
+            updateStatus('loaded', 'Deduped archive', articles.length);
+            updateArchiveStats();
+            addBenMessage('Removed <strong>' + removed + ' duplicate articles</strong>. Archive now has <strong>' + articles.length + ' articles</strong>.');
         };
 
         // =====================================================
