@@ -1724,28 +1724,57 @@
 
         function search(query, maxResults) {
             if (articles.length === 0) return [];
-            const keywords = extractKeywords(query);
-            if (keywords.length === 0) return [];
 
+            const lower = query.toLowerCase();
+            // Detect temporal intent ("today's article", "most recent article about Google", etc.)
+            const wantsTemporal = /\b(today|tonight|latest|recent|recently|newest|yesterday|this week|last week|this month|last month)\b/i.test(lower)
+                || /most recent/i.test(lower);
+            const wantsStrongRecency = /\b(today'?s?|tonight'?s?|latest|most recent|newest)\b/i.test(lower);
+
+            const keywords = extractKeywords(query);
+            // Strip temporal words — they don't help topic matching
+            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','yesterday','week','month']);
+            const topicKeywords = keywords.filter(function(w) { return !TEMPORAL_KW.has(w); });
+
+            // Pure "what's the latest / today's article" with no topic → return newest articles
+            if (wantsStrongRecency && topicKeywords.length === 0) {
+                return articles.slice(0, maxResults || 5).map(function(article, i) {
+                    return { article: article, score: articles.length - i, bestParagraph: article.description || '', titleMatch: true };
+                });
+            }
+
+            const searchKw = topicKeywords.length > 0 ? topicKeywords : keywords;
+            if (searchKw.length === 0) return [];
+
+            const now = Date.now();
             const results = [];
 
             articles.forEach(function(article) {
-                const titleScore = scoreParagraph(article.title, keywords);
+                const titleScore = scoreParagraph(article.title, searchKw);
                 let bestPara = null;
                 let bestParaScore = 0;
 
                 (article.paragraphs || []).forEach(function(para) {
-                    const ps = scoreParagraph(para, keywords);
+                    const ps = scoreParagraph(para, searchKw);
                     if (ps.score > bestParaScore) {
                         bestParaScore = ps.score;
                         bestPara = para;
                     }
                 });
 
-                const descScore = scoreParagraph(article.description || '', keywords);
-                const totalScore = (titleScore.score * 3) + bestParaScore + descScore.score;
+                const descScore = scoreParagraph(article.description || '', searchKw);
+                let totalScore = (titleScore.score * 3) + bestParaScore + descScore.score;
 
                 if (totalScore > 0) {
+                    // Boost recent articles when temporal language is used
+                    if (wantsTemporal) {
+                        var articleDate = article.date ? new Date(article.date).getTime() : 0;
+                        if (!isNaN(articleDate) && articleDate > 0) {
+                            var ageDays = (now - articleDate) / 86400000;
+                            var boost = ageDays < 7 ? 3.0 : ageDays < 30 ? 2.0 : ageDays < 90 ? 1.3 : 1.0;
+                            totalScore *= boost;
+                        }
+                    }
                     results.push({
                         article: article,
                         score: totalScore,
@@ -2085,8 +2114,10 @@
                 formatInstructions += 'Format your response as bullet points. ';
             }
 
+            const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const systemPrompt = 'You are an AI assistant that helps users understand Ben Thompson\'s analysis from Stratechery. ' +
-                'Answer the user\'s question based on the article excerpts provided below. ' +
+                'Today\'s date is ' + todayStr + '. ' +
+                'Answer the user\'s question based on the article excerpts provided below (sorted newest first). ' +
                 'Synthesize insights from across the excerpts into a coherent, conversational answer. ' +
                 'Present the analysis naturally as if explaining Ben\'s views. ' +
                 'If the excerpts don\'t fully address the question, say so honestly. ' +
