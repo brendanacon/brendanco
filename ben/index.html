@@ -2092,24 +2092,23 @@
             // Build context from top search results
             let context = '';
             const sources = [];
+            // For single-article requests (recency queries) give more budget to the top result
+            const isSingleFocus = searchResults.length === 1 ||
+                (searchResults.length > 1 && searchResults[0].score > searchResults[1].score * 3);
             searchResults.forEach(function(r, i) {
                 const article = r.article;
                 sources.push({ title: article.title, date: article.date, link: article.link });
 
                 var excerpt;
-                if (r.titleMatch && article.content) {
-                    // Strong title match: send full article content so AI can summarize
-                    excerpt = article.content;
-                    var cap = 6000;
-                    if (excerpt.length > cap) excerpt = excerpt.substring(0, cap) + '...';
-                } else if (r.titleMatch && article.paragraphs && article.paragraphs.length > 0) {
-                    // Title match with paragraphs but no content field
-                    excerpt = article.paragraphs.join('\n\n');
-                    if (excerpt.length > 6000) excerpt = excerpt.substring(0, 6000) + '...';
+                var fullText = article.content || (article.paragraphs || []).join('\n\n') || article.description || '';
+                if (r.titleMatch && fullText) {
+                    // Strong match: send as much of the article as the budget allows
+                    var cap = isSingleFocus && i === 0 ? 20000 : 6000;
+                    excerpt = fullText.length > cap ? fullText.substring(0, cap) + '...' : fullText;
                 } else {
                     // Keyword match: use best paragraph or description
-                    excerpt = r.bestParagraph || article.content || article.description || '';
-                    if (excerpt.length > 1500) excerpt = excerpt.substring(0, 1500) + '...';
+                    excerpt = r.bestParagraph || fullText;
+                    if (excerpt.length > 2000) excerpt = excerpt.substring(0, 2000) + '...';
                 }
                 context += '\n\n---\nArticle ' + (i + 1) + ': "' + article.title + '" (' + article.date + ')\n' + excerpt;
             });
