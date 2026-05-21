@@ -959,6 +959,20 @@
                     var store = tx.objectStore(STORE_NAME);
                     var added = 0;
 
+                    function enrichRecord(rec, article) {
+                        // Overwrite content if the new version is substantially richer (1.5x longer)
+                        var newLen = (article.content || '').length;
+                        var oldLen = (rec.content || '').length;
+                        var updated = false;
+                        if (newLen > oldLen * 1.5 || (newLen > 0 && oldLen === 0)) {
+                            rec.content = article.content;
+                            rec.paragraphs = article.paragraphs;
+                            updated = true;
+                        }
+                        if (!rec.description && article.description) { rec.description = article.description; updated = true; }
+                        return updated;
+                    }
+
                     newArticles.forEach(function(article) {
                         if (!article.link) return;
                         var norm = normalizeLink(article.link);
@@ -969,29 +983,13 @@
                             store.put(article);
                             added++;
                             if (norm) normToKey[norm] = article.link;
-                        } else if (existingKey !== article.link) {
-                            // Same article, different URL variant — backfill content onto existing record
+                        } else {
+                            // Already exists — enrich content if the new fetch has more
                             var getReq = store.get(existingKey);
                             getReq.onsuccess = function() {
                                 var rec = getReq.result;
                                 if (!rec) return;
-                                var updated = false;
-                                if (!rec.content && article.content) { rec.content = article.content; updated = true; }
-                                if (!rec.description && article.description) { rec.description = article.description; updated = true; }
-                                if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
-                                if (updated) store.put(rec);
-                            };
-                        } else {
-                            // Exact same URL — backfill missing fields only
-                            var getReq2 = store.get(existingKey);
-                            getReq2.onsuccess = function() {
-                                var rec = getReq2.result;
-                                if (!rec) return;
-                                var updated = false;
-                                if (!rec.content && article.content) { rec.content = article.content; updated = true; }
-                                if (!rec.description && article.description) { rec.description = article.description; updated = true; }
-                                if (!rec.paragraphs && article.paragraphs) { rec.paragraphs = article.paragraphs; updated = true; }
-                                if (updated) store.put(rec);
+                                if (enrichRecord(rec, article)) store.put(rec);
                             };
                         }
                     });
