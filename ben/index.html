@@ -906,11 +906,7 @@
                 const req = store.getAll();
                 req.onsuccess = function() {
                     var list = deduplicateArticles(req.result || []);
-                    list.sort(function(a, b) {
-                        var da = a.date ? new Date(a.date).getTime() : 0;
-                        var db_ = b.date ? new Date(b.date).getTime() : 0;
-                        return (isNaN(db_) ? 0 : db_) - (isNaN(da) ? 0 : da);
-                    });
+                    list.sort(function(a, b) { return parseArticleDate(b.date) - parseArticleDate(a.date); });
                     resolve(list);
                 };
                 req.onerror = function() { reject(req.error); };
@@ -1679,8 +1675,22 @@
             return decoded;
         }
 
-        function formatDate(dateStr) {
-            try {
+        // Safari-safe date parser. new Date("Jun 10, 2025") returns Invalid Date on iOS Safari.
+        var MONTH_MAP = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+        function parseArticleDate(dateStr) {
+            if (!dateStr) return 0;
+            var d = new Date(dateStr);
+            if (!isNaN(d.getTime())) return d.getTime();
+            // Handle "Jun 10, 2025" or "Jun 10 2025"
+            var m = dateStr.match(/(\w{3})\w*\s+(\d{1,2}),?\s+(\d{4})/i);
+            if (m) {
+                var mo = MONTH_MAP[m[1].toLowerCase()];
+                if (mo !== undefined) return new Date(parseInt(m[3]), mo, parseInt(m[2])).getTime();
+            }
+            return 0;
+        }
+
+
                 const d = new Date(dateStr);
                 return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
             } catch(e) {
@@ -1732,19 +1742,24 @@
             if (articles.length === 0) return [];
 
             const lower = query.toLowerCase();
-            // Detect temporal intent ("today's article", "most recent article about Google", etc.)
-            const wantsTemporal = /\b(today|tonight|latest|recent|recently|newest|yesterday|this week|last week|this month|last month)\b/i.test(lower)
+            // Detect temporal intent ("today's article", "last 5 articles", "most recent about Google", etc.)
+            const wantsTemporal = /\b(today|tonight|latest|recent|recently|newest|last|yesterday|this week|last week|this month|last month)\b/i.test(lower)
                 || /most recent/i.test(lower);
-            const wantsStrongRecency = /\b(today'?s?|tonight'?s?|latest|most recent|newest)\b/i.test(lower);
+            const wantsStrongRecency = /\b(today'?s?|tonight'?s?|latest|most recent|newest|last)\b/i.test(lower);
+
+            // How many articles explicitly requested? e.g. "last 5 articles" → 5
+            var numMatch = lower.match(/\blast\s+(\d+)\b/);
+            var explicitCount = numMatch ? parseInt(numMatch[1]) : null;
 
             const keywords = extractKeywords(query);
             // Strip temporal words — they don't help topic matching
-            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','yesterday','week','month']);
+            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','last','yesterday','week','month','recap','summarize','summary']);
             const topicKeywords = keywords.filter(function(w) { return !TEMPORAL_KW.has(w); });
 
-            // Pure "what's the latest / today's article" with no topic → return newest articles
+            // Pure "last N articles / what's the latest" with no topic → return newest articles
             if (wantsStrongRecency && topicKeywords.length === 0) {
-                return articles.slice(0, maxResults || 5).map(function(article, i) {
+                var n = explicitCount || maxResults || 5;
+                return articles.slice(0, n).map(function(article, i) {
                     return { article: article, score: articles.length - i, bestParagraph: article.description || '', titleMatch: true };
                 });
             }
@@ -1774,9 +1789,9 @@
                 if (totalScore > 0) {
                     // Boost recent articles when temporal language is used
                     if (wantsTemporal) {
-                        var articleDate = article.date ? new Date(article.date).getTime() : 0;
-                        if (!isNaN(articleDate) && articleDate > 0) {
-                            var ageDays = (now - articleDate) / 86400000;
+                        var articleTs = parseArticleDate(article.date);
+                        if (articleTs > 0) {
+                            var ageDays = (now - articleTs) / 86400000;
                             var boost = ageDays < 7 ? 3.0 : ageDays < 30 ? 2.0 : ageDays < 90 ? 1.3 : 1.0;
                             totalScore *= boost;
                         }
