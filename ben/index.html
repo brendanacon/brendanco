@@ -1753,8 +1753,11 @@
             var explicitCount = numMatch ? parseInt(numMatch[1]) : null;
 
             const keywords = extractKeywords(query);
-            // Strip temporal words — they don't help topic matching
-            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','last','yesterday','week','month','recap','summarize','summary']);
+            // Strip temporal words and self-referential nouns ("article", "piece", "post"…)
+            // so a query like "most recent article" resolves to pure recency rather than
+            // matching an article that happens to have "Article" in its title.
+            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','last','yesterday','week','month','recap','summarize','summary',
+                'article','articles','piece','pieces','post','posts','story','stories','blog','blogs','entry','entries','column','columns','writeup','update','updates','edition','editions','read']);
             const topicKeywords = keywords.filter(function(w) { return !TEMPORAL_KW.has(w); });
 
             // Pure "last N articles / what's the latest" with no topic → return newest articles
