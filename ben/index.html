@@ -608,6 +608,85 @@
             margin: 2px 4px;
         }
 
+        /* --- Article Picker (multi-select) --- */
+        .article-picker {
+            margin: 0 12px 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fafafa;
+            overflow: hidden;
+        }
+        .article-picker-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #ececec;
+        }
+        .picker-quick {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: #555;
+            padding: 3px 10px;
+            border-radius: 14px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .picker-quick:hover {
+            border-color: #FAA634;
+            color: #FAA634;
+        }
+        .picker-count {
+            margin-left: auto;
+            font-size: 12px;
+            color: #999;
+            font-weight: 500;
+        }
+        .picker-list {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .picker-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .picker-item:last-child {
+            border-bottom: none;
+        }
+        .picker-item:hover {
+            background: #f3f3f3;
+        }
+        .picker-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #FAA634;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .picker-item .picker-title {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #1a1a1a;
+        }
+        .picker-item .picker-date {
+            color: #999;
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
         /* --- Fullscreen Mode --- */
         .fullscreen-btn {
             background: none;
@@ -798,6 +877,18 @@
                     <button class="format-chip" data-group="words" data-value="500" onclick="toggleFormatChip(this)">500 words</button>
                     <div class="format-chip-divider"></div>
                     <button class="format-chip" data-group="format" data-value="bullets" onclick="toggleFormatChip(this)">Bullet points</button>
+                    <div class="format-chip-divider"></div>
+                    <button class="format-chip" id="selectArticlesChip" onclick="toggleArticlePicker()">&#128209; Select articles</button>
+                </div>
+                <div class="article-picker" id="articlePicker" style="display:none;">
+                    <div class="article-picker-toolbar">
+                        <button class="picker-quick" onclick="pickerSelectLast(3)">Last 3</button>
+                        <button class="picker-quick" onclick="pickerSelectLast(5)">Last 5</button>
+                        <button class="picker-quick" onclick="pickerSelectLast(10)">Last 10</button>
+                        <button class="picker-quick" onclick="pickerClear()">Clear</button>
+                        <span class="picker-count" id="pickerCount">0 selected</span>
+                    </div>
+                    <div class="picker-list" id="pickerList"></div>
                 </div>
             </div>
 
@@ -860,6 +951,8 @@
         ]);
 
         let articles = [];
+        // Links of articles the user has explicitly selected to scope answers to.
+        const selectedArticleLinks = new Set();
         let db = null;
         let conversationHistory = []; // stores last 3 Q&A pairs as {role, content}
         let currentAudio = null;
@@ -1753,8 +1846,11 @@
             var explicitCount = numMatch ? parseInt(numMatch[1]) : null;
 
             const keywords = extractKeywords(query);
-            // Strip temporal words — they don't help topic matching
-            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','last','yesterday','week','month','recap','summarize','summary']);
+            // Strip temporal words and self-referential nouns ("article", "piece", "post"…)
+            // so a query like "most recent article" resolves to pure recency rather than
+            // matching an article that happens to have "Article" in its title.
+            const TEMPORAL_KW = new Set(['today','tonight','latest','recent','recently','newest','last','yesterday','week','month','recap','summarize','summary',
+                'article','articles','piece','pieces','post','posts','story','stories','blog','blogs','entry','entries','column','columns','writeup','update','updates','edition','editions','read']);
             const topicKeywords = keywords.filter(function(w) { return !TEMPORAL_KW.has(w); });
 
             // Pure "last N articles / what's the latest" with no topic → return newest articles
@@ -2101,7 +2197,8 @@
         // =====================================================
         // OpenAI Integration
         // =====================================================
-        async function chatWithAI(query, searchResults) {
+        async function chatWithAI(query, searchResults, opts) {
+            opts = opts || {};
             const apiKey = localStorage.getItem(API_KEY_KEY);
             if (!apiKey) return null;
 
@@ -2111,6 +2208,8 @@
             // For single-article requests (recency queries) give more budget to the top result
             const isSingleFocus = searchResults.length === 1 ||
                 (searchResults.length > 1 && searchResults[0].score > searchResults[1].score * 3);
+            // Scale per-article budget down when many articles are in play to stay within context limits
+            var multiCap = searchResults.length >= 6 ? 3000 : (searchResults.length >= 3 ? 4500 : 6000);
             searchResults.forEach(function(r, i) {
                 const article = r.article;
                 sources.push({ title: article.title, date: article.date, link: article.link });
@@ -2119,7 +2218,7 @@
                 var fullText = article.content || (article.paragraphs || []).join('\n\n') || article.description || '';
                 if (r.titleMatch && fullText) {
                     // Strong match: send as much of the article as the budget allows
-                    var cap = isSingleFocus && i === 0 ? 20000 : 6000;
+                    var cap = isSingleFocus && i === 0 ? 20000 : multiCap;
                     excerpt = fullText.length > cap ? fullText.substring(0, cap) + '...' : fullText;
                 } else {
                     // Keyword match: use best paragraph or description
@@ -2136,9 +2235,13 @@
             }
 
             const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const selectionNote = opts.explicitSelection
+                ? 'The user has specifically selected the following ' + searchResults.length + ' article(s); base your answer only on them and cover each one. '
+                : '';
             const systemPrompt = 'You are an AI assistant that helps users understand Ben Thompson\'s analysis from Stratechery. ' +
                 'Today\'s date is ' + todayStr + '. ' +
                 'Answer the user\'s question based on the article excerpts provided below (sorted newest first). ' +
+                selectionNote +
                 'Synthesize insights from across the excerpts into a coherent, conversational answer. ' +
                 'Present the analysis naturally as if explaining Ben\'s views. ' +
                 'If the excerpts don\'t fully address the question, say so honestly. ' +
@@ -2225,8 +2328,15 @@
         // Send Message
         // =====================================================
         window.sendMessage = async function() {
-            const text = chatInput.value.trim();
-            if (!text) return;
+            // When the user has explicitly selected articles, scope the answer to those.
+            const selectedResults = getSelectedResults();
+            let text = chatInput.value.trim();
+            if (!text && !selectedResults) return;
+            if (!text && selectedResults) {
+                text = selectedResults.length > 1
+                    ? 'Give me a summary of these articles.'
+                    : 'Give me a summary of this article.';
+            }
 
             chatInput.value = '';
             chatInput.style.height = 'auto';
@@ -2237,7 +2347,7 @@
                 return;
             }
 
-            const results = search(text, 5);
+            const results = selectedResults || search(text, 5);
 
             if (results.length === 0) {
                 addBenMessage('I couldn\'t find any articles matching that topic in the archive. Try different keywords or browse the topics below.');
@@ -2247,7 +2357,7 @@
             // If we have an API key, use AI response
             const apiKey = localStorage.getItem(API_KEY_KEY);
             if (apiKey) {
-                await chatWithAI(text, results);
+                await chatWithAI(text, results, { explicitSelection: !!selectedResults });
                 return;
             }
 
@@ -2321,6 +2431,90 @@
             var wordCount = wordChip ? wordChip.dataset.value : '100';
             var bullets = document.querySelector('.format-chip[data-group="format"][data-value="bullets"].active') !== null;
             return { wordCount: wordCount, bullets: bullets };
+        }
+
+        // --- Article picker (multi-select) ---
+        window.toggleArticlePicker = function() {
+            var panel = document.getElementById('articlePicker');
+            var open = panel.style.display === 'none';
+            panel.style.display = open ? 'block' : 'none';
+            if (open) buildArticlePicker();
+        };
+
+        function buildArticlePicker() {
+            var list = document.getElementById('pickerList');
+            if (!list) return;
+            if (articles.length === 0) {
+                list.innerHTML = '<div style="padding:12px;font-size:13px;color:#999;">No articles loaded yet. Refresh the feed first.</div>';
+                updatePickerCount();
+                return;
+            }
+            // articles is already sorted newest-first
+            list.innerHTML = articles.map(function(a) {
+                var link = a.link || '';
+                var checked = selectedArticleLinks.has(link) ? ' checked' : '';
+                var date = a.date ? '<span class="picker-date">' + escapeHTML(a.date) + '</span>' : '';
+                return '<label class="picker-item">' +
+                    '<input type="checkbox" data-link="' + escapeHTML(link) + '"' + checked +
+                    ' onchange="togglePickerItem(this)">' +
+                    '<span class="picker-title">' + escapeHTML(a.title || 'Untitled') + '</span>' +
+                    date +
+                '</label>';
+            }).join('');
+            updatePickerCount();
+        }
+
+        window.togglePickerItem = function(input) {
+            var link = input.getAttribute('data-link');
+            if (input.checked) selectedArticleLinks.add(link);
+            else selectedArticleLinks.delete(link);
+            updatePickerCount();
+        };
+
+        window.pickerSelectLast = function(n) {
+            articles.slice(0, n).forEach(function(a) {
+                if (a.link) selectedArticleLinks.add(a.link);
+            });
+            // Reflect in checkboxes without losing scroll position
+            document.querySelectorAll('#pickerList input[type="checkbox"]').forEach(function(cb) {
+                cb.checked = selectedArticleLinks.has(cb.getAttribute('data-link'));
+            });
+            updatePickerCount();
+        };
+
+        window.pickerClear = function() {
+            selectedArticleLinks.clear();
+            document.querySelectorAll('#pickerList input[type="checkbox"]').forEach(function(cb) {
+                cb.checked = false;
+            });
+            updatePickerCount();
+        };
+
+        function updatePickerCount() {
+            var n = selectedArticleLinks.size;
+            var countEl = document.getElementById('pickerCount');
+            if (countEl) countEl.textContent = n + ' selected';
+            var chip = document.getElementById('selectArticlesChip');
+            if (chip) {
+                chip.classList.toggle('active', n > 0);
+                chip.innerHTML = n > 0 ? '📑 Selected (' + n + ')' : '📑 Select articles';
+            }
+        }
+
+        // Returns search-result-shaped objects for the explicitly selected articles
+        // (newest-first), or null when nothing is selected.
+        function getSelectedResults() {
+            if (selectedArticleLinks.size === 0) return null;
+            var picked = articles.filter(function(a) { return selectedArticleLinks.has(a.link); });
+            if (picked.length === 0) return null;
+            return picked.map(function(article, i) {
+                return {
+                    article: article,
+                    score: picked.length - i,
+                    bestParagraph: article.description || '',
+                    titleMatch: true
+                };
+            });
         }
 
         // --- Auto-resize textarea ---
