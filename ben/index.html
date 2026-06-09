@@ -2340,6 +2340,10 @@
 
             chatInput.value = '';
             chatInput.style.height = 'auto';
+            // Collapse the article picker tray on send so it doesn't hog space.
+            // The selection itself persists (chip still shows the count) for follow-ups.
+            var picker = document.getElementById('articlePicker');
+            if (picker) picker.style.display = 'none';
             addUserMessage(text);
 
             if (articles.length === 0) {
