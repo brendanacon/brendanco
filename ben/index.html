@@ -646,6 +646,21 @@
             color: #999;
             font-weight: 500;
         }
+        .picker-search {
+            width: 100%;
+            box-sizing: border-box;
+            border: none;
+            border-bottom: 1px solid #ececec;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            color: #1a1a1a;
+            outline: none;
+            background: #fff;
+        }
+        .picker-search::placeholder {
+            color: #aaa;
+        }
         .picker-list {
             max-height: 220px;
             overflow-y: auto;
@@ -888,6 +903,7 @@
                         <button class="picker-quick" onclick="pickerClear()">Clear</button>
                         <span class="picker-count" id="pickerCount">0 selected</span>
                     </div>
+                    <input type="text" class="picker-search" id="pickerSearch" placeholder="Search titles..." oninput="filterArticlePicker()">
                     <div class="picker-list" id="pickerList"></div>
                 </div>
             </div>
@@ -2445,6 +2461,21 @@
             if (open) buildArticlePicker();
         };
 
+        // Compact Australian-format date: DD/MM/YY (e.g. 01/05/26).
+        function shortDate(dateStr) {
+            var ts = parseArticleDate(dateStr);
+            if (!ts) return dateStr || '';
+            var d = new Date(ts);
+            var dd = ('0' + d.getDate()).slice(-2);
+            var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+            var yy = ('' + d.getFullYear()).slice(-2);
+            return dd + '/' + mm + '/' + yy;
+        }
+
+        window.filterArticlePicker = function() {
+            buildArticlePicker();
+        };
+
         function buildArticlePicker() {
             var list = document.getElementById('pickerList');
             if (!list) return;
@@ -2453,11 +2484,21 @@
                 updatePickerCount();
                 return;
             }
+            var searchEl = document.getElementById('pickerSearch');
+            var q = (searchEl && searchEl.value || '').trim().toLowerCase();
             // articles is already sorted newest-first
-            list.innerHTML = articles.map(function(a) {
+            var items = q ? articles.filter(function(a) {
+                return (a.title || '').toLowerCase().indexOf(q) !== -1;
+            }) : articles;
+            if (items.length === 0) {
+                list.innerHTML = '<div style="padding:12px;font-size:13px;color:#999;">No titles match &ldquo;' + escapeHTML(q) + '&rdquo;.</div>';
+                updatePickerCount();
+                return;
+            }
+            list.innerHTML = items.map(function(a) {
                 var link = a.link || '';
                 var checked = selectedArticleLinks.has(link) ? ' checked' : '';
-                var date = a.date ? '<span class="picker-date">' + escapeHTML(a.date) + '</span>' : '';
+                var date = a.date ? '<span class="picker-date">' + escapeHTML(shortDate(a.date)) + '</span>' : '';
                 return '<label class="picker-item">' +
                     '<input type="checkbox" data-link="' + escapeHTML(link) + '"' + checked +
                     ' onchange="togglePickerItem(this)">' +
