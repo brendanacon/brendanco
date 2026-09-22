@@ -947,6 +947,7 @@
         const REFRESH_COOLDOWN = 5 * 60 * 1000;        // 5 minutes
         // No default feed URL - must be entered by user and stored in localStorage only
         const PROXY_TIMEOUT_MS = 12000; // 12s per proxy attempt
+        const MAX_FEED_PAGES = 10;      // feed pages hold ~10 items each; walk back at most ~100 items
         const CORS_PROXIES = [
             { name: 'cf-worker', url: url => 'https://rss-proxy.brendanaconnaughton.workers.dev/?url=' + encodeURIComponent(url), json: false },
             { name: 'corsproxy', url: url => 'https://corsproxy.io/?' + encodeURIComponent(url), json: false },
@@ -1436,6 +1437,57 @@
         // =====================================================
         // Fetch RSS
         // =====================================================
+        // WordPress feeds paginate with ?paged=N (page 1 is the plain URL).
+        function feedPageUrl(feedUrl, page) {
+            try {
+                const u = new URL(feedUrl);
+                u.searchParams.set('paged', page);
+                return u.toString();
+            } catch(e) {
+                return feedUrl + (feedUrl.indexOf('?') === -1 ? '?' : '&') + 'paged=' + page;
+            }
+        }
+
+        // Fetch and parse one feed URL through a proxy (or directly when proxy is null).
+        // Returns the parsed articles; throws an Error saying why it failed.
+        async function fetchFeedPage(proxy, url) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(function() { controller.abort(); }, PROXY_TIMEOUT_MS);
+            let resp;
+            try {
+                resp = proxy
+                    ? await fetch(proxy.url(url), {
+                        signal: controller.signal,
+                        headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, application/json, */*' }
+                    })
+                    : await fetch(url, { signal: controller.signal });
+            } catch(e) {
+                throw new Error(e.name === 'AbortError' ? 'timed out after ' + (PROXY_TIMEOUT_MS / 1000) + 's' : (e.message || 'network error'));
+            } finally {
+                clearTimeout(timeoutId);
+            }
+
+            if (!resp.ok) {
+                let body = '';
+                try { body = (await resp.text()).substring(0, 120); } catch(ignored) {}
+                throw new Error('HTTP ' + resp.status + ' ' + resp.statusText + (body ? ' — ' + body : ''));
+            }
+
+            if (proxy && proxy.rss2json) {
+                const json = await resp.json();
+                if (json.status === 'ok' && json.items && json.items.length > 0) return parseRSS2JSON(json);
+                throw new Error(json.message || 'no items');
+            }
+
+            const xml = proxy && proxy.json ? (await resp.json()).contents : await resp.text();
+            if (!xml || xml.length <= 100) throw new Error('empty/short response (' + (xml ? xml.length : 0) + ' chars)');
+            const parsed = parseRSS(xml);
+            if (parsed.length > 0) return parsed;
+            const preview = xml.substring(0, 120).replace(/\s+/g, ' ').trim();
+            if (/^\s*(<\!DOCTYPE|<html)/i.test(xml)) throw new Error('got HTML (login/redirect page) — "' + preview + '"');
+            throw new Error('parsed 0 articles — response starts: "' + preview + '"');
+        }
+
         window.refreshFeed = async function() {
             const feedUrl = localStorage.getItem(URL_KEY);
             if (!feedUrl) {
@@ -1455,91 +1507,61 @@
 
             const errors = [];
             let fetchedArticles = [];
+            let workingProxy = null; // proxy that served page 1 (null = direct fetch)
+            const hadArchive = articles.length > 0;
 
             // Try each CORS proxy
             for (let i = 0; i < CORS_PROXIES.length; i++) {
                 const proxy = CORS_PROXIES[i];
+                updateStatus('loading', 'Trying ' + proxy.name + '...');
                 try {
-                    const proxyUrl = proxy.url(feedUrl);
-                    updateStatus('loading', 'Trying ' + proxy.name + '...');
-
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(function() { controller.abort(); }, PROXY_TIMEOUT_MS);
-                    let resp;
-                    try {
-                        resp = await fetch(proxyUrl, {
-                            signal: controller.signal,
-                            headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, application/json, */*' }
-                        });
-                    } finally {
-                        clearTimeout(timeoutId);
-                    }
-
-                    if (!resp.ok) {
-                        let body = '';
-                        try { body = (await resp.text()).substring(0, 120); } catch(ignored) {}
-                        errors.push(proxy.name + ': HTTP ' + resp.status + ' ' + resp.statusText + (body ? ' — ' + body : ''));
-                        continue;
-                    }
-
-                    if (proxy.rss2json) {
-                        const json = await resp.json();
-                        if (json.status === 'ok' && json.items && json.items.length > 0) {
-                            fetchedArticles = parseRSS2JSON(json);
-                            if (fetchedArticles.length > 0) break;
-                        }
-                        errors.push(proxy.name + ': ' + (json.message || 'no items'));
-                        continue;
-                    }
-
-                    let xml;
-                    if (proxy.json) {
-                        const json = await resp.json();
-                        xml = json.contents;
-                    } else {
-                        xml = await resp.text();
-                    }
-
-                    if (xml && xml.length > 100) {
-                        const preview = xml.substring(0, 120).replace(/\s+/g, ' ').trim();
-                        const looksLikeHtml = /^\s*(<\!DOCTYPE|<html)/i.test(xml);
-                        fetchedArticles = parseRSS(xml);
-                        if (fetchedArticles.length > 0) break;
-                        if (looksLikeHtml) {
-                            errors.push(proxy.name + ': got HTML (login/redirect page) — "' + preview + '"');
-                        } else {
-                            errors.push(proxy.name + ': parsed 0 articles — response starts: "' + preview + '"');
-                        }
-                    } else {
-                        errors.push(proxy.name + ': empty/short response (' + (xml ? xml.length : 0) + ' chars)');
-                    }
+                    fetchedArticles = await fetchFeedPage(proxy, feedUrl);
+                    if (fetchedArticles.length > 0) { workingProxy = proxy; break; }
                 } catch(e) {
-                    var msg = e.name === 'AbortError' ? 'timed out after ' + (PROXY_TIMEOUT_MS / 1000) + 's' : (e.message || 'network error');
-                    errors.push(proxy.name + ': ' + msg);
+                    errors.push(proxy.name + ': ' + e.message);
                 }
             }
 
             // Fallback: direct fetch
             if (fetchedArticles.length === 0) {
+                updateStatus('loading', 'Trying direct fetch...');
                 try {
-                    updateStatus('loading', 'Trying direct fetch...');
-                    const directController = new AbortController();
-                    const directTimeout = setTimeout(function() { directController.abort(); }, PROXY_TIMEOUT_MS);
-                    let resp;
-                    try {
-                        resp = await fetch(feedUrl, { signal: directController.signal });
-                    } finally {
-                        clearTimeout(directTimeout);
-                    }
-                    if (resp.ok) {
-                        const xml = await resp.text();
-                        if (xml && xml.length > 100) {
-                            fetchedArticles = parseRSS(xml);
-                        }
-                    }
-                    if (fetchedArticles.length === 0) errors.push('direct: failed or empty');
+                    fetchedArticles = await fetchFeedPage(null, feedUrl);
                 } catch(e) {
-                    errors.push('direct: ' + (e.message || 'blocked'));
+                    errors.push('direct: ' + e.message);
+                }
+            }
+
+            // The feed only carries the latest ~10 items, so anything that scrolled off
+            // page 1 between refreshes would be lost. Walk older pages (?paged=N) until
+            // we reach an article that's already in the archive.
+            let pagesFetched = fetchedArticles.length > 0 ? 1 : 0;
+            let reachedArchive = false;
+            if (fetchedArticles.length > 0) {
+                const known = new Set(articles.map(function(a) { return normalizeLink(a.link); }));
+                const seen = new Set();
+                const countFresh = function(list) {
+                    let fresh = 0;
+                    list.forEach(function(a) {
+                        const k = normalizeLink(a.link);
+                        if (known.has(k)) reachedArchive = true;
+                        if (!seen.has(k)) { seen.add(k); fresh++; }
+                    });
+                    return fresh;
+                };
+                countFresh(fetchedArticles);
+                for (let page = 2; page <= MAX_FEED_PAGES && !reachedArchive; page++) {
+                    updateStatus('loading', 'Fetching older articles (page ' + page + ')...');
+                    let pageItems;
+                    try {
+                        pageItems = await fetchFeedPage(workingProxy, feedPageUrl(feedUrl, page));
+                    } catch(e) {
+                        break; // past the last page, or a proxy hiccup: keep what we have
+                    }
+                    // No unseen items means the feed ignores paging or has run out
+                    if (countFresh(pageItems) === 0) break;
+                    fetchedArticles = fetchedArticles.concat(pageItems);
+                    pagesFetched++;
                 }
             }
 
@@ -1552,7 +1574,16 @@
                     const added = await mergeArticles(fetchedArticles);
                     articles = await loadAllArticles();
                     updateStatus('loaded', 'Added ' + added + ' new articles', articles.length);
-                    addBenMessage('Feed refreshed! Added <strong>' + added + ' new articles</strong> to the archive. Total: <strong>' + articles.length + ' articles</strong>. Ask me anything.');
+                    var pagesNote = pagesFetched > 1 ? ' (checked ' + pagesFetched + ' feed pages)' : '';
+                    var msg = 'Feed refreshed! Added <strong>' + added + ' new articles</strong> to the archive' + pagesNote + '. Total: <strong>' + articles.length + ' articles</strong>. Ask me anything.';
+                    // Paging couldn't link back to the archive: articles in between may be missing
+                    if (hadArchive && !reachedArchive) {
+                        var oldestTs = Math.min.apply(null, fetchedArticles.map(function(a) { return parseArticleDate(a.date) || Infinity; }));
+                        var oldest = isFinite(oldestTs) ? shortDate(new Date(oldestTs).toISOString()) : 'the oldest fetched item';
+                        msg += '<br><br><span style="color:#b45309;">⚠️ The feed only reached back to ' + escapeHTML(oldest) +
+                            ' and didn\'t overlap your archive, so some articles before that may be missing. Refreshing more often (at least weekly) avoids gaps.</span>';
+                    }
+                    addBenMessage(msg);
                 } else {
                     articles = fetchedArticles;
                     updateStatus('loaded', 'Feed loaded', articles.length);
