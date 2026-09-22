@@ -1037,18 +1037,29 @@
         // Normalize a URL for dedup comparison: https, no trailing slash, no query params.
         // Stratechery links include ?access_token=eyJ... which changes on every fetch,
         // so strip ALL query params — article identity is fully encoded in the path.
+        // Exception: WordPress post-ID links (stratechery.com/?access_token=...&p=20078) carry
+        // their identity in ?p=, so keep that one param — otherwise every such post collapses
+        // to "https://stratechery.com/" and all but the first are dropped as duplicates.
         function normalizeLink(url) {
             if (!url) return '';
-            url = url.trim();
+            url = url.trim().replace(/&amp;/g, '&');
             try {
                 var u = new URL(url);
+                var postId = u.searchParams.get('p');
                 u.protocol = 'https:';
                 u.pathname = u.pathname.replace(/\/+$/, '') || '/';
                 u.search = '';
-                return u.origin.toLowerCase() + u.pathname;
+                return u.origin.toLowerCase() + u.pathname + (postId ? '?p=' + postId : '');
             } catch(e) {
-                return url.toLowerCase().replace(/\?.*$/, '').replace(/\/+$/, '');
+                var pm = url.match(/[?&]p=(\d+)/);
+                return url.toLowerCase().replace(/\?.*$/, '').replace(/\/+$/, '') + (pm ? '?p=' + pm[1] : '');
             }
+        }
+
+        // Secondary identity for merges: the same post can arrive as ?p=ID one day and as its
+        // pretty permalink later, so also match on the normalized title.
+        function normalizeTitle(title) {
+            return (title || '').toLowerCase().replace(/&#?\w+;/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
         }
 
         // Deduplicate an array of articles by normalized URL — keeps the richest copy.
@@ -1078,7 +1089,13 @@
                     var existing = getAllReq.result || [];
                     // Map: normalizedLink -> stored article.link (the actual DB key)
                     var normToKey = {};
-                    existing.forEach(function(a) { if (a.link) normToKey[normalizeLink(a.link)] = a.link; });
+                    var titleToKey = {};
+                    existing.forEach(function(a) {
+                        if (!a.link) return;
+                        normToKey[normalizeLink(a.link)] = a.link;
+                        var t = normalizeTitle(a.title);
+                        if (t) titleToKey[t] = a.link;
+                    });
 
                     var tx = db.transaction(STORE_NAME, 'readwrite');
                     var store = tx.objectStore(STORE_NAME);
@@ -1101,13 +1118,15 @@
                     newArticles.forEach(function(article) {
                         if (!article.link) return;
                         var norm = normalizeLink(article.link);
-                        var existingKey = norm ? normToKey[norm] : null;
+                        var normTitle = normalizeTitle(article.title);
+                        var existingKey = (norm ? normToKey[norm] : null) || (normTitle ? titleToKey[normTitle] : null);
 
                         if (!existingKey) {
                             // Genuinely new article
                             store.put(article);
                             added++;
                             if (norm) normToKey[norm] = article.link;
+                            if (normTitle) titleToKey[normTitle] = article.link;
                         } else {
                             // Already exists — enrich content if the new fetch has more
                             var getReq = store.get(existingKey);
@@ -1550,7 +1569,10 @@
                     return fresh;
                 };
                 countFresh(fetchedArticles);
-                for (let page = 2; page <= MAX_FEED_PAGES && !reachedArchive; page++) {
+                // Subscriber feeds (passport.online) already return ~50 items and ignore
+                // ?paged=, so never re-request them — one request per refresh.
+                const feedPaginates = !/passport\.online/i.test(feedUrl);
+                for (let page = 2; feedPaginates && page <= MAX_FEED_PAGES && !reachedArchive; page++) {
                     updateStatus('loading', 'Fetching older articles (page ' + page + ')...');
                     let pageItems;
                     try {
@@ -1713,7 +1735,7 @@
                         description: descText.substring(0, 300),
                         content: textContent,
                         date: pubDate ? formatDate(pubDate.trim()) : '',
-                        link: link.trim(),
+                        link: link.trim().replace(/&amp;/g, '&'),
                         categories: [],
                         paragraphs: splitIntoParagraphs(textContent)
                     });
@@ -1788,7 +1810,7 @@
                                 description: descText.substring(0, 300),
                                 content: textContent,
                                 date: date ? formatDate(date) : '',
-                                link: link.trim(),
+                                link: link.trim().replace(/&amp;/g, '&'),
                                 categories: categories,
                                 paragraphs: splitIntoParagraphs(textContent)
                             });
