@@ -122,6 +122,14 @@ button.row:hover{background:var(--surface)}
 .sw[aria-checked=true]::after{transform:translateX(20px)}
 .hrow .rowend button{color:var(--muted);width:32px;height:32px;display:grid;place-items:center;border-radius:8px}
 .tag{display:inline-block;font-size:12px;font-weight:500;color:var(--hot);background:color-mix(in srgb,var(--hot) 14%,transparent);padding:2px 8px;border-radius:6px;margin-left:6px}
+.seg.five button{padding:10px 0;font-variant-numeric:tabular-nums}
+.scale{display:flex;justify-content:space-between;font-size:12px;font-weight:400;color:var(--muted)}
+.crow{cursor:pointer}
+.crow .scores{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--surface);color:var(--ink);font-style:normal}
+.chip.lo{background:color-mix(in srgb,var(--hot) 18%,transparent)}
+.chip.hi{background:var(--accent-soft);color:var(--accent)}
+.saved{font-size:13px;color:var(--accent);text-align:center;margin-top:8px;min-height:1.2em}
 @media (prefers-reduced-motion:reduce){.flash{animation:none}}
 </style>
 </head>
@@ -133,7 +141,10 @@ button.row:hover{background:var(--surface)}
   <div class="sec">Routines</div>
   <div class="list" id="routineList"></div>
   <div class="sec">Tracking</div>
-  <div class="list"><button class="row" id="logBtn"><div class="thumb"><div class="noimg"><i data-lucide="notebook-pen"></i></div></div>
+  <div class="list"><button class="row" id="checkBtn"><div class="thumb"><div class="noimg"><i data-lucide="activity"></i></div></div>
+    <div class="rowtext"><b>Daily check-in</b><span id="checkSub">Score your back and neck</span></div>
+    <div class="rowend"><i data-lucide="chevron-right"></i></div></button>
+  <button class="row" id="logBtn"><div class="thumb"><div class="noimg"><i data-lucide="notebook-pen"></i></div></div>
     <div class="rowtext"><b>Headache log</b><span id="logSub">Note when one hits – spot the pattern</span></div>
     <div class="rowend"><i data-lucide="chevron-right"></i></div></button></div>
   <details class="gentle">
@@ -188,6 +199,23 @@ button.row:hover{background:var(--surface)}
     <button class="play" id="playBtn" aria-label="Pause"></button>
     <button class="ctl" id="nextBtn" aria-label="Next stretch"><i data-lucide="skip-forward"></i></button>
   </div>
+</div>
+
+<div class="wrap hidden" id="checkView">
+  <div class="topbar">
+    <button class="iconbtn" id="checkBack" aria-label="Back to routines"><i data-lucide="chevron-left"></i></button>
+  </div>
+  <h1>Daily check-in</h1>
+  <div class="sub">How did your back and neck feel? Log any day – catch up whenever.</div>
+  <label class="field">Day<input type="date" id="cDate"></label>
+  <div class="field">Back<div class="seg five" id="cBack"></div><div class="scale"><span>1 bad</span><span>5 great</span></div></div>
+  <div class="field">Neck<div class="seg five" id="cNeck"></div><div class="scale"><span>1 bad</span><span>5 great</span></div></div>
+  <div class="toggle"><span>Worked out this day<small id="cGymHint"></small></span><button type="button" class="sw" id="cGym" role="switch" aria-checked="false" aria-label="Worked out this day"></button></div>
+  <div class="toggle"><span>Worked out the day before<small id="cPrevHint"></small></span><button type="button" class="sw" id="cPrev" role="switch" aria-checked="false" aria-label="Worked out the day before"></button></div>
+  <div class="actions" style="margin-top:16px"><button class="primary" id="cSave"><i data-lucide="check"></i>Save</button></div>
+  <div class="saved" id="cSaved"></div>
+  <div class="sec">Recent days</div>
+  <div class="list" id="cList"></div>
 </div>
 
 <div class="wrap hidden" id="logView">
@@ -366,7 +394,7 @@ function renderHome(){
       <div class="rowend"><i data-lucide="chevron-right"></i></div></button>`;
   }).join('');
   document.querySelectorAll('#routineList .row').forEach(b=>b.addEventListener('click',()=>openDetail(b.dataset.id)));
-  renderStats();icons();
+  renderStats();try{renderChecks()}catch(e){}icons();
 }
 
 /* detail */
@@ -472,7 +500,7 @@ function finish(){
 function stopSession(){clearInterval(timer);releaseWake();show('detail')}
 async function requestWake(){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
 function releaseWake(){try{wakeLock&&wakeLock.release();wakeLock=null}catch(e){}}
-function show(id){['home','detail','player','doneView','logView'].forEach(v=>document.getElementById(v).classList.toggle('hidden',v!==id));window.scrollTo(0,0);icons()}
+function show(id){['home','detail','player','doneView','logView','checkView'].forEach(v=>document.getElementById(v).classList.toggle('hidden',v!==id));window.scrollTo(0,0);icons()}
 
 document.getElementById('playBtn').addEventListener('click',togglePause);
 document.getElementById('nextBtn').addEventListener('click',()=>advance(1));
@@ -493,10 +521,15 @@ const isoDay=d=>{const z=new Date(d);return z.getFullYear()+'-'+String(z.getMont
 const SEV=['','Mild','Moderate','Severe'];
 let gymTouched=false;
 function gymDoneOn(day){return loadLog().some(x=>typeof x==='object'&&GYM_ROUTINES.includes(x.r)&&isoDay(x.t)===day)}
+function loadChecks(){try{return JSON.parse(localStorage.getItem('unstiff-checkins')||'{}')}catch(e){return {}}}
+function saveChecks(o){try{localStorage.setItem('unstiff-checkins',JSON.stringify(o))}catch(e){}}
+const shiftDay=(day,n)=>{const d=new Date(day+'T12:00');d.setDate(d.getDate()+n);return isoDay(d)};
+/* worked out = check-in says so, or Gym prep / Downshift completed that day */
+function workedOut(day){const c=loadChecks()[day];return c&&typeof c.gym==='boolean'?c.gym:gymDoneOn(day)}
 function setGym(on){document.getElementById('hGym').setAttribute('aria-checked',on?'true':'false')}
 function prefillGym(){
-  const auto=gymDoneOn(document.getElementById('hDate').value);
-  document.getElementById('hGymHint').textContent=auto?'Gym prep or Downshift done that day':'Trained that day?';
+  const day=document.getElementById('hDate').value,auto=workedOut(day);
+  document.getElementById('hGymHint').textContent=gymDoneOn(day)?'Gym prep or Downshift done that day':auto?'From your check-in':'Trained that day?';
   if(!gymTouched)setGym(auto);
 }
 function renderHeads(){
@@ -526,6 +559,62 @@ document.getElementById('hSave').addEventListener('click',()=>{
   const l=loadHeads();l.push({t:Date.now(),day,sev,gym:document.getElementById('hGym').getAttribute('aria-checked')==='true',note:document.getElementById('hNote').value.trim().slice(0,500)});
   saveHeads(l.slice(-500));document.getElementById('hNote').value='';gymTouched=false;prefillGym();renderHeads();
 });
+
+/* daily check-in */
+let cTouched={gym:false,prev:false};
+['cBack','cNeck'].forEach(id=>{const el=document.getElementById(id);
+  el.innerHTML=[1,2,3,4,5].map(v=>`<button type="button" data-v="${v}" aria-pressed="false" aria-label="${v} of 5">${v}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')!=='true';
+    el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',on&&x===b?'true':'false'))}))});
+const segVal=id=>{const b=document.querySelector('#'+id+' button[aria-pressed=true]');return b?+b.dataset.v:null};
+const setSeg=(id,v)=>document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.v===v?'true':'false'));
+const swOn=id=>document.getElementById(id).getAttribute('aria-checked')==='true';
+const setSw=(id,on)=>document.getElementById(id).setAttribute('aria-checked',on?'true':'false');
+function hintFor(day){return gymDoneOn(day)?'Gym prep or Downshift done':(loadChecks()[day]||{}).gym?'From that day\'s check-in':''}
+function loadCheckForm(){
+  const day=document.getElementById('cDate').value,c=loadChecks()[day],prev=shiftDay(day,-1);
+  cTouched={gym:false,prev:false};
+  setSeg('cBack',c?c.back:null);setSeg('cNeck',c?c.neck:null);
+  setSw('cGym',c&&typeof c.gym==='boolean'?c.gym:gymDoneOn(day));
+  setSw('cPrev',c&&typeof c.prev==='boolean'?c.prev:workedOut(prev));
+  document.getElementById('cGymHint').textContent=c?'':hintFor(day);
+  document.getElementById('cPrevHint').textContent=c?'':hintFor(prev);
+  document.getElementById('cSave').lastChild.textContent=c?'Update':'Save';
+  document.getElementById('cSaved').textContent=c?'Already logged – editing':'';
+  icons();
+}
+function chip(label,v){return v?`<em class="chip ${v<=2?'lo':v>=4?'hi':''}">${label} ${v}/5</em>`:''}
+function renderChecks(){
+  const o=loadChecks(),days=Object.keys(o).sort().reverse(),today=isoDay(Date.now()),t=o[today];
+  document.getElementById('checkSub').textContent=t?`Today: back ${t.back||'–'}, neck ${t.neck||'–'}`:'Today not logged yet';
+  document.getElementById('cList').innerHTML=days.length?days.slice(0,30).map(d=>{const c=o[d],dt=new Date(d+'T12:00');
+    return `<div class="row crow" data-d="${d}"><div class="rowtext"><b>${dt.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}</b>
+      <div class="scores">${chip('Back',c.back)}${chip('Neck',c.neck)}${c.gym?'<em class="chip">Workout</em>':''}${c.prev?'<em class="chip">Workout day before</em>':''}</div></div>
+      <div class="rowend"><button data-del="${d}" aria-label="Delete ${d}" style="width:32px;height:32px;display:grid;place-items:center;color:var(--muted)"><i data-lucide="trash-2"></i></button></div></div>`}).join('')
+    :'<div class="row"><div class="rowtext"><span>Nothing logged yet.</span></div></div>';
+  document.querySelectorAll('#cList .crow').forEach(r=>r.addEventListener('click',e=>{
+    if(e.target.closest('[data-del]'))return;document.getElementById('cDate').value=r.dataset.d;loadCheckForm();window.scrollTo(0,0)}));
+  document.querySelectorAll('#cList [data-del]').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm('Delete this day?'))return;const o=loadChecks();delete o[b.dataset.del];saveChecks(o);renderChecks();loadCheckForm()}));
+  icons();
+}
+function openCheck(){const d=document.getElementById('cDate');d.value=isoDay(Date.now());d.max=isoDay(Date.now());loadCheckForm();renderChecks();show('checkView')}
+document.getElementById('checkBtn').addEventListener('click',openCheck);
+document.getElementById('checkBack').addEventListener('click',()=>{show('home');renderHome()});
+document.getElementById('cDate').addEventListener('change',loadCheckForm);
+['cGym','cPrev'].forEach(id=>document.getElementById(id).addEventListener('click',()=>{setSw(id,!swOn(id));document.getElementById(id+'Hint').textContent=''}));
+document.getElementById('cSave').addEventListener('click',()=>{
+  const day=document.getElementById('cDate').value,back=segVal('cBack'),neck=segVal('cNeck'),msg=document.getElementById('cSaved');
+  if(!day){msg.textContent='Pick a day first';return}
+  if(!back&&!neck){msg.textContent='Tap a score for back or neck';return}
+  const o=loadChecks();o[day]={back,neck,gym:swOn('cGym'),prev:swOn('cPrev'),t:Date.now()};
+  /* "day before" on D is the same fact as "worked out" on D-1 – keep neighbours in sync */
+  const prev=shiftDay(day,-1),next=shiftDay(day,1);
+  if(o[prev])o[prev].gym=o[day].prev;
+  if(o[next])o[next].prev=o[day].gym;
+  saveChecks(o);renderChecks();loadCheckForm();msg.textContent='Saved';
+});
+renderChecks();
 
 renderHome();renderHeads();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
