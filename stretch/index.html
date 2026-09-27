@@ -97,6 +97,31 @@ button.row:hover{background:var(--surface)}
 .done .badge svg.lucide{width:32px;height:32px}
 .done h2{font-size:26px;margin:0}
 .done p{color:var(--muted);margin:0 auto 14px;max-width:32ch;line-height:1.45}
+.noimg{width:100%;height:100%;display:grid;place-items:center;color:var(--accent)}
+.thumb .noimg svg.lucide{width:24px;height:24px}
+.stage .noimg{position:absolute;inset:0;align-content:center;gap:8px;font-size:13px;color:var(--muted)}
+.stage .noimg svg.lucide{width:72px;height:72px;color:var(--accent);margin:0 auto}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;font-size:14.5px;line-height:1.5;position:relative;margin:0 auto 14px;max-width:420px;width:100%}
+.card h3{font-size:14px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.card h3 svg.lucide{width:18px;height:18px;color:var(--accent)}
+.card ul{margin:0;padding-left:18px}
+.card .x{position:absolute;right:6px;top:6px;width:32px;height:32px}
+.prompt{background:var(--accent-soft);color:var(--ink);border-radius:12px;padding:12px 14px;font-weight:600;font-size:15px;margin:0 auto 14px;max-width:420px;width:100%;display:flex;gap:10px;align-items:center;text-align:left}
+.prompt svg.lucide{color:var(--accent);flex:none}
+.field{display:flex;flex-direction:column;gap:6px;margin:14px 0 0;font-size:14px;font-weight:600}
+.field input[type=date],.field textarea{font:inherit;font-weight:400;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.field textarea{min-height:64px;resize:vertical}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 0;font-weight:500}
+.seg button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 0;font-size:14px;font-weight:600}
+.toggle small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.sw{flex:none;width:50px;height:30px;border-radius:15px;background:var(--line);position:relative;transition:background .2s}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw[aria-checked=true]{background:var(--accent)}
+.sw[aria-checked=true]::after{transform:translateX(20px)}
+.hrow .rowend button{color:var(--muted);width:32px;height:32px;display:grid;place-items:center;border-radius:8px}
+.tag{display:inline-block;font-size:12px;font-weight:500;color:var(--hot);background:color-mix(in srgb,var(--hot) 14%,transparent);padding:2px 8px;border-radius:6px;margin-left:6px}
 @media (prefers-reduced-motion:reduce){.flash{animation:none}}
 </style>
 </head>
@@ -107,6 +132,10 @@ button.row:hover{background:var(--surface)}
   <div class="sub" id="stats"></div>
   <div class="sec">Routines</div>
   <div class="list" id="routineList"></div>
+  <div class="sec">Tracking</div>
+  <div class="list"><button class="row" id="logBtn"><div class="thumb"><div class="noimg"><i data-lucide="notebook-pen"></i></div></div>
+    <div class="rowtext"><b>Headache log</b><span id="logSub">Note when one hits – spot the pattern</span></div>
+    <div class="rowend"><i data-lucide="chevron-right"></i></div></button></div>
   <details class="gentle">
     <summary><i data-lucide="info"></i>Go gentle – it's the point</summary>
     <ul>
@@ -144,6 +173,7 @@ button.row:hover{background:var(--surface)}
   <div class="exname" id="exname"></div>
   <div class="stage" id="stage">
     <img id="stageImg" alt="">
+    <div class="noimg hidden" id="stageNoImg"><i data-lucide="person-standing"></i><span>No picture – follow the cues</span></div>
     <div class="timer">
       <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" stroke="#e6e6e6" stroke-width="9" fill="none"/><circle id="ring" cx="60" cy="60" r="50" stroke="var(--accent)" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="314.2" stroke-dashoffset="0"/></svg>
       <div class="num" id="num"></div>
@@ -160,11 +190,37 @@ button.row:hover{background:var(--surface)}
   </div>
 </div>
 
+<div class="wrap hidden" id="logView">
+  <div class="topbar">
+    <button class="iconbtn" id="logBack" aria-label="Back to routines"><i data-lucide="chevron-left"></i></button>
+  </div>
+  <h1>Headache log</h1>
+  <div class="sub">Log it when one hits. Patterns show up after a few weeks.</div>
+  <label class="field">Date<input type="date" id="hDate"></label>
+  <div class="field">How bad<div class="seg" id="hSev"><button type="button" data-v="1" aria-pressed="false">Mild</button><button type="button" data-v="2" aria-pressed="true">Moderate</button><button type="button" data-v="3" aria-pressed="false">Severe</button></div></div>
+  <div class="toggle"><span>Gym day<small id="hGymHint">Trained that day?</small></span><button type="button" class="sw" id="hGym" role="switch" aria-checked="false" aria-label="Gym day"></button></div>
+  <label class="field">Notes<textarea id="hNote" placeholder="When it started, where it sat, what helped"></textarea></label>
+  <div class="actions" style="margin-top:14px"><button class="primary" id="hSave"><i data-lucide="plus"></i>Add to log</button></div>
+  <div class="sec">Recent</div>
+  <div class="list" id="hList"></div>
+</div>
+
 <div class="wrap hidden" id="doneView">
   <div class="done">
     <div class="badge"><i data-lucide="check"></i></div>
     <h2>Done. Shoulders down.</h2>
     <p id="doneMsg"></p>
+    <div class="prompt hidden" id="donePrompt"><i data-lucide="alarm-clock"></i><span>Start Downshift within 10 minutes of finishing.</span></div>
+    <div class="card hidden" id="liftCues">
+      <button class="iconbtn x" id="liftCuesX" aria-label="Dismiss lift cues"><i data-lucide="x"></i></button>
+      <h3><i data-lucide="dumbbell"></i>Lift cues</h3>
+      <ul>
+        <li>Stop every set 2 reps before failure</li>
+        <li>Face pulls and laterals: shoulders stay down, elbows lead</li>
+        <li>Pull-ups: chest to bar, don't reach with the chin</li>
+        <li>Exhale through the hard part – loose jaw</li>
+      </ul>
+    </div>
     <div class="actions" style="justify-content:center">
       <button class="primary" id="homeBtn" style="flex:none;padding:13px 28px">Back to routines</button>
     </div>
@@ -205,6 +261,15 @@ const EX={
   happybaby:{name:'Happy baby',img:'happy-baby',pos:'lie',dur:45,feel:'Inner thighs and lower back',cues:['On your back, grab the outsides of your feet','Knees wide, toward your armpits','Rock gently side to side if it feels good'],why:'Opens the hips and lets the lower back flatten.'},
   child:{name:'Child\'s pose',img:'childs-pose',pos:'rest',dur:60,feel:'Back and shoulders',cues:['Knees wide, sit back toward your heels','Arms long, forehead down – rest','Breathe into your back ribs'],why:'A calm finish. Let everything go.'},
   legswall:{name:'Legs up the wall',img:'legs-up-the-wall',pos:'rest',dur:90,feel:'Hamstrings and lower back',cues:['Lie with your bum close to a wall, legs up it','Arms relaxed by your sides','Close your eyes and breathe slowly'],why:'A deeply calming finish. Good before bed.'},
+  /* gym prep – upper day */
+  catcamel:{name:'Cat–camel',img:'cat-cow',pos:'fours',dur:50,feel:'Whole spine',cues:['On hands and knees, move slowly','Exhale – round up through the upper back','Inhale – let the chest sink, no neck crank'],why:'Wakes up the spine before you load it. Easy range, no forcing.'},
+  openbook:{name:'Open book',pos:'lie',dur:35,sided:true,feel:'Upper back and chest',cues:['Lie on your side, knees bent and stacked, arms out in front','Sweep the top arm up and over, following it with your eyes','Knees stay together – only the upper back turns'],why:'Rotation for the thoracic spine, so pull-ups and rows don\'t steal it from your neck.'},
+  doorway120:{name:'Doorway pec stretch – 120°',img:'doorway-chest-stretch',pos:'stand',dur:50,feel:'Lower chest and front of shoulders',cues:['Forearms on the frame with elbows above shoulder height – about 120°','Step through and lean gently','Ribs down, shoulders away from your ears'],why:'The high arm angle targets the lower pec fibres that bench press tightens.'},
+  wallslides:{name:'Wall slides with lift-off',pos:'stand',dur:60,feel:'Mid back and back of the shoulders',cues:['Back, head and forearms against the wall','Slide arms up into a Y, then lift your hands just off the wall','Lower slowly. Ribs stay down, shoulders stay down'],why:'Switches on the lower traps so the upper traps don\'t take over on laterals and face pulls.'},
+  pushupplus:{name:'Wall push-up plus',pos:'stand',dur:60,feel:'Around the shoulder blades',cues:['Hands on the wall at chest height','Do a push-up, then push the wall away at the top so your upper back rounds slightly','Slow and controlled – 8 to 12 reps'],why:'Primes serratus anterior, which keeps the shoulder blades moving well under load.'},
+  chinnods:{name:'Chin nods',pos:'stand',dur:45,feel:'Deep front of the neck',cues:['Back of your head against a wall, or lie down','Make a small "yes" nod – a double chin, not a tilt','Hold 3–5 seconds, relax, repeat. Jaw loose'],why:'Wakes up the deep neck flexors, so your neck stays stable instead of straining when you lift.'},
+  /* gym downshift */
+  lat:{name:'Lat stretch',img:'puppy-pose',pos:'fours',dur:35,sided:true,feel:'Side of the back and armpit',cues:['Kneel, one hand on a bench or the floor in front','Sit your hips back and sink the chest','Lean slightly away from the reaching arm'],why:'Pull-ups and rows tighten the lats, which drags the shoulders forward.'},
   savasana:{name:'Rest',img:'savasana',pos:'rest',dur:60,feel:'Everything',cues:['Lie on your back, arms and legs loose','Let your jaw and shoulders go','Just breathe'],why:'Lets the stretching settle in.'}
 };
 
@@ -228,6 +293,16 @@ const ROUTINES=[
     {label:'Standing',pick:3,from:['doorway','crossbody','triceps','sidebend']},
     {label:'Floor',pick:3,from:['thread','puppy','catcow','sphinx']},
     {label:'Seated',pick:2,from:['cowface','seattwist']},
+    {label:'Finish',pick:1,from:['child']}]},
+  {id:'gymprep',name:'Gym prep – upper day',focus:'Before upper sessions',icon:'cat-cow',fixed:true,desc:'Six minutes before an upper session. Moves the upper back and switches on the shoulder stabilisers. Not needed on leg days.',
+   stages:['catcamel','openbook','doorway120','wallslides','pushupplus','chinnods'].map(k=>({label:EX[k].name,pick:1,from:[k]}))},
+  {id:'downshift',name:'Gym downshift',focus:'After the gym',icon:'childs-pose',fixed:true,desc:'Right after training. Brings your heart rate and neck tension down together.',
+   stages:[
+    {label:'Settle',pick:1,from:['breathe']},
+    {label:'Lats',pick:1,from:['lat']},
+    {label:'Chest',pick:1,from:['doorway']},
+    {label:'Neck',pick:1,from:['neck']},
+    {label:'Neck',pick:1,from:['chinnods']},
     {label:'Finish',pick:1,from:['child']}]},
   {id:'legs',name:'Legs and hips',focus:'Hips, hamstrings, calves',icon:'lizard',desc:'Undo a day of sitting. Standing first, then down to the floor.',
    stages:[
@@ -266,6 +341,7 @@ const planCount=p=>p.flatMap(s=>s.items).length;
 const mins=s=>Math.max(1,Math.round(s/60));
 ROUTINES.forEach(r=>plans[r.id]=makePlan(r,false));
 const imgOf=key=>IMG[EX[key]?EX[key].img:key];
+const thumbHTML=key=>{const src=imgOf(key);return src?`<img src="${src}" alt="">`:'<div class="noimg"><i data-lucide="person-standing"></i></div>'};
 
 /* storage */
 function loadLog(){try{return JSON.parse(localStorage.getItem('unstiff-log')||'[]')}catch(e){return []}}
@@ -285,7 +361,7 @@ function renderStats(){
 function renderHome(){
   document.getElementById('routineList').innerHTML=ROUTINES.map(r=>{
     const p=plans[r.id];
-    return `<button class="row" data-id="${r.id}"><div class="thumb"><img src="${imgOf(r.icon)}" alt=""></div>
+    return `<button class="row" data-id="${r.id}"><div class="thumb">${thumbHTML(r.icon)}</div>
       <div class="rowtext"><b>${r.name}</b><span>${mins(planSeconds(p))} min, ${planCount(p)} stretches</span><em class="focus">${r.focus}</em></div>
       <div class="rowend"><i data-lucide="chevron-right"></i></div></button>`;
   }).join('');
@@ -301,9 +377,10 @@ function renderDetail(anim){
   document.getElementById('dTitle').textContent=r.name;
   document.getElementById('dMeta').textContent=`${mins(planSeconds(p))} min, ${planCount(p)} stretches`;
   document.getElementById('dDesc').textContent=r.desc;
+  document.getElementById('shuffleBtn').classList.toggle('hidden',!!r.fixed);
   const list=document.getElementById('dList');
   list.innerHTML=p.map(s=>`<div class="stagelbl">${s.label}</div><div class="list">${s.items.map(k=>{const e=EX[k];
-    return `<div class="row"><div class="thumb"><img src="${imgOf(k)}" alt=""></div><div class="rowtext"><b>${e.name}</b><span>${e.feel}${e.sided?', each side':''}</span></div><div class="rowend">${e.sided?e.dur+'s ×2':e.dur+'s'}</div></div>`}).join('')}</div>`).join('');
+    return `<div class="row"><div class="thumb">${thumbHTML(k)}</div><div class="rowtext"><b>${e.name}</b><span>${e.feel}${e.sided?', each side':''}</span></div><div class="rowend">${e.sided?e.dur+'s ×2':e.dur+'s'}</div></div>`}).join('')}</div>`).join('');
   if(anim){list.classList.remove('flash');void list.offsetWidth;list.classList.add('flash')}
   icons();
 }
@@ -354,7 +431,9 @@ function loadStep(){
   ph.textContent=s.type==='ready'?(s.switchSide?'Switch sides':s.posJump?'Get down to the floor':'Up next'):'Stretch';
   ph.className='phase'+(s.type==='ready'?' ready':'');
   document.getElementById('exname').textContent=e.name+(s.side?(s.side==='L'?' – left':' – right'):'');
-  const img=document.getElementById('stageImg');img.src=imgOf(s.key);img.alt=e.name;img.classList.toggle('mirror',s.side==='R');
+  const img=document.getElementById('stageImg'),src=imgOf(s.key);
+  img.classList.toggle('hidden',!src);document.getElementById('stageNoImg').classList.toggle('hidden',!!src);
+  if(src){img.src=src;img.alt=e.name;img.classList.toggle('mirror',s.side==='R')}
   document.getElementById('stage').classList.toggle('getready',s.type==='ready');
   document.getElementById('feelTxt').textContent='Feel it: '+e.feel.toLowerCase();
   document.getElementById('cues').innerHTML=e.cues.map(c=>`<li>${c}</li>`).join('');
@@ -383,14 +462,17 @@ function togglePause(){if(paused){paused=false;endAt=Date.now()+remaining*1000}e
 function finish(){
   clearInterval(timer);releaseWake();
   const log=loadLog();log.push({t:Date.now(),r:routine.id});saveLog(log.slice(-300));
-  document.getElementById('doneMsg').textContent=`${mins(planSeconds(plans[routine.id]))} minutes of stretching. Notice how your body feels now – that's the version you're training toward.`;
+  const prep=routine.id==='gymprep';
+  document.getElementById('doneMsg').textContent=prep?'Warmed up. Go lift.':`${mins(planSeconds(plans[routine.id]))} minutes of stretching. Notice how your body feels now – that's the version you're training toward.`;
+  document.getElementById('donePrompt').classList.toggle('hidden',!prep);
+  document.getElementById('liftCues').classList.toggle('hidden',!prep);
   beep(660,.15,.18);setTimeout(()=>beep(990,.3,.18),160);
   show('doneView');
 }
 function stopSession(){clearInterval(timer);releaseWake();show('detail')}
 async function requestWake(){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
 function releaseWake(){try{wakeLock&&wakeLock.release();wakeLock=null}catch(e){}}
-function show(id){['home','detail','player','doneView'].forEach(v=>document.getElementById(v).classList.toggle('hidden',v!==id));window.scrollTo(0,0);icons()}
+function show(id){['home','detail','player','doneView','logView'].forEach(v=>document.getElementById(v).classList.toggle('hidden',v!==id));window.scrollTo(0,0);icons()}
 
 document.getElementById('playBtn').addEventListener('click',togglePause);
 document.getElementById('nextBtn').addEventListener('click',()=>advance(1));
@@ -401,7 +483,51 @@ document.getElementById('muteBtn').addEventListener('click',e=>{muted=!muted;e.c
 document.addEventListener('keydown',e=>{if(document.getElementById('player').classList.contains('hidden'))return;
   if(e.code==='Space'){e.preventDefault();togglePause()}if(e.key==='ArrowRight')advance(1);if(e.key==='ArrowLeft')document.getElementById('prevBtn').click()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!document.getElementById('player').classList.contains('hidden'))requestWake()});
-renderHome();
+document.getElementById('liftCuesX').addEventListener('click',()=>document.getElementById('liftCues').classList.add('hidden'));
+
+/* headache log */
+const GYM_ROUTINES=['gymprep','downshift'];
+function loadHeads(){try{return JSON.parse(localStorage.getItem('unstiff-headaches')||'[]')}catch(e){return []}}
+function saveHeads(l){try{localStorage.setItem('unstiff-headaches',JSON.stringify(l))}catch(e){}}
+const isoDay=d=>{const z=new Date(d);return z.getFullYear()+'-'+String(z.getMonth()+1).padStart(2,'0')+'-'+String(z.getDate()).padStart(2,'0')};
+const SEV=['','Mild','Moderate','Severe'];
+let gymTouched=false;
+function gymDoneOn(day){return loadLog().some(x=>typeof x==='object'&&GYM_ROUTINES.includes(x.r)&&isoDay(x.t)===day)}
+function setGym(on){document.getElementById('hGym').setAttribute('aria-checked',on?'true':'false')}
+function prefillGym(){
+  const auto=gymDoneOn(document.getElementById('hDate').value);
+  document.getElementById('hGymHint').textContent=auto?'Gym prep or Downshift done that day':'Trained that day?';
+  if(!gymTouched)setGym(auto);
+}
+function renderHeads(){
+  const l=loadHeads().sort((a,b)=>b.day.localeCompare(a.day)||b.t-a.t);
+  const wk=l.filter(h=>h.day>=isoDay(Date.now()-29*864e5));
+  document.getElementById('logSub').textContent=wk.length?`${wk.length} in the last 30 days`+(wk.some(h=>h.gym)?`, ${wk.filter(h=>h.gym).length} on gym days`:''):'Note when one hits – spot the pattern';
+  document.getElementById('hList').innerHTML=l.length?l.slice(0,30).map(h=>{
+    const d=new Date(h.day+'T12:00');
+    return `<div class="row hrow"><div class="rowtext"><b>${d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})} · ${SEV[h.sev]}${h.gym?'<span class="tag">Gym day</span>':''}</b>${h.note?`<span>${h.note.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span>`:''}</div>
+      <div class="rowend"><button data-t="${h.t}" aria-label="Delete entry"><i data-lucide="trash-2"></i></button></div></div>`}).join(''):'<div class="row"><div class="rowtext"><span>Nothing logged yet.</span></div></div>';
+  document.querySelectorAll('#hList button[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm('Delete this entry?'))return;saveHeads(loadHeads().filter(h=>String(h.t)!==b.dataset.t));renderHeads()}));
+  icons();
+}
+function openLog(){
+  document.getElementById('hDate').value=isoDay(Date.now());document.getElementById('hDate').max=isoDay(Date.now());
+  document.getElementById('hNote').value='';gymTouched=false;prefillGym();renderHeads();show('logView');
+}
+document.getElementById('logBtn').addEventListener('click',openLog);
+document.getElementById('logBack').addEventListener('click',()=>{show('home');renderHome()});
+document.getElementById('hDate').addEventListener('change',prefillGym);
+document.getElementById('hGym').addEventListener('click',e=>{gymTouched=true;setGym(e.currentTarget.getAttribute('aria-checked')!=='true')});
+document.querySelectorAll('#hSev button').forEach(b=>b.addEventListener('click',()=>document.querySelectorAll('#hSev button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'))));
+document.getElementById('hSave').addEventListener('click',()=>{
+  const day=document.getElementById('hDate').value||isoDay(Date.now());
+  const sev=+document.querySelector('#hSev button[aria-pressed=true]').dataset.v;
+  const l=loadHeads();l.push({t:Date.now(),day,sev,gym:document.getElementById('hGym').getAttribute('aria-checked')==='true',note:document.getElementById('hNote').value.trim().slice(0,500)});
+  saveHeads(l.slice(-500));document.getElementById('hNote').value='';gymTouched=false;prefillGym();renderHeads();
+});
+
+renderHome();renderHeads();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>

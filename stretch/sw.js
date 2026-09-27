@@ -1,5 +1,5 @@
-// Offline support: serve cached copy, refresh in the background.
-const CACHE = 'stretch-v1';
+// Offline support: network first so updates show immediately, cache as fallback.
+const CACHE = 'stretch-v2';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png',
   'https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js'];
 self.addEventListener('install', e => {
@@ -10,9 +10,7 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(caches.open(CACHE).then(async c => {
-    const hit = await c.match(e.request);
-    const net = fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);
-    return hit || net;
-  }));
+  e.respondWith(caches.open(CACHE).then(c =>
+    fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; })
+      .catch(() => c.match(e.request, { ignoreSearch: true }))));
 });
