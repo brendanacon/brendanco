@@ -145,10 +145,16 @@ a { color: inherit; }
 .item img { width: 112px; height: 84px; object-fit: cover; border-radius: 8px; background: var(--rule); }
 .meta { font-size: 12px; color: var(--ink-3); margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 .kicker { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.ready-slot:empty { display: none; }
 .dot-ready { width: 6px; height: 6px; border-radius: 50%; background: #2e9d6a; display: inline-block; }
 .is-read h2, .is-read h3 { color: var(--read); }
 .item:hover h3, .lead:hover h2 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 
+/* Day dividers; the first item after one drops its own top rule */
+.day { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3);
+  padding: 26px 0 10px; border-bottom: 2px solid var(--ink); }
+.day + .item, .day + .lead { border-top: 0; }
+.day + .lead { margin-top: 14px; }
 .empty { padding: 60px 0; text-align: center; color: var(--ink-3); font-size: 15px; }
 .skel { height: 96px; border-top: 1px solid var(--rule); position: relative; overflow: hidden; }
 .skel::after { content: ''; position: absolute; inset: 18px 130px 18px 0; border-radius: 6px;
@@ -285,7 +291,9 @@ article.story { padding: 28px 0 80px; }
   const TIMEOUT_MS = 15000;
   const PREFETCH_COUNT = 12;       // warm the cache for the top N stories in the current tab
   const PREFETCH_CONCURRENCY = 3;
-  const MAX_CACHED_ARTICLES = 150;
+  const MAX_CACHED_ARTICLES = 100;
+  const ARCHIVE_MAX = 250;         // stories kept per tab
+  const ARCHIVE_DAYS = 14;
   const STORE = {
     feed: id => 'afr-feed-' + id,
     articles: 'afr-articles',
@@ -371,13 +379,45 @@ article.story { padding: 28px 0 80px; }
     }).filter(i => i.title && i.link);
   }
 
+  // AFR's feeds only carry their newest 20 items and can't be paged, so each tab keeps
+  // an on-device archive: every refresh merges into it instead of replacing it.
+  function mergeItems(oldItems, fresh) {
+    const byId = new Map();
+    (oldItems || []).forEach(i => byId.set(i.id, i));
+    fresh.forEach(i => byId.set(i.id, i));
+    const cutoff = Date.now() - ARCHIVE_DAYS * 864e5;
+    return Array.from(byId.values())
+      .map(i => ({ i, t: (parseDate(i.date) || new Date(0)).getTime() }))
+      .filter(x => x.t >= cutoff)
+      .sort((a, b) => b.t - a.t)
+      .slice(0, ARCHIVE_MAX)
+      .map(x => x.i);
+  }
+
+  function saveArchive(id, list, extra) {
+    const entry = Object.assign({ at: Date.now(), items: list }, extra || {});
+    if (!store.set(STORE.feed(id), entry)) {
+      // Storage full: give the space back from the article cache first, then retry smaller.
+      store.set(STORE.articles, {});
+      entry.items = list.slice(0, Math.floor(ARCHIVE_MAX / 2));
+      store.set(STORE.feed(id), entry);
+    }
+  }
+
+  async function fetchFeedItems(feed) {
+    const xml = await fetchText(feed.url, t => /<item[\s>]/.test(t));
+    const list = parseFeed(xml);
+    if (!list.length) throw new Error(feed.name + ' feed was empty');
+    return list;
+  }
+
   async function loadFeed(force) {
     const feed = FEEDS.find(f => f.id === currentTab);
     const cached = store.get(STORE.feed(feed.id), null);
     if (cached && cached.items && cached.items.length) {
       items = cached.items;
       renderList();
-      setStatus('Updated ' + timeAgo(cached.at));
+      setStatus(items.length + ' stories · updated ' + timeAgo(cached.at));
     } else {
       items = [];
       renderSkeleton();
@@ -387,14 +427,34 @@ article.story { padding: 28px 0 80px; }
 
     spin(true);
     try {
-      const xml = await fetchText(feed.url, t => /<item[\s>]/.test(t));
-      const fresh = parseFeed(xml);
-      if (!fresh.length) throw new Error('feed was empty');
+      // Latest = the front-page feed plus every section feed, which catches far more
+      // of the day's stories than the single 20-item feed.
+      const sources = feed.id === 'latest' ? FEEDS : [feed];
+      const results = await Promise.allSettled(sources.map(fetchFeedItems));
+      const ok = results.filter(r => r.status === 'fulfilled');
+      if (!ok.length) throw new Error(results[0].reason.message);
+      let fresh = [];
+      results.forEach((r, k) => {
+        if (r.status !== 'fulfilled') return;
+        fresh = fresh.concat(r.value);
+        const src = sources[k];
+        if (src.id !== feed.id) {
+          const prev = store.get(STORE.feed(src.id), null);
+          saveArchive(src.id, mergeItems(prev && prev.items, r.value), prev && prev.at ? { at: prev.at } : null);
+        }
+      });
+
+      const prevItems = (store.get(STORE.feed(feed.id), null) || {}).items || [];
+      const known = new Set(prevItems.map(i => i.id));
+      const merged = mergeItems(prevItems, fresh);
+      const added = prevItems.length ? merged.filter(i => !known.has(i.id)).length : 0;
+      saveArchive(feed.id, merged);
       if (feed.id !== currentTab) return; // user switched tabs mid-request
-      items = fresh;
-      store.set(STORE.feed(feed.id), { at: Date.now(), items: fresh });
+      items = merged;
       renderList();
-      setStatus(fresh.length + ' stories · updated just now');
+      const failed = results.length - ok.length;
+      setStatus(merged.length + ' stories' + (added ? ' · ' + added + ' new' : '') + ' · updated just now' +
+        (failed ? ' · ' + failed + ' section' + (failed > 1 ? 's' : '') + ' unavailable' : ''));
       prefetchTop();
     } catch (e) {
       if (feed.id !== currentTab) return;
@@ -561,20 +621,24 @@ article.story { padding: 28px 0 80px; }
     );
     if (!shown.length) { listEl.innerHTML = '<div class="empty">No stories match.</div>'; return; }
 
+    let lastDay = null;
     listEl.innerHTML = shown.map((i, idx) => {
+      const day = dayLabel(i.date);
+      const header = day !== lastDay && (idx > 0 || shown.length > 20) ? '<div class="day">' + esc(day) + '</div>' : '';
+      lastDay = day;
       const read = readSet.has(i.id) ? ' is-read' : '';
       const ready = getCachedArticle(i.id) ? '<span class="dot-ready" title="Ready to read offline"></span>' : '';
       const meta = '<div class="meta"><span class="ready-slot">' + ready + '</span>' +
         (i.author ? '<span>' + esc(i.author) + '</span>' : '') +
         '<span>' + esc(timeAgo(i.date)) + '</span></div>';
       if (idx === 0 && !q && !categoryFilter) {
-        return '<a class="lead' + read + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' +
+        return header + '<a class="lead' + read + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' +
           (i.image ? '<img class="lead-img" src="' + escAttr(i.image) + '" alt="" loading="eager">' : '') +
           (i.category ? '<div class="kicker" style="margin-top:14px">' + esc(i.category) + '</div>' : '') +
           '<h2 style="margin-top:0">' + esc(i.title) + '</h2>' +
           '<p>' + esc(i.desc) + '</p>' + meta + '</a>';
       }
-      return '<a class="item' + (i.image ? '' : ' noimg') + read + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' +
+      return header + '<a class="item' + (i.image ? '' : ' noimg') + read + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' +
         '<div>' + (i.category ? '<div class="kicker">' + esc(i.category) + '</div>' : '') +
         '<h3>' + esc(i.title) + '</h3><p>' + esc(i.desc) + '</p>' + meta + '</div>' +
         (i.image ? '<img src="' + escAttr(smallImage(i.image)) + '" alt="" loading="lazy">' : '') + '</a>';
@@ -833,6 +897,14 @@ article.story { padding: 28px 0 80px; }
     const hrs = Math.round(mins / 60);
     if (hrs < 24) return hrs + 'h ago';
     return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  }
+  function dayLabel(s) {
+    const d = parseDate(s);
+    if (!d) return '';
+    const key = x => x.toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney' });
+    if (key(d) === key(new Date())) return 'Today';
+    if (key(d) === key(new Date(Date.now() - 864e5))) return 'Yesterday';
+    return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Australia/Sydney' });
   }
   function fmtDate(s) {
     const d = parseDate(s);
