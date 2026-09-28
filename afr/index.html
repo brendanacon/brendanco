@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AFR Reader</title>
+<meta name="description" content="A clean reader for the Australian Financial Review feed.">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AFR">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --ink: #16181d;
+  --ink-2: #4a4f59;
+  --ink-3: #7d828c;
+  --rule: #e3e0d8;
+  --accent: #0b3d91;
+  --accent-soft: #e6ecf7;
+  --read: #9a9ea6;
+  --shadow: 0 1px 2px rgba(20, 24, 32, .06), 0 4px 16px rgba(20, 24, 32, .05);
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --reader-size: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121417;
+    --surface: #1a1d22;
+    --ink: #ebe8e1;
+    --ink-2: #b7b9be;
+    --ink-3: #868a93;
+    --rule: #2a2e35;
+    --accent: #8fb3ff;
+    --accent-soft: #1d2638;
+    --read: #6b6f78;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121417;
+  --surface: #1a1d22;
+  --ink: #ebe8e1;
+  --ink-2: #b7b9be;
+  --ink-3: #868a93;
+  --rule: #2a2e35;
+  --accent: #8fb3ff;
+  --accent-soft: #1d2638;
+  --read: #6b6f78;
+  --shadow: none;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; }
+
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+/* --- Top bar --- */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(160%) blur(12px);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+  border-bottom: 1px solid var(--rule);
+  padding-top: env(safe-area-inset-top);
+}
+.topbar-row { display: flex; align-items: center; gap: 12px; height: 56px; }
+.brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; min-width: 0; }
+.brand-mark { font-family: var(--serif); font-weight: 600; font-size: 24px; letter-spacing: -0.02em; }
+.brand-sub { font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.spacer { flex: 1; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+}
+.icon-btn:hover { background: var(--accent-soft); color: var(--ink); }
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tabs {
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  padding: 0 0 10px; margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: none; padding: 7px 13px; border-radius: 999px;
+  font-size: 14px; font-weight: 500; color: var(--ink-2);
+  border: 1px solid transparent;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+
+/* --- Feed --- */
+.feed-head { display: flex; align-items: center; gap: 10px; padding: 18px 0 8px; }
+.search {
+  flex: 1; min-width: 0; height: 40px; border-radius: 10px;
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+  padding: 0 12px; font: inherit; font-size: 15px;
+}
+.search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.status { font-size: 13px; color: var(--ink-3); padding: 4px 0 10px; min-height: 24px; }
+.status.err { color: #c0392b; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 12px; }
+.chip {
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--rule); color: var(--ink-2); background: var(--surface);
+}
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.lead { display: block; text-decoration: none; margin: 4px 0 8px; cursor: pointer; }
+.lead-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; background: var(--rule); display: block; }
+.lead h2 { font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1.15; letter-spacing: -0.01em; margin: 14px 0 8px; text-wrap: balance; }
+.lead p { font-family: var(--serif); font-size: 18px; line-height: 1.45; color: var(--ink-2); }
+
+.item {
+  display: grid; grid-template-columns: 1fr 112px; gap: 16px;
+  padding: 18px 0; border-top: 1px solid var(--rule);
+  text-decoration: none; cursor: pointer;
+}
+.item.noimg { grid-template-columns: 1fr; }
+.item h3 { font-family: var(--serif); font-weight: 500; font-size: 20px; line-height: 1.22; letter-spacing: -0.005em; margin-bottom: 6px; text-wrap: pretty; }
+.item p { font-size: 14px; line-height: 1.45; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item img { width: 112px; height: 84px; object-fit: cover; border-radius: 8px; background: var(--rule); }
+.meta { font-size: 12px; color: var(--ink-3); margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.kicker { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.dot-ready { width: 6px; height: 6px; border-radius: 50%; background: #2e9d6a; display: inline-block; }
+.is-read h2, .is-read h3 { color: var(--read); }
+.item:hover h3, .lead:hover h2 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+.empty { padding: 60px 0; text-align: center; color: var(--ink-3); font-size: 15px; }
+.skel { height: 96px; border-top: 1px solid var(--rule); position: relative; overflow: hidden; }
+.skel::after { content: ''; position: absolute; inset: 18px 130px 18px 0; border-radius: 6px;
+  background: linear-gradient(90deg, var(--rule), color-mix(in srgb, var(--rule) 40%, transparent), var(--rule));
+  background-size: 200% 100%; animation: sh 1.2s infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+
+/* --- Reader --- */
+#reader { display: none; }
+body.reading #reader { display: block; }
+body.reading #feed { display: none; }
+body.reading .tabs { display: none; }
+
+.progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 30; transition: width .1s linear; }
+article.story { padding: 28px 0 80px; }
+.story .kicker { margin-bottom: 12px; }
+.story h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 6vw, 42px); line-height: 1.1; letter-spacing: -0.015em; text-wrap: balance; }
+.story .standfirst { font-family: var(--serif); font-size: 21px; line-height: 1.4; color: var(--ink-2); margin-top: 14px; }
+.byline { display: flex; align-items: center; gap: 12px; margin: 22px 0; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.byline img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--rule); }
+.byline .who { font-size: 14px; font-weight: 600; }
+.byline .when { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.story figure { margin: 26px 0; }
+.story figure img { width: 100%; height: auto; aspect-ratio: var(--ar, 3 / 2); object-fit: cover; border-radius: 10px; display: block; background: var(--rule); }
+.story figcaption { font-size: 13px; line-height: 1.45; color: var(--ink-3); margin-top: 8px; }
+.story figcaption .credit { opacity: .8; }
+.story .hero { margin: 0 0 8px; }
+
+.body { font-family: var(--serif); font-size: var(--reader-size); line-height: 1.62; color: var(--ink); }
+.body p { margin: 0 0 1.05em; }
+.body h2 { font-family: var(--sans); font-size: .9em; font-weight: 700; letter-spacing: -0.005em; margin: 1.8em 0 .6em; }
+.body a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.body blockquote { border-left: 3px solid var(--accent); padding: 4px 0 4px 18px; margin: 1.6em 0; font-size: 1.12em; font-style: italic; color: var(--ink-2); }
+.body blockquote p { margin: 0; }
+.body .embed { margin: 1.6em 0; border-radius: 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--rule); }
+.body .embed iframe { width: 100%; height: 480px; border: 0; display: block; background: #fff; }
+
+.story-foot { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface);
+  text-decoration: none; color: var(--ink-2);
+}
+.pill:hover { color: var(--ink); border-color: var(--ink-3); }
+.pill.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.nextup { margin-top: 36px; }
+.nextup .label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+
+.fail { padding: 40px 0; }
+.fail h2 { font-family: var(--serif); font-weight: 500; font-size: 24px; margin-bottom: 10px; }
+.fail p { color: var(--ink-2); line-height: 1.5; margin-bottom: 18px; font-size: 15px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--bg); font-size: 14px; padding: 10px 16px; border-radius: 10px;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100% - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 520px) {
+  .item { grid-template-columns: 1fr 88px; gap: 12px; }
+  .item img { width: 88px; height: 66px; }
+  .item h3 { font-size: 18px; }
+  .lead h2 { font-size: 25px; }
+  .brand-sub { display: none; }
+  .story .standfirst { font-size: 19px; }
+  .body .embed iframe { height: 380px; }
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="topbar-row">
+      <button class="icon-btn" id="backBtn" aria-label="Back to feed" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <a class="brand" href="#" id="brand"><span class="brand-mark">AFR</span><span class="brand-sub">Reader</span></a>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="sizeDown" aria-label="Smaller text" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18l5-12 5 12M6 14h6M17 12h5"/></svg>
+      </button>
+      <button class="icon-btn" id="sizeUp" aria-label="Larger text" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18l5-12 5 12M6 14h6M19.5 9.5v5M17 12h5"/></svg>
+      </button>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="icon-btn" id="refreshBtn" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="feed">
+    <div class="feed-head">
+      <input class="search" id="search" type="search" placeholder="Filter headlines" autocomplete="off">
+    </div>
+    <div class="status" id="status"></div>
+    <div class="chips" id="chips"></div>
+    <div id="list"></div>
+  </section>
+  <section id="reader"></section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---------- Config ----------
+  const FEEDS = [
+    { id: 'latest',     name: 'Latest',     url: 'https://www.afr.com/rss/feed.xml' },
+    { id: 'markets',    name: 'Markets',    url: 'https://www.afr.com/rss/markets.xml' },
+    { id: 'politics',   name: 'Politics',   url: 'https://www.afr.com/rss/politics.xml' },
+    { id: 'policy',     name: 'Policy',     url: 'https://www.afr.com/rss/policy.xml' },
+    { id: 'property',   name: 'Property',   url: 'https://www.afr.com/rss/property.xml' },
+    { id: 'technology', name: 'Technology', url: 'https://www.afr.com/rss/technology.xml' },
+    { id: 'wealth',     name: 'Wealth',     url: 'https://www.afr.com/rss/wealth.xml' },
+    { id: 'world',      name: 'World',      url: 'https://www.afr.com/rss/world.xml' },
+  ];
+  const PROXIES = [
+    { name: 'cf-worker', url: u => 'https://rss-proxy.brendanaconnaughton.workers.dev/?url=' + encodeURIComponent(u) },
+    { name: 'corsproxy', url: u => 'https://corsproxy.io/?' + encodeURIComponent(u) },
+    { name: 'allorigins', url: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u) },
+  ];
+  const TIMEOUT_MS = 15000;
+  const PREFETCH_COUNT = 12;       // warm the cache for the top N stories in the current tab
+  const PREFETCH_CONCURRENCY = 3;
+  const MAX_CACHED_ARTICLES = 150;
+  const STORE = {
+    feed: id => 'afr-feed-' + id,
+    articles: 'afr-articles',
+    read: 'afr-read',
+    tab: 'afr-tab',
+    size: 'afr-size',
+    theme: 'afr-theme',
+  };
+  const img = (id, w) => 'https://static.ffx.io/images/$width_' + (w || 800) + '/t_resize_width/q_86%2Cf_auto/' + id;
+
+  // ---------- Storage helpers (never throw) ----------
+  const store = {
+    get(k, fallback) { try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+
+  // ---------- State ----------
+  let currentTab = store.get(STORE.tab, 'latest');
+  if (!FEEDS.some(f => f.id === currentTab)) currentTab = 'latest';
+  let items = [];                 // items in the current tab
+  let categoryFilter = null;
+  const memArticles = new Map();  // id -> parsed article (session)
+  const inflight = new Map();     // id -> promise
+  let readSet = new Set(store.get(STORE.read, []));
+  let workingProxy = 0;
+
+  const $ = id => document.getElementById(id);
+  const listEl = $('list'), statusEl = $('status'), chipsEl = $('chips'), readerEl = $('reader');
+
+  // ---------- Networking ----------
+  async function fetchWithTimeout(url) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.text();
+    } catch (e) {
+      throw new Error(e.name === 'AbortError' ? 'timed out' : e.message);
+    } finally { clearTimeout(t); }
+  }
+
+  // Try the last proxy that worked first, then the rest.
+  async function fetchText(url, validate) {
+    const order = PROXIES.map((_, i) => (workingProxy + i) % PROXIES.length);
+    const errors = [];
+    for (const i of order) {
+      try {
+        const text = await fetchWithTimeout(PROXIES[i].url(url));
+        if (validate && !validate(text)) throw new Error('unexpected response');
+        workingProxy = i;
+        return text;
+      } catch (e) { errors.push(PROXIES[i].name + ': ' + e.message); }
+    }
+    throw new Error(errors.join(' · '));
+  }
+
+  function cleanLink(link) {
+    try { const u = new URL(link); u.search = ''; u.hash = ''; return u.toString(); } catch (e) { return link; }
+  }
+  function idFromLink(link) {
+    const m = /-(p[0-9a-z]{5,6})(?:[/?#]|$)/i.exec(link);
+    return m ? m[1] : null;
+  }
+
+  // ---------- Feed ----------
+  function parseFeed(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    return Array.from(doc.querySelectorAll('item')).map(it => {
+      const txt = sel => { const n = it.getElementsByTagName(sel)[0]; return n ? n.textContent.trim() : ''; };
+      const link = cleanLink(txt('link'));
+      const enc = it.getElementsByTagName('enclosure')[0];
+      return {
+        id: idFromLink(link) || txt('guid') || link,
+        link,
+        title: txt('title'),
+        desc: txt('description'),
+        category: txt('category'),
+        author: txt('dc:creator') || txt('creator'),
+        image: enc ? enc.getAttribute('url') : '',
+        date: txt('pubDate'),
+      };
+    }).filter(i => i.title && i.link);
+  }
+
+  async function loadFeed(force) {
+    const feed = FEEDS.find(f => f.id === currentTab);
+    const cached = store.get(STORE.feed(feed.id), null);
+    if (cached && cached.items && cached.items.length) {
+      items = cached.items;
+      renderList();
+      setStatus('Updated ' + timeAgo(cached.at));
+    } else {
+      items = [];
+      renderSkeleton();
+      setStatus('Loading ' + feed.name + '…');
+    }
+    if (!force && cached && Date.now() - cached.at < 3 * 60 * 1000) { prefetchTop(); return; }
+
+    spin(true);
+    try {
+      const xml = await fetchText(feed.url, t => /<item[\s>]/.test(t));
+      const fresh = parseFeed(xml);
+      if (!fresh.length) throw new Error('feed was empty');
+      if (feed.id !== currentTab) return; // user switched tabs mid-request
+      items = fresh;
+      store.set(STORE.feed(feed.id), { at: Date.now(), items: fresh });
+      renderList();
+      setStatus(fresh.length + ' stories · updated just now');
+      prefetchTop();
+    } catch (e) {
+      if (feed.id !== currentTab) return;
+      if (items.length) setStatus('Offline copy — refresh failed (' + e.message + ')', true);
+      else { listEl.innerHTML = '<div class="empty">Couldn’t load the feed.<br><small>' + esc(e.message) + '</small></div>'; setStatus('', true); }
+    } finally { spin(false); }
+  }
+
+  // ---------- Article extraction ----------
+  // AFR pages embed the full story in window.__staticRouterHydrationData = JSON.parse("…");
+  // The argument is a JSON-encoded string, so it decodes with two JSON.parse passes.
+  function extractArticle(html) {
+    const marker = 'window.__staticRouterHydrationData = JSON.parse(';
+    const start = html.indexOf(marker);
+    if (start !== -1) {
+      const s = start + marker.length;
+      const end = html.indexOf(');<\/script>', s);
+      const endAlt = end === -1 ? html.indexOf(');\n', s) : end;
+      try {
+        const data = JSON.parse(JSON.parse(html.slice(s, endAlt)));
+        const content = findContent(data);
+        if (content) return fromContent(content);
+      } catch (e) { /* fall through to JSON-LD */ }
+    }
+    return extractFromLdJson(html);
+  }
+
+  function findContent(o, depth) {
+    depth = depth || 0;
+    if (!o || typeof o !== 'object' || depth > 8) return null;
+    if (o.asset && typeof o.asset.body === 'string') return o;
+    for (const k in o) { const r = findContent(o[k], depth + 1); if (r) return r; }
+    return null;
+  }
+
+  function fromContent(c) {
+    const a = c.asset || {};
+    const fi = c.featuredImages || {};
+    const hero = (fi.landscape3x2 || fi.landscape16x9 || {}).data || null;
+    const authors = ((c.participants && c.participants.authors) || []).map(p => ({
+      name: p.name,
+      avatar: (p.featuredImages && p.featuredImages.woodcut && p.featuredImages.woodcut.data && p.featuredImages.woodcut.data.id) || '',
+    }));
+    return {
+      id: c.id,
+      headline: (a.headlines && a.headlines.headline) || '',
+      about: a.about || '',
+      body: a.body,
+      placeholders: a.bodyPlaceholders || {},
+      byline: a.byline || authors.map(x => x.name).join(', '),
+      authors,
+      wordCount: a.wordCount || 0,
+      label: c.label || '',
+      categories: c.categories || [],
+      published: (c.dates && (c.dates.firstPublished || c.dates.published)) || '',
+      modified: (c.dates && c.dates.modified) || '',
+      hero: hero ? { id: hero.id || hero.fileName, caption: hero.caption || '', credit: hero.credit || '', aspect: hero.aspect || 1.5 } : null,
+      url: (c.urls && c.urls.canonical && c.urls.canonical.path) ? 'https://www.afr.com' + c.urls.canonical.path : '',
+    };
+  }
+
+  function extractFromLdJson(html) {
+    const re = /<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g;
+    let m;
+    while ((m = re.exec(html))) {
+      try {
+        const arr = [].concat(JSON.parse(m[1]));
+        for (const d of arr) {
+          if (d && d.articleBody) {
+            return {
+              headline: d.headline || '', about: d.description || '',
+              body: d.articleBody.split(/\n+/).map(p => '<p>' + esc(p) + '</p>').join(''),
+              placeholders: {}, byline: [].concat(d.author || []).map(x => x.name).join(', '),
+              authors: [], wordCount: 0, categories: [], label: '',
+              published: d.datePublished || '', hero: null, url: '',
+            };
+          }
+        }
+      } catch (e) { /* keep looking */ }
+    }
+    return null;
+  }
+
+  function getCachedArticle(id) {
+    if (memArticles.has(id)) return memArticles.get(id);
+    const all = store.get(STORE.articles, {});
+    return all[id] ? all[id].a : null;
+  }
+
+  function cacheArticle(id, a) {
+    memArticles.set(id, a);
+    const all = store.get(STORE.articles, {});
+    all[id] = { at: Date.now(), a };
+    const keys = Object.keys(all);
+    if (keys.length > MAX_CACHED_ARTICLES) {
+      keys.sort((x, y) => all[x].at - all[y].at).slice(0, keys.length - MAX_CACHED_ARTICLES).forEach(k => delete all[k]);
+    }
+    if (!store.set(STORE.articles, all)) {
+      // Quota hit: keep only the newest third and try again.
+      const keep = Object.keys(all).sort((x, y) => all[y].at - all[x].at).slice(0, Math.floor(MAX_CACHED_ARTICLES / 3));
+      const trimmed = {}; keep.forEach(k => trimmed[k] = all[k]);
+      store.set(STORE.articles, trimmed);
+    }
+  }
+
+  function getArticle(id, link) {
+    const cached = getCachedArticle(id);
+    if (cached) return Promise.resolve(cached);
+    if (inflight.has(id)) return inflight.get(id);
+    const p = fetchText(link, t => t.length > 2000)
+      .then(html => {
+        const a = extractArticle(html);
+        if (!a || !a.body) throw new Error('no article text found on the page');
+        cacheArticle(id, a);
+        markReady(id);
+        return a;
+      })
+      .finally(() => inflight.delete(id));
+    inflight.set(id, p);
+    return p;
+  }
+
+  async function prefetchTop() {
+    const queue = items.slice(0, PREFETCH_COUNT).filter(i => !getCachedArticle(i.id));
+    const worker = async () => {
+      while (queue.length) {
+        const it = queue.shift();
+        try { await getArticle(it.id, it.link); } catch (e) { /* opened on demand later */ }
+      }
+    };
+    await Promise.all(Array.from({ length: PREFETCH_CONCURRENCY }, worker));
+  }
+
+  function markReady(id) {
+    const el = listEl.querySelector('[data-id="' + cssEsc(id) + '"] .ready-slot');
+    if (el && !el.firstChild) el.innerHTML = '<span class="dot-ready" title="Ready to read offline"></span>';
+  }
+
+  // ---------- Rendering: feed ----------
+  function renderTabs() {
+    $('tabs').innerHTML = FEEDS.map(f =>
+      '<button class="tab" role="tab" data-tab="' + f.id + '" aria-selected="' + (f.id === currentTab) + '">' + f.name + '</button>'
+    ).join('');
+  }
+
+  function renderSkeleton() {
+    chipsEl.innerHTML = '';
+    listEl.innerHTML = Array.from({ length: 6 }, () => '<div class="skel"></div>').join('');
+  }
+
+  function renderList() {
+    const q = $('search').value.trim().toLowerCase();
+    const cats = {};
+    items.forEach(i => { const c = topCategory(i.category); if (c) cats[c] = (cats[c] || 0) + 1; });
+    const catNames = Object.keys(cats).sort((a, b) => cats[b] - cats[a]);
+    if (categoryFilter && !cats[categoryFilter]) categoryFilter = null;
+    chipsEl.innerHTML = catNames.length > 1 ? catNames.map(c =>
+      '<button class="chip" data-cat="' + escAttr(c) + '" aria-pressed="' + (c === categoryFilter) + '">' + esc(c) + ' <span style="opacity:.6">' + cats[c] + '</span></button>'
+    ).join('') : '';
+
+    const shown = items.filter(i =>
+      (!categoryFilter || topCategory(i.category) === categoryFilter) &&
+      (!q || (i.title + ' ' + i.desc + ' ' + i.author + ' ' + i.category).toLowerCase().includes(q))
+    );
+    if (!shown.length) { listEl.innerHTML = '<div class="empty">No stories match.</div>'; return; }
+
+    listEl.innerHTML = shown.map((i, idx) => {
+      const read = readSet.has(i.id) ? ' is-read' : '';
+      const ready = getCachedArticle(i.id) ? '<span class="dot-ready" title="Ready to read offline"></span>' : '';
+      const meta = '<div class="meta"><span class="ready-slot">' + ready + '</span>' +
+        (i.author ? '<span>' + esc(i.author) + '</span>' : '') +
+        '<span>' + esc(timeAgo(i.date)) + '</span></div>';
+      if (idx === 0 && !q && !categoryFilter) {
+        return '<a class="lead' + read + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' +
+          (i.image ? '<img class="lead-img" src="' + escAttr(i.image) + '" alt="" loading="eager">' : '') +
+          (i.category ? '<div class="kicker" style="margin-top:14px">' + esc(i.category) + '</div>' : '') +
+          '<h2 style="margin-top:0">' + esc(i.title) + '</h2>' +
+          '<p>' + esc(i.desc) + '</p>' + meta + '</a>';
+      }
+      return '<a class="item' + (i.image ? '' : ' noimg') + read + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' +
+        '<div>' + (i.category ? '<div class="kicker">' + esc(i.category) + '</div>' : '') +
+        '<h3>' + esc(i.title) + '</h3><p>' + esc(i.desc) + '</p>' + meta + '</div>' +
+        (i.image ? '<img src="' + escAttr(smallImage(i.image)) + '" alt="" loading="lazy">' : '') + '</a>';
+    }).join('');
+  }
+
+  function topCategory(c) { return (c || '').split('/')[0].trim(); }
+  function smallImage(u) { return u.replace(/\$width_\d+/, '$width_320'); }
+
+  // ---------- Rendering: article ----------
+  function findItem(id) {
+    for (const f of FEEDS) {
+      const c = f.id === currentTab ? { items } : store.get(STORE.feed(f.id), null);
+      const hit = c && c.items && c.items.find(i => i.id === id);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  async function openArticle(id) {
+    document.body.classList.add('reading');
+    $('backBtn').hidden = false; $('sizeUp').hidden = false; $('sizeDown').hidden = false;
+    window.scrollTo(0, 0);
+
+    const item = findItem(id) || { id, link: 'https://www.afr.com/link/follow-20180101-' + id, title: '', desc: '' };
+    const cached = getCachedArticle(id);
+    if (cached) renderArticle(item, cached);
+    else {
+      readerEl.innerHTML = '<article class="story">' +
+        (item.category ? '<div class="kicker">' + esc(item.category) + '</div>' : '') +
+        '<h1>' + esc(item.title || 'Loading…') + '</h1>' +
+        (item.desc ? '<p class="standfirst">' + esc(item.desc) + '</p>' : '') +
+        '<div class="status" style="margin-top:24px">Extracting full text…</div>' +
+        '<div class="skel"></div><div class="skel"></div><div class="skel"></div></article>';
+      try {
+        const a = await getArticle(id, item.link);
+        if (currentRoute() !== id) return;
+        renderArticle(item, a);
+      } catch (e) {
+        if (currentRoute() !== id) return;
+        renderFailure(item, e);
+      }
+    }
+    readSet.add(id);
+    store.set(STORE.read, Array.from(readSet).slice(-500));
+  }
+
+  function renderArticle(item, a) {
+    const url = a.url || item.link;
+    const kicker = a.label || (a.categories.length ? a.categories.join(' · ') : item.category);
+    const mins = a.wordCount ? Math.max(1, Math.round(a.wordCount / 230)) + ' min read' : '';
+    const author = a.authors[0];
+    const when = a.published ? fmtDate(a.published) : (item.date ? fmtDate(item.date) : '');
+
+    let html = '<article class="story">';
+    if (kicker) html += '<div class="kicker">' + esc(kicker) + '</div>';
+    html += '<h1>' + esc(a.headline || item.title) + '</h1>';
+    if (a.about || item.desc) html += '<p class="standfirst">' + esc(a.about || item.desc) + '</p>';
+    html += '<div class="byline">' +
+      (author && author.avatar ? '<img src="' + escAttr(img(author.avatar, 120)) + '" alt="">' : '') +
+      '<div><div class="who">' + esc(a.byline || item.author || 'Financial Review') + '</div>' +
+      '<div class="when">' + esc([when, mins].filter(Boolean).join(' · ')) + '</div></div></div>';
+    if (a.hero) html += figure(a.hero.id, a.hero.caption, a.hero.credit, 'hero', a.hero.aspect);
+    html += '<div class="body" id="storyBody"></div>';
+    html += '<div class="story-foot">' +
+      '<a class="pill" href="' + escAttr(url) + '" target="_blank" rel="noopener">Open on afr.com ↗</a>' +
+      '<button class="pill" id="shareBtn">Share</button>' +
+      '<a class="pill" href="' + escAttr(removePaywallUrl(url)) + '" target="_blank" rel="noopener">removepaywall ↗</a>' +
+      '</div>';
+    html += nextUpHtml(item.id);
+    html += '</article>';
+    readerEl.innerHTML = html;
+    $('storyBody').appendChild(buildBody(a.body, a.placeholders));
+    $('shareBtn').onclick = () => share(a.headline || item.title, url);
+    updateProgress();
+  }
+
+  function renderFailure(item, e) {
+    const url = item.link;
+    readerEl.innerHTML = '<article class="story fail">' +
+      '<h2>' + esc(item.title || 'Couldn’t extract this story') + '</h2>' +
+      '<p>The full text couldn’t be pulled from AFR (' + esc(e.message) + '). Try again, or use one of the fallbacks.</p>' +
+      '<div class="story-foot" style="border:0;margin:0;padding:0">' +
+      '<button class="pill primary" id="retryBtn">Try again</button>' +
+      '<a class="pill" href="' + escAttr(removePaywallUrl(url)) + '" target="_blank" rel="noopener">removepaywall ↗</a>' +
+      '<a class="pill" href="https://archive.ph/newest/' + escAttr(url) + '" target="_blank" rel="noopener">archive.ph ↗</a>' +
+      '<a class="pill" href="' + escAttr(url) + '" target="_blank" rel="noopener">afr.com ↗</a>' +
+      '</div></article>';
+    $('retryBtn').onclick = () => openArticle(item.id);
+  }
+
+  function nextUpHtml(id) {
+    const idx = items.findIndex(i => i.id === id);
+    const next = items.slice(idx + 1).find(i => !readSet.has(i.id)) || items[idx + 1];
+    if (!next || idx === -1) return '';
+    return '<div class="nextup"><div class="label">Next up</div>' +
+      '<a class="item' + (next.image ? '' : ' noimg') + '" href="#a/' + encodeURIComponent(next.id) + '">' +
+      '<div>' + (next.category ? '<div class="kicker">' + esc(next.category) + '</div>' : '') +
+      '<h3>' + esc(next.title) + '</h3><p>' + esc(next.desc) + '</p></div>' +
+      (next.image ? '<img src="' + escAttr(smallImage(next.image)) + '" alt="" loading="lazy">' : '') + '</a></div>';
+  }
+
+  function figure(id, caption, credit, cls, aspect) {
+    const ar = aspect > 0.2 && aspect < 5 ? ' style="--ar:' + (+aspect).toFixed(4) + '"' : '';
+    return '<figure' + (cls ? ' class="' + cls + '"' : '') + ar + '>' +
+      '<img src="' + escAttr(img(id, 1200)) + '" srcset="' + escAttr(img(id, 640)) + ' 640w, ' + escAttr(img(id, 1200)) + ' 1200w" sizes="(max-width: 760px) 100vw, 728px" alt="' + escAttr(caption || '') + '" loading="' + (cls === 'hero' ? 'eager' : 'lazy') + '">' +
+      ((caption || credit) ? '<figcaption>' + esc(caption || '') + (credit ? ' <span class="credit">' + esc(credit) + '</span>' : '') + '</figcaption>' : '') +
+      '</figure>';
+  }
+
+  // Parse the story HTML inertly, swap AFR's <x-placeholder> tokens for real elements,
+  // and keep only a small allowlist of tags/attributes.
+  const ALLOWED = new Set(['P', 'H2', 'H3', 'H4', 'EM', 'I', 'STRONG', 'B', 'BR', 'UL', 'OL', 'LI', 'A', 'BLOCKQUOTE', 'SUP', 'SUB', 'FIGURE', 'FIGCAPTION', 'IMG', 'DIV', 'SPAN', 'IFRAME', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
+  function buildBody(bodyHtml, placeholders) {
+    const doc = new DOMParser().parseFromString('<div id="r">' + bodyHtml + '</div>', 'text/html');
+    const root = doc.getElementById('r');
+
+    root.querySelectorAll('x-placeholder').forEach(ph => {
+      const p = placeholders[ph.getAttribute('id')];
+      const replacement = p ? placeholderNode(doc, p) : null;
+      if (replacement) ph.replaceWith(replacement); else ph.remove();
+    });
+    // Figures/embeds can't live inside <p>; lift them out.
+    root.querySelectorAll('p > figure, p > .embed, p > blockquote').forEach(n => n.parentNode.after(n));
+    root.querySelectorAll('p').forEach(p => { if (!p.textContent.trim() && !p.querySelector('img,iframe')) p.remove(); });
+
+    sanitize(root);
+    const frag = document.createDocumentFragment();
+    Array.from(root.childNodes).forEach(n => frag.appendChild(document.importNode(n, true)));
+    return frag;
+  }
+
+  function placeholderNode(doc, p) {
+    const d = p.data || {};
+    const tpl = doc.createElement('template');
+    switch (p.type) {
+      case 'image':
+        tpl.innerHTML = figure(d.id || d.fileName, d.caption, d.credit, '', d.aspect);
+        return tpl.content.firstChild;
+      case 'linkExternal': {
+        const a = doc.createElement('a');
+        a.href = d.url; a.textContent = d.text || d.url;
+        return a;
+      }
+      case 'linkArticle': {
+        const a = doc.createElement('a');
+        a.href = '#a/' + encodeURIComponent(d.id);
+        a.textContent = d.text || '';
+        return a;
+      }
+      case 'quote': {
+        const q = doc.createElement('blockquote');
+        if (d.markup) q.innerHTML = d.markup; else q.textContent = d.quote || '';
+        return q;
+      }
+      case 'iframe': {
+        if (!/^https:\/\//.test(d.url || '')) return null;
+        const w = doc.createElement('div'); w.className = 'embed';
+        const f = doc.createElement('iframe');
+        f.src = d.url; f.loading = 'lazy'; f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
+        w.appendChild(f);
+        return w;
+      }
+      default:
+        return null; // relatedStory, ads, etc.
+    }
+  }
+
+  function sanitize(node) {
+    Array.from(node.children).forEach(el => {
+      if (!ALLOWED.has(el.tagName)) {
+        if (/^(SCRIPT|STYLE|NOSCRIPT|OBJECT|EMBED|FORM|INPUT|BUTTON|LINK|META)$/.test(el.tagName)) { el.remove(); return; }
+        const span = el.ownerDocument.createElement('span');
+        while (el.firstChild) span.appendChild(el.firstChild);
+        el.replaceWith(span); sanitize(span); return;
+      }
+      Array.from(el.attributes).forEach(at => {
+        const n = at.name.toLowerCase();
+        const keep = ['href', 'src', 'srcset', 'sizes', 'alt', 'loading', 'class', 'sandbox'].includes(n) ||
+          (n === 'style' && el.tagName === 'FIGURE' && /^--ar:[\d.]+$/.test(at.value));
+        if (!keep || /^\s*javascript:/i.test(at.value)) el.removeAttribute(at.name);
+      });
+      if (el.tagName === 'A' && !/^#a\//.test(el.getAttribute('href') || '')) {
+        el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener');
+      }
+      sanitize(el);
+    });
+  }
+
+  function removePaywallUrl(u) { return 'https://www.removepaywall.com/search?url=' + encodeURIComponent(u); }
+
+  // ---------- Routing ----------
+  function currentRoute() {
+    const m = /^#a\/(.+)$/.exec(location.hash);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  let feedScroll = 0;
+  let cameFromFeed = false;
+  function route() {
+    const id = currentRoute();
+    if (id) {
+      if (!document.body.classList.contains('reading')) { feedScroll = window.scrollY; cameFromFeed = booted; }
+      openArticle(id);
+    } else {
+      cameFromFeed = false;
+      document.body.classList.remove('reading');
+      $('backBtn').hidden = true; $('sizeUp').hidden = true; $('sizeDown').hidden = true;
+      readerEl.innerHTML = '';
+      $('progress').style.width = '0';
+      renderList();
+      requestAnimationFrame(() => window.scrollTo(0, feedScroll));
+    }
+  }
+
+  // ---------- UI helpers ----------
+  function setStatus(msg, isErr) { statusEl.textContent = msg; statusEl.classList.toggle('err', !!isErr); }
+  function spin(on) { $('refreshBtn').classList.toggle('spin', on); }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  async function share(title, url) {
+    try {
+      if (navigator.share) { await navigator.share({ title, url }); return; }
+      await navigator.clipboard.writeText(url); toast('Link copied');
+    } catch (e) { /* cancelled */ }
+  }
+  function updateProgress() {
+    if (!document.body.classList.contains('reading')) return;
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    $('progress').style.width = (h > 0 ? Math.min(100, (window.scrollY / h) * 100) : 0) + '%';
+  }
+  function applySize(px) {
+    px = Math.max(15, Math.min(28, px));
+    document.documentElement.style.setProperty('--reader-size', px + 'px');
+    store.set(STORE.size, px);
+    return px;
+  }
+  function applyTheme(t) {
+    if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
+  }
+
+  function parseDate(s) {
+    if (!s) return null;
+    let d = new Date(s);
+    if (isNaN(d)) d = new Date(String(s).replace(/ ([+-]\d{2})(\d{2})$/, ' GMT$1$2'));
+    return isNaN(d) ? null : d;
+  }
+  function timeAgo(s) {
+    const d = typeof s === 'number' ? new Date(s) : parseDate(s);
+    if (!d) return '';
+    const mins = Math.round((Date.now() - d) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  }
+  function fmtDate(s) {
+    const d = parseDate(s);
+    return d ? d.toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Australia/Sydney' }) : '';
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function escAttr(s) { return esc(s); }
+  function cssEsc(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'); }
+
+  // ---------- Events ----------
+  $('tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    if (b.dataset.tab === currentTab && !document.body.classList.contains('reading')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    currentTab = b.dataset.tab; store.set(STORE.tab, currentTab);
+    categoryFilter = null; $('search').value = '';
+    renderTabs(); feedScroll = 0; window.scrollTo(0, 0);
+    loadFeed(false);
+  });
+  chipsEl.addEventListener('click', e => {
+    const c = e.target.closest('[data-cat]'); if (!c) return;
+    categoryFilter = categoryFilter === c.dataset.cat ? null : c.dataset.cat;
+    renderList();
+  });
+  $('search').addEventListener('input', renderList);
+  $('refreshBtn').addEventListener('click', () => {
+    const id = currentRoute();
+    if (id) {
+      memArticles.delete(id);
+      const all = store.get(STORE.articles, {}); delete all[id]; store.set(STORE.articles, all);
+      openArticle(id);
+    } else loadFeed(true);
+  });
+  // Go back through history when we arrived from the feed, so its scroll position survives.
+  $('backBtn').addEventListener('click', () => { if (cameFromFeed) history.back(); else location.hash = ''; });
+  $('brand').addEventListener('click', e => { e.preventDefault(); if (currentRoute()) location.hash = ''; else window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  let size = store.get(STORE.size, 20);
+  applySize(size);
+  $('sizeUp').addEventListener('click', () => { size = applySize(size + 1); });
+  $('sizeDown').addEventListener('click', () => { size = applySize(size - 1); });
+  applyTheme(store.get(STORE.theme, null));
+  $('themeBtn').addEventListener('click', () => {
+    const dark = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() === '#121417';
+    const next = dark ? 'light' : 'dark';
+    applyTheme(next); store.set(STORE.theme, next);
+  });
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  window.addEventListener('hashchange', route);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && currentRoute()) location.hash = '';
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !currentRoute()) loadFeed(false);
+  });
+
+  // ---------- Boot ----------
+  let booted = false;
+  renderTabs();
+  loadFeed(false);
+  route();
+  booted = true;
+  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+})();
+</script>
+</body>
+</html>
