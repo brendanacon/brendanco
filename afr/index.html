@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #ffffff;
@@ -31,7 +31,7 @@
   --accent-soft: #e8f0fb;
   --read: #8a8a8a;
   --shadow: 0 1px 2px rgba(20, 24, 32, .06), 0 4px 16px rgba(20, 24, 32, .05);
-  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --reader-size: 20px;
 }
@@ -142,7 +142,7 @@ a { color: inherit; }
 .kick { font-size: 14px; line-height: 1.3; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 0 10px; }
 .kick .lbl { font-weight: 700; color: var(--ink); }
 .kick .tag { font-weight: 500; color: var(--accent); }
-.c h3 { font-family: var(--serif); font-weight: 700; letter-spacing: -0.012em; line-height: 1.16; color: var(--ink); text-wrap: pretty; }
+.c h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; line-height: 1.16; color: var(--ink); text-wrap: pretty; }
 .s28 h3 { font-size: 28px; line-height: 1.12; }
 .s24 h3 { font-size: 24px; }
 .s20 h3 { font-size: 20px; line-height: 1.2; }
@@ -186,6 +186,21 @@ a { color: inherit; }
 @keyframes pulse { 50% { opacity: .45; } }
 .ai.collapsed ul, .ai.collapsed .ai-take, .ai.collapsed .ai-watch, .ai.collapsed .ai-foot { display: none; }
 .story .ai { margin: 18px 0 24px; }
+.sum-toggle { display: flex; width: 100%; align-items: center; gap: 8px; text-align: left; color: inherit; }
+.sum-toggle .state { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+.sum-toggle .state.ready { color: var(--accent); }
+.sum-toggle .chev { width: 18px; height: 18px; color: var(--ink-2); transition: transform .2s; }
+.ai.sum.open .chev { transform: rotate(180deg); }
+.ai.sum:not(.open) .sum-body { display: none; }
+.ai.sum:not(.open) { padding-bottom: 16px; }
+.spin-dot { width: 10px; height: 10px; border: 2px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: -1px; margin-right: 4px; }
+/* swipe between stories */
+#reader { touch-action: pan-y; }
+#reader.slide-l { animation: slideL .22s ease-out; }
+#reader.slide-r { animation: slideR .22s ease-out; }
+@keyframes slideL { from { transform: translateX(40px); opacity: .3; } }
+@keyframes slideR { from { transform: translateX(-40px); opacity: .3; } }
+.swipe-hint { font-size: 12px; color: var(--ink-3); text-align: center; margin-top: 18px; }
 
 /* Settings sheet */
 dialog#settings { border: 0; padding: 0; margin: auto; width: min(460px, calc(100% - 24px)); background: var(--bg); color: var(--ink); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
@@ -228,7 +243,7 @@ body.reading .tabs { display: none; }
 .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 30; transition: width .1s linear; }
 article.story { padding: 28px 0 80px; }
 .story .kicker { margin-bottom: 12px; }
-.story h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(30px, 6vw, 42px); line-height: 1.1; letter-spacing: -0.015em; text-wrap: balance; }
+.story h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 6vw, 42px); line-height: 1.1; letter-spacing: -0.015em; text-wrap: balance; }
 .story .standfirst { font-family: var(--serif); font-size: 21px; line-height: 1.4; color: var(--ink-2); margin-top: 14px; }
 .byline { display: flex; align-items: center; gap: 12px; margin: 22px 0; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .byline img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--rule); }
@@ -262,7 +277,7 @@ article.story { padding: 28px 0 80px; }
 .nextup .label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
 
 .fail { padding: 40px 0; }
-.fail h2 { font-family: var(--serif); font-weight: 700; font-size: 24px; margin-bottom: 10px; }
+.fail h2 { font-family: var(--serif); font-weight: 500; font-size: 24px; margin-bottom: 10px; }
 .fail p { color: var(--ink-2); line-height: 1.5; margin-bottom: 18px; font-size: 15px; }
 
 .toast {
@@ -946,7 +961,43 @@ article.story { padding: 28px 0 80px; }
     return null;
   }
 
+  // Neighbours in the tab you came from, as in the AFR app: swipe left = next, right = previous.
+  function neighbour(id, step) {
+    const i = items.findIndex(x => x.id === id);
+    return i === -1 ? null : items[i + step] || null;
+  }
+  function goArticle(id, dir) {
+    // Replace rather than push, so Back still returns to the list rather than walking every story.
+    history.replaceState(null, '', '#a/' + encodeURIComponent(id));
+    readerEl.classList.remove('slide-l', 'slide-r'); void readerEl.offsetWidth;
+    readerEl.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
+    route();
+  }
+  (function swipe() {
+    let x0 = 0, y0 = 0, t0 = 0, tracking = false;
+    readerEl.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      const t = e.touches[0];
+      // Leave the screen edges to iOS's own back/forward gesture, and let wide tables/embeds scroll.
+      tracking = t.clientX > 24 && t.clientX < window.innerWidth - 24 && !e.target.closest('iframe, table, .embed');
+      x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
+    }, { passive: true });
+    readerEl.addEventListener('touchend', e => {
+      if (!tracking) return; tracking = false;
+      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - t0 > 700) return;
+      if (window.getSelection && String(window.getSelection())) return;
+      const id = currentRoute(); if (!id) return;
+      const n = neighbour(id, dx < 0 ? 1 : -1);
+      if (n) goArticle(n.id, dx < 0 ? 1 : -1);
+      else toast(dx < 0 ? 'Last story in this tab' : 'First story in this tab');
+    }, { passive: true });
+  })();
+
   async function openArticle(id) {
+    sumOpen = false;
+    // Warm the neighbours so a swipe opens instantly.
+    [1, -1].forEach(step => { const n = neighbour(id, step); if (n) getArticle(n.id, n.link).catch(() => {}); });
     document.body.classList.add('reading');
     $('backBtn').hidden = false; $('sizeUp').hidden = false; $('sizeDown').hidden = false; $('settingsBtn').hidden = true;
     window.scrollTo(0, 0);
@@ -998,6 +1049,7 @@ article.story { padding: 28px 0 80px; }
       '<a class="pill" href="' + escAttr(removePaywallUrl(url)) + '" target="_blank" rel="noopener">removepaywall ↗</a>' +
       '</div>';
     html += nextUpHtml(item.id);
+    if (neighbour(item.id, 1) || neighbour(item.id, -1)) html += '<p class="swipe-hint">Swipe left or right for the next or previous story</p>';
     html += '</article>';
     readerEl.innerHTML = html;
     $('storyBody').appendChild(buildBody(a.body, a.placeholders));
@@ -1231,7 +1283,7 @@ article.story { padding: 28px 0 80px; }
   function aiModel() { const m = store.get(STORE.model, ''); return m && m !== 'gpt-5.2' ? m : DEFAULT_MODEL; }
   function aiPrefs() { return Object.assign({ autoBrief: true, autoSum: true }, store.get(STORE.aiPrefs, {})); }
 
-  async function openaiJSON(system, user, maxTokens) {
+  async function openaiJSON(system, user, maxTokens, effort) {
     const key = aiKey();
     if (!key) throw Object.assign(new Error('No OpenAI key'), { code: 'nokey' });
     const body = {
@@ -1239,7 +1291,7 @@ article.story { padding: 28px 0 80px; }
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
       response_format: { type: 'json_object' },
       max_completion_tokens: maxTokens || 3000,
-      reasoning_effort: 'low',
+      reasoning_effort: effort || 'low',
     };
     const call = b => fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(b),
@@ -1294,20 +1346,31 @@ article.story { padding: 28px 0 80px; }
   ].join('\n');
 
   const sumInflight = new Map();
-  async function renderSummary(item, a, force) {
+  // The summary starts folded so you can read the story first; it keeps generating in the
+  // background and the header says when it's ready. Tap the header to open it.
+  let sumOpen = false;
+  const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  function paintSummary(state, stateHtml, bodyHtml) {
     const el = $('aiSum'); if (!el) return;
+    el.className = 'ai sum' + (sumOpen ? ' open' : '');
+    el.innerHTML = '<button type="button" class="sum-toggle ai-head" data-sumtoggle aria-expanded="' + sumOpen + '">' + SPARK +
+      '<span>AI summary</span><span class="spacer"></span><span class="state' + (state === 'ready' ? ' ready' : '') + '">' + stateHtml + '</span>' + CHEV + '</button>' +
+      '<div class="sum-body">' + bodyHtml + '</div>';
+  }
+
+  async function renderSummary(item, a, force) {
+    if (!$('aiSum')) return;
     const id = item.id;
-    const head = '<div class="ai-head">' + SPARK + '<span>AI summary</span><span class="spacer"></span>';
     const cache = store.get(STORE.sums, {});
     const hit = !force && cache[id];
     if (hit) {
-      el.innerHTML = head + '<button type="button" data-resum>Regenerate</button></div>' + bulletsHtml(hit.bullets) +
-        '<div class="ai-foot">' + esc(hit.model || '') + ' · ' + esc(timeAgo(hit.at)) + '</div>';
+      paintSummary('ready', 'Ready', bulletsHtml(hit.bullets) +
+        '<div class="ai-foot">' + esc(hit.model || '') + ' · ' + esc(timeAgo(hit.at)) + ' · <button type="button" data-resum style="color:var(--accent);font-weight:600">Regenerate</button></div>');
       return;
     }
-    if (!aiKey()) { el.innerHTML = head + '</div>' + aiNoKey('a five-point summary of every article'); return; }
-    if (!force && !aiPrefs().autoSum) { el.innerHTML = head + '</div><p class="ai-msg"><button type="button" data-resum>Summarise this article</button></p>'; return; }
-    el.innerHTML = head + '</div><p class="ai-msg">Reading the article…</p>' + skeleton(5);
+    if (!aiKey()) { paintSummary('', 'Add key', aiNoKey('a five-point summary of every article')); return; }
+    if (!force && !aiPrefs().autoSum) { paintSummary('', 'Off', '<p class="ai-msg"><button type="button" data-resum>Summarise this article</button></p>'); return; }
+    paintSummary('', '<span class="spin-dot"></span>Writing…', '<p class="ai-msg">Reading the article…</p>' + skeleton(5));
     try {
       let p = sumInflight.get(id);
       if (!p) {
@@ -1315,7 +1378,8 @@ article.story { padding: 28px 0 80px; }
           '\nBy: ' + (a.byline || item.author || '') + '\nPublished: ' + (a.published || item.date || '') +
           '\nSection: ' + [a.label, (a.categories || []).join(' / ')].filter(Boolean).join(' · ') +
           '\n\nARTICLE:\n' + articleText(a).slice(0, 24000);
-        p = openaiJSON(SUM_SYSTEM, user, 2500).finally(() => sumInflight.delete(id));
+        // No extended reasoning for single-article summaries: much faster, and the prompt carries the structure.
+        p = openaiJSON(SUM_SYSTEM, user, 1500, 'none').finally(() => sumInflight.delete(id));
         sumInflight.set(id, p);
       }
       const out = await p;
@@ -1328,7 +1392,7 @@ article.story { padding: 28px 0 80px; }
       if (currentRoute() === id) renderSummary(item, a, false);
     } catch (e) {
       if (currentRoute() !== id) return;
-      el.innerHTML = head + '</div><p class="ai-msg">Couldn’t summarise: ' + esc(e.message) + ' <button type="button" data-resum>Try again</button></p>';
+      paintSummary('', 'Failed', '<p class="ai-msg">Couldn’t summarise: ' + esc(e.message) + ' <button type="button" data-resum>Try again</button></p>');
     }
   }
 
@@ -1431,10 +1495,16 @@ article.story { padding: 28px 0 80px; }
     if (e.target.closest('[data-open-settings]')) { e.preventDefault(); openSettings(); }
     else if (e.target.closest('[data-rebrief]')) { e.preventDefault(); if (!briefInflight.has(currentTab)) { store.set(STORE.brief(currentTab), null); renderBrief('force'); } }
     else if (e.target.closest('[data-collapse]')) { e.preventDefault(); store.set('afr-brief-collapsed', !store.get('afr-brief-collapsed', false)); renderBrief('show'); }
+    else if (e.target.closest('[data-sumtoggle]')) {
+      e.preventDefault();
+      sumOpen = !sumOpen;
+      const el = $('aiSum'); el.classList.toggle('open', sumOpen);
+      el.querySelector('[data-sumtoggle]').setAttribute('aria-expanded', sumOpen);
+    }
     else if (e.target.closest('[data-resum]')) {
       e.preventDefault();
       const id = currentRoute(), a = id && getCachedArticle(id);
-      if (a) renderSummary(findItem(id) || { id, title: a.headline, desc: a.about }, a, true);
+      if (a) { sumOpen = true; renderSummary(findItem(id) || { id, title: a.headline, desc: a.about }, a, true); }
     }
   });
   $('settingsForm').addEventListener('submit', () => {
@@ -1497,6 +1567,10 @@ article.story { padding: 28px 0 80px; }
   window.addEventListener('hashchange', route);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && currentRoute() && !$('settings').open) $('backBtn').click();
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && currentRoute() && !$('settings').open) {
+      const n = neighbour(currentRoute(), e.key === 'ArrowRight' ? 1 : -1);
+      if (n) goArticle(n.id, e.key === 'ArrowRight' ? 1 : -1);
+    }
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && !currentRoute()) loadFeed(false);
