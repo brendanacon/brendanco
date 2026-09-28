@@ -193,6 +193,9 @@ a { color: inherit; }
 .ai.sum.open .chev { transform: rotate(180deg); }
 .ai.sum:not(.open) .sum-body { display: none; }
 .ai.sum:not(.open) { padding-bottom: 16px; }
+.sum-modes { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 2px; margin: 12px 0 2px; }
+.sum-modes button { font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px; color: var(--ink-2); }
+.sum-modes button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 .spin-dot { width: 10px; height: 10px; border: 2px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: -1px; margin-right: 4px; }
 /* swipe between stories */
 #reader { touch-action: pan-y; }
@@ -392,7 +395,7 @@ article.story { padding: 28px 0 80px; }
   const ARCHIVE_DAYS = 14;
   const STORE = {
     feed: id => 'afr-feed-' + id,
-    articles: 'afr-articles',
+    articles: 'afr-articles-v2',
     read: 'afr-read',
     tab: 'afr-tab-v2',
     size: 'afr-size',
@@ -766,6 +769,8 @@ article.story { padding: 28px 0 80px; }
       published: (c.dates && (c.dates.firstPublished || c.dates.published)) || '',
       modified: (c.dates && c.dates.modified) || '',
       hero: hero ? { id: hero.id || hero.fileName, caption: hero.caption || '', credit: hero.credit || '', aspect: hero.aspect || 1.5 } : null,
+      // Every crop of the lead photo, so the copy AFR repeats in the body can be skipped.
+      heroIds: Object.keys(fi).reduce((acc, k) => { const d = fi[k] && fi[k].data; if (d) { if (d.id) acc.push(d.id); if (d.fileName) acc.push(d.fileName); } return acc; }, []),
       url: (c.urls && c.urls.canonical && c.urls.canonical.path) ? 'https://www.afr.com' + c.urls.canonical.path : '',
     };
   }
@@ -949,7 +954,13 @@ article.story { padding: 28px 0 80px; }
 
   function tagFromCategory(c) { const parts = (c || '').split('/'); return parts[parts.length - 1].trim(); }
   function topCategory(c) { return (c || '').split('/')[0].trim(); }
-  function smallImage(u) { return u.replace(/\$width_\d+/, '$width_320'); }
+  // In ffx crop URLs $width_ is the width of the crop window in the original photo, not the
+  // output size; the output is set by $multiply. Rescale that instead of shrinking the crop.
+  function smallImage(u, w) {
+    const m = /\$width_(\d+)/.exec(u || '');
+    if (!m || !/\$multiply_/.test(u)) return u;
+    return u.replace(/\$multiply_[\d.]+/, '$multiply_' + ((w || 320) / +m[1]).toFixed(4));
+  }
 
   // ---------- Rendering: article ----------
   function findItem(id) {
@@ -1052,7 +1063,7 @@ article.story { padding: 28px 0 80px; }
     if (neighbour(item.id, 1) || neighbour(item.id, -1)) html += '<p class="swipe-hint">Swipe left or right for the next or previous story</p>';
     html += '</article>';
     readerEl.innerHTML = html;
-    $('storyBody').appendChild(buildBody(a.body, a.placeholders));
+    $('storyBody').appendChild(buildBody(a.body, a.placeholders, a.hero ? new Set((a.heroIds || []).concat(a.hero.id)) : null, a.hero && a.hero.caption));
     renderSummary(item, a, false);
     $('shareBtn').onclick = () => share(a.headline || item.title, url);
     updateProgress();
@@ -1090,13 +1101,16 @@ article.story { padding: 28px 0 80px; }
   // Parse the story HTML inertly, swap AFR's <x-placeholder> tokens for real elements,
   // and keep only a small allowlist of tags/attributes.
   const ALLOWED = new Set(['P', 'H2', 'H3', 'H4', 'EM', 'I', 'STRONG', 'B', 'BR', 'UL', 'OL', 'LI', 'A', 'BLOCKQUOTE', 'SUP', 'SUB', 'FIGURE', 'FIGCAPTION', 'IMG', 'DIV', 'SPAN', 'IFRAME', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
-  function buildBody(bodyHtml, placeholders) {
+  function buildBody(bodyHtml, placeholders, heroIds, heroCaption) {
     const doc = new DOMParser().parseFromString('<div id="r">' + bodyHtml + '</div>', 'text/html');
     const root = doc.getElementById('r');
 
     root.querySelectorAll('x-placeholder').forEach(ph => {
       const p = placeholders[ph.getAttribute('id')];
-      const replacement = p ? placeholderNode(doc, p) : null;
+      const cap = (heroCaption || '').trim();
+      const dupHero = p && p.type === 'image' && heroIds && (heroIds.has(p.data && p.data.id) || heroIds.has(p.data && p.data.fileName) ||
+        (cap.length > 20 && (p.data && p.data.caption || '').trim() === cap)); // same photo re-uploaded under another id
+      const replacement = p && !dupHero ? placeholderNode(doc, p) : null;
       if (replacement) ph.replaceWith(replacement); else ph.remove();
     });
     // Figures/embeds can't live inside <p>; lift them out.
@@ -1345,6 +1359,17 @@ article.story { padding: 28px 0 80px; }
     'Return JSON only: {"bullets":[{"lead":"…","text":"…"}]}',
   ].join('\n');
 
+  const SIMPLE_SYSTEM = [
+    'You explain Australian Financial Review articles to a smart reader aged about 15 or an adult with no finance or business background. Not childish, not "explain like I’m 5" — just clear.',
+    'Write exactly 5 bullets. Each has a bold lead-in ("lead": 2–5 plain words that make the point) and "text": 1–2 short sentences, max 30 words in total.',
+    'Cover: (1) what actually happened, in plain words; (2) why it is happening; (3) who it affects and how, in everyday terms where it fits — jobs, prices, rent and mortgages, super, the companies people know; (4) the other side, or what could go wrong; (5) what happens next.',
+    'The first time you use any finance or business term, explain it in a few plain words in brackets, e.g. "private equity (firms that buy whole companies to sell later at a profit)". Use a quick everyday comparison where it genuinely helps. Keep the key numbers but say what they mean.',
+    'Never invent facts, numbers or quotes. Australian English. Return JSON only: {"bullets":[{"lead":"…","text":"…"}]}',
+  ].join('\n');
+  // Which version of the summary to show: 'pro' (analyst) or 'simple' (plain English). Remembered.
+  let sumMode = store.get('afr-sum-mode', 'pro') === 'simple' ? 'simple' : 'pro';
+  const sumKey = (id, mode) => mode === 'simple' ? id + '|simple' : id;
+
   const sumInflight = new Map();
   // The summary starts folded so you can read the story first; it keeps generating in the
   // background and the header says when it's ready. Tap the header to open it.
@@ -1355,14 +1380,16 @@ article.story { padding: 28px 0 80px; }
     el.className = 'ai sum' + (sumOpen ? ' open' : '');
     el.innerHTML = '<button type="button" class="sum-toggle ai-head" data-sumtoggle aria-expanded="' + sumOpen + '">' + SPARK +
       '<span>AI summary</span><span class="spacer"></span><span class="state' + (state === 'ready' ? ' ready' : '') + '">' + stateHtml + '</span>' + CHEV + '</button>' +
-      '<div class="sum-body">' + bodyHtml + '</div>';
+      '<div class="sum-body"><div class="sum-modes" role="group" aria-label="Summary style">' +
+      '<button type="button" data-summode="pro" aria-pressed="' + (sumMode === 'pro') + '">Analyst</button>' +
+      '<button type="button" data-summode="simple" aria-pressed="' + (sumMode === 'simple') + '">Plain English</button></div>' + bodyHtml + '</div>';
   }
 
   async function renderSummary(item, a, force) {
     if (!$('aiSum')) return;
-    const id = item.id;
+    const id = item.id, mode = sumMode, key = sumKey(id, mode);
     const cache = store.get(STORE.sums, {});
-    const hit = !force && cache[id];
+    const hit = !force && cache[key];
     if (hit) {
       paintSummary('ready', 'Ready', bulletsHtml(hit.bullets) +
         '<div class="ai-foot">' + esc(hit.model || '') + ' · ' + esc(timeAgo(hit.at)) + ' · <button type="button" data-resum style="color:var(--accent);font-weight:600">Regenerate</button></div>');
@@ -1372,26 +1399,26 @@ article.story { padding: 28px 0 80px; }
     if (!force && !aiPrefs().autoSum) { paintSummary('', 'Off', '<p class="ai-msg"><button type="button" data-resum>Summarise this article</button></p>'); return; }
     paintSummary('', '<span class="spin-dot"></span>Writing…', '<p class="ai-msg">Reading the article…</p>' + skeleton(5));
     try {
-      let p = sumInflight.get(id);
+      let p = sumInflight.get(key);
       if (!p) {
         const user = 'Headline: ' + (a.headline || item.title) + '\nStandfirst: ' + (a.about || item.desc || '') +
           '\nBy: ' + (a.byline || item.author || '') + '\nPublished: ' + (a.published || item.date || '') +
           '\nSection: ' + [a.label, (a.categories || []).join(' / ')].filter(Boolean).join(' · ') +
           '\n\nARTICLE:\n' + articleText(a).slice(0, 24000);
         // No extended reasoning for single-article summaries: much faster, and the prompt carries the structure.
-        p = openaiJSON(SUM_SYSTEM, user, 1500, 'none').finally(() => sumInflight.delete(id));
-        sumInflight.set(id, p);
+        p = openaiJSON(mode === 'simple' ? SIMPLE_SYSTEM : SUM_SYSTEM, user, 1500, 'none').finally(() => sumInflight.delete(key));
+        sumInflight.set(key, p);
       }
       const out = await p;
       if (!Array.isArray(out.bullets) || !out.bullets.length) throw new Error('Unexpected response shape');
       const all = store.get(STORE.sums, {});
-      all[id] = { at: Date.now(), model: aiModel(), bullets: out.bullets.slice(0, 5) };
+      all[key] = { at: Date.now(), model: aiModel(), bullets: out.bullets.slice(0, 5) };
       const keys = Object.keys(all);
       if (keys.length > 200) keys.sort((x, y) => all[x].at - all[y].at).slice(0, keys.length - 200).forEach(k => delete all[k]);
       store.set(STORE.sums, all);
-      if (currentRoute() === id) renderSummary(item, a, false);
+      if (currentRoute() === id && sumMode === mode) renderSummary(item, a, false);
     } catch (e) {
-      if (currentRoute() !== id) return;
+      if (currentRoute() !== id || sumMode !== mode) return;
       paintSummary('', 'Failed', '<p class="ai-msg">Couldn’t summarise: ' + esc(e.message) + ' <button type="button" data-resum>Try again</button></p>');
     }
   }
@@ -1501,6 +1528,15 @@ article.story { padding: 28px 0 80px; }
       const el = $('aiSum'); el.classList.toggle('open', sumOpen);
       el.querySelector('[data-sumtoggle]').setAttribute('aria-expanded', sumOpen);
     }
+    else if (e.target.closest('[data-summode]')) {
+      e.preventDefault();
+      const m = e.target.closest('[data-summode]').dataset.summode;
+      if (m !== sumMode) {
+        sumMode = m; store.set('afr-sum-mode', m); sumOpen = true;
+        const id = currentRoute(), a = id && getCachedArticle(id);
+        if (a) renderSummary(findItem(id) || { id, title: a.headline, desc: a.about }, a, false);
+      }
+    }
     else if (e.target.closest('[data-resum]')) {
       e.preventDefault();
       const id = currentRoute(), a = id && getCachedArticle(id);
@@ -1577,6 +1613,7 @@ article.story { padding: 28px 0 80px; }
   });
 
   // ---------- Boot ----------
+  try { localStorage.removeItem('afr-articles'); } catch (e) {} // superseded by afr-articles-v2
   let booted = false;
   renderTabs();
   if (!currentRoute() && !tabFromHash()) history.replaceState(null, '', '#t/home');
