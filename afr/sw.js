@@ -1,6 +1,6 @@
 // Offline shell: network first so updates show immediately, cache as fallback.
 // Only same-origin app files are cached; feed/article data lives in localStorage.
-const CACHE = 'afr-v3';
+const CACHE = 'afr-v4';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

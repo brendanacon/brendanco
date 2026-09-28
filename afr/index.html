@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AFR Reader</title>
 <meta name="description" content="A clean reader for the Australian Financial Review feed.">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -85,7 +88,7 @@ a { color: inherit; }
 }
 .topbar-row { display: flex; align-items: center; gap: 8px; height: 56px; }
 .brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; min-width: 0; }
-.brand-mark { font-family: var(--serif); font-weight: 700; font-size: 26px; letter-spacing: -0.02em; color: var(--accent); }
+.masthead { height: 19px; width: auto; display: block; color: var(--accent); }
 .brand-sub { font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 .spacer { flex: 1; }
 .icon-btn {
@@ -158,6 +161,44 @@ a { color: inherit; }
 
 /* Homepage modules */
 .mod { margin-top: 8px; }
+
+/* AI briefing + article summary */
+.ai { border: 1px solid var(--rule); border-top: 4px solid var(--accent); padding: 16px 16px 14px; margin: 14px 0 6px; background: var(--surface); }
+.ai-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ai-head svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
+.ai-head .spacer { flex: 1; }
+.ai-head button { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--accent); padding: 4px 2px; }
+.ai-take { font-family: var(--serif); font-size: 19px; line-height: 1.38; font-weight: 600; margin: 12px 0 2px; }
+.ai ul { list-style: none; margin: 10px 0 0; padding: 0; }
+.ai li { position: relative; padding: 0 0 0 16px; margin: 0 0 12px; font-family: var(--serif); font-size: 17px; line-height: 1.45; color: var(--ink); }
+.ai li::before { content: ''; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; background: var(--accent); }
+.ai li b { font-weight: 700; }
+.ai .refs { display: block; margin-top: 4px; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+.ai .refs a { color: var(--accent); text-decoration: none; }
+.ai .refs a + a::before { content: ' · '; color: var(--ink-3); }
+.ai-watch { font-size: 14px; line-height: 1.45; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 10px; margin-top: 4px; }
+.ai-watch b { color: var(--ink); }
+.ai-foot { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+.ai-msg { font-size: 15px; line-height: 1.45; color: var(--ink-2); margin-top: 10px; }
+.ai-msg button { color: var(--accent); font-weight: 600; }
+.ai .skl { height: 14px; background: var(--rule); margin: 12px 0; animation: pulse 1.2s ease-in-out infinite; }
+.ai .skl:nth-child(odd) { width: 86%; }
+@keyframes pulse { 50% { opacity: .45; } }
+.ai.collapsed ul, .ai.collapsed .ai-take, .ai.collapsed .ai-watch, .ai.collapsed .ai-foot { display: none; }
+.story .ai { margin: 18px 0 24px; }
+
+/* Settings sheet */
+dialog#settings { border: 0; padding: 0; margin: auto; width: min(460px, calc(100% - 24px)); background: var(--bg); color: var(--ink); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog#settings::backdrop { background: rgba(0,0,0,.45); }
+.sheet { padding: 20px; display: grid; gap: 12px; }
+.sheet h2 { font-family: var(--serif); font-size: 22px; }
+.fld { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.fld input { height: 42px; border: 1px solid var(--rule); border-radius: 6px; padding: 0 12px; font: inherit; font-size: 16px; font-weight: 400; background: var(--surface); color: var(--ink); }
+.chk { display: flex; gap: 10px; align-items: center; font-size: 15px; }
+.chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+.hint { font-size: 13px; line-height: 1.45; color: var(--ink-3); margin-top: -4px; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.row-btns .spacer { flex: 1; }
 body.on-home .feed-head { display: none; }
 body.on-home .status { padding-top: 12px; }
 .mh { border-top: 6px solid var(--ink); margin-top: 32px; padding: 14px 0 2px; font-size: 17px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
@@ -247,7 +288,7 @@ article.story { padding: 28px 0 80px; }
       <button class="icon-btn" id="backBtn" aria-label="Back to feed" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <a class="brand" href="#" id="brand"><span class="brand-mark">AFR</span><span class="brand-sub">Reader</span></a>
+      <a class="brand" href="#t/home" id="brand"><svg class="masthead" viewBox="0 0 300 34" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Financial Review" fill="currentColor"><path d="M292.4.7v1.1h3.1l-3.7 24.4L287.5.7h-3.1l-3.7 26.1-3.5-25.1h3.5V.6h-11.1v1.1h2.4l4.9 32.1h4l3.4-20.3 3.7 20.3h4l4.9-32h3.2V.7h-7.7zm-40.3 1h3.2v31h-3.1v1.1h16.3v-8.7h-.8s-.2 3.5-.7 5c-.5 1.1-1.7 2.2-2.9 2.5-1.1.2-3.2.2-3.2.2V16.4s2.5-.1 3.2.3c1.1.9 1.2 2.5 1.4 4.3h.8v-9.7h-.9c0 1.2-.5 2.8-1.4 3.5-.9.9-3.2.5-3.2.5V1.8s3.1-.1 4.1.1c2.4 1.2 2.5 3.9 2.8 6.3h.8V.7H252l.1 1zm-5 0h3.1V.6h-10.9v1.1h2.7v31h-3.2v1.1h11.7v-1.1h-3.3c-.1 0-.1-31-.1-31zm-14.5 0h2.8l-4.9 28.9c-.1 0-4.9-28.9-4.9-28.9h2.9V.6h-10.3v1.1h1.6l6.1 32h5.3l5.7-32h1.6V.6h-5.7v1.1h-.2zm-16.4 28.2c-1.2 2.7-5.3 2.8-7.2 2.8V16.9s2.8 0 3.5.4c1.1.8 1.4 2.4 1.6 4h.8v-10h-.9c-.1 1.5-.2 3.3-1.6 4.3-.8.6-3.5.3-3.5.3V1.8c1.1 0 3.4-.2 4.4.2 2.5 1.2 2.6 4.1 2.8 6.6h.9v-8h-16v1.1h2.5v31.1h-2.3v1.1h16.5v-8.7h-.9c-.1 1.7-.2 3.3-.6 4.7zm-17.4 2.6c-1.4-4.2-1.8-8.4-3.7-12.3-1.2-2.4-3.8-3.5-6.2-3.7 2.8-.3 5.7-1.4 7.1-4.3.9-2.2 1.1-5.8-.3-8s-3.5-3.4-6-3.5h-13v1.1h3.2v31h-3.3v1h11.8v-1.1h-2.9V16.9h.7c1.4.1 3.2.6 3.8 1.7 1.6 2.5 2.9 11.6 3.2 13.4.1.7 0 1.4.4 1.9h7.1v-1.1c-.3 0-1.5 0-1.9-.3zm-13.6-16.7V1.7c.9 0 3.1 0 3.7.4 2.3 2.4 2.1 6.6 2 9.8-.2 1.4-.7 3.1-2.1 3.7-.8.3-3.6.2-3.6.2zm-19.3 9.6h-1.1c0 1.4 0 3-.3 4.3-.5 1.2-1.5 2.7-2.9 2.9h-4.2v-31h3.5V.5h-11.8v1.1h2.9v31h-3v1.1h16.9c0-2.6-.1-5.6 0-8.3zM139.2.7h-4.9l-5.4 32h-2.6v1h6.9v-1.1h-2.9l1.7-10.1h6.4l2 10.1h-3.1v1.1h10.8v-1.1H146c0 .1-6.8-31.9-6.8-31.9zm-4 20.6H132l2.5-15.7 3.4 15.7h-2.7zm-10-19.6V.6h-11.4v1.1h2.8v31h-2.9v1.1h11.4v-1.1h-2.7v-31h2.8zm-18.1 30.9c-1.1.6-3.2.4-4-.5-1.7-2-2.8-5.4-3-8.1-.6-6.2-.6-9.2.2-14.1.4-2.8 1.2-5.6 3.1-7.6 1.2-1.1 3.3-.9 4.6-.2 2.6 1.7 2.5 4.9 2.7 7.7h1.1V.6h-.9c0 .5 0 .9-.4 1.2-.9.2-1.4-.9-2.1-1.1-1.9-1.1-4.6-.7-6.5.3-4.3 2.5-7.1 7.2-7.4 12-.7 7.5.4 15.4 6.6 19.8 2 .9 4.8 2 6.8.5 0 0 1.6-1.6 2.2-1.6s.6 1.1.6 1.8h.9v-8.2h-1.2c-.2 2.7.2 4.9-3.3 7.3zM94.6 1.7V.6H88v1.1h2.5v22L81.7.6h-7.8v1.1h2.8v31h-2.9v1.1h7.1v-1.1h-2.8V6.5l10.4 27.4H92v-32h2.8l-.2-.2zM64.9.7h-5.1l-5.5 32h-2.8v1H59v-1.1h-3.2l1.7-10.3h5.9l2.1 10.3h-3v1.1h10.3v-1.1h-1.5c.1.1-6.4-31.9-6.4-31.9zm-7.3 20.4L60 6.4l3.1 14.7h-5.5zM52.9 1.7V.6h-6.8v1.1h2.8v22.8L39.9.7H32v1.1h2.8v31h-2.9v1h7.4v-1.1h-3V7.1l9.8 26.8h4.2v-32H53c-.1-.1-.1-.2-.1-.2zm-25.3 0h2.9V.6H19v1.1h3.2v31h-3.7v1.1h12.2v-1.1h-3.1v-31zM0 1.7h4.2v31H0v1.1h13.1v-1.1H9.6V16.6h2.9c1.5 0 1.8 2.8 1.7 4.3h1.1V10.7h-1.1c.1 1.7-.3 4.9-1.7 4.9H9.7v-14c1.8.1 4.6.2 5.9 1.6 1.7 1.7 1.6 4.2 1.8 6.5h.8v-9H0v1z"></path></svg></a>
       <div class="spacer"></div>
       <button class="icon-btn" id="sizeDown" aria-label="Smaller text" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18l5-12 5 12M6 14h6M17 12h5"/></svg>
@@ -255,11 +296,11 @@ article.story { padding: 28px 0 80px; }
       <button class="icon-btn" id="sizeUp" aria-label="Larger text" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18l5-12 5 12M6 14h6M19.5 9.5v5M17 12h5"/></svg>
       </button>
-      <button class="icon-btn" id="themeBtn" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      </button>
       <button class="icon-btn" id="refreshBtn" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
     <nav class="tabs" id="tabs" role="tablist"></nav>
@@ -272,6 +313,7 @@ article.story { padding: 28px 0 80px; }
       <input class="search" id="search" type="search" placeholder="Filter headlines" autocomplete="off">
     </div>
     <div class="status" id="status"></div>
+    <div id="brief"></div>
     <div class="chips" id="chips"></div>
     <div id="list"></div>
   </section>
@@ -279,6 +321,28 @@ article.story { padding: 28px 0 80px; }
 </main>
 
 <div class="toast" id="toast"></div>
+
+<dialog id="settings">
+  <form method="dialog" class="sheet" id="settingsForm">
+    <h2>Settings</h2>
+    <label class="fld">OpenAI API key
+      <input type="password" id="keyInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-…">
+    </label>
+    <p class="hint" id="keyHint">Stored only on this device (in this browser’s local storage) and sent only to api.openai.com. Nothing is saved in the site’s code or on any server.</p>
+    <label class="fld">Model
+      <input type="text" id="modelInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gpt-5.2">
+    </label>
+    <label class="chk"><input type="checkbox" id="autoBrief"> Write the briefing automatically when a tab opens</label>
+    <label class="chk"><input type="checkbox" id="autoSum"> Summarise articles automatically when opened</label>
+    <label class="chk"><input type="checkbox" id="darkMode"> Dark mode</label>
+    <div class="row-btns">
+      <button type="button" class="pill" id="forgetKey">Remove key</button>
+      <button type="button" class="pill" id="clearAi">Clear saved summaries</button>
+      <span class="spacer"></span>
+      <button type="submit" class="pill primary" id="saveSettings">Save</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
 (function() {
@@ -288,6 +352,10 @@ article.story { padding: 28px 0 80px; }
   const FEEDS = [
     { id: 'home',       name: 'Home',       url: 'https://www.afr.com/', home: true },
     { id: 'latest',     name: 'Latest',     url: 'https://www.afr.com/rss/feed.xml' },
+    { id: 'street-talk', name: 'Street Talk', url: 'https://www.afr.com/street-talk', tagPage: true },
+    { id: 'chanticleer', name: 'Chanticleer', url: 'https://www.afr.com/chanticleer', tagPage: true },
+    { id: 'rear-window', name: 'Rear Window', url: 'https://www.afr.com/rear-window', tagPage: true },
+    { id: 'afr-view',    name: 'AFR View',    url: 'https://www.afr.com/the-afr-view', tagPage: true, tagName: 'The AFR View' },
     { id: 'markets',    name: 'Markets',    url: 'https://www.afr.com/rss/markets.xml' },
     { id: 'politics',   name: 'Politics',   url: 'https://www.afr.com/rss/politics.xml' },
     { id: 'policy',     name: 'Policy',     url: 'https://www.afr.com/rss/policy.xml' },
@@ -314,7 +382,13 @@ article.story { padding: 28px 0 80px; }
     tab: 'afr-tab-v2',
     size: 'afr-size',
     theme: 'afr-theme',
+    key: 'afr-openai-key',
+    model: 'afr-openai-model',
+    aiPrefs: 'afr-ai-prefs',
+    sums: 'afr-ai-summaries',
+    brief: id => 'afr-ai-brief-' + id,
   };
+  const DEFAULT_MODEL = 'gpt-5.2';
   const img = (id, w) => 'https://static.ffx.io/images/$width_' + (w || 800) + '/t_resize_width/q_86%2Cf_auto/' + id;
 
   // ---------- Storage helpers (never throw) ----------
@@ -324,8 +398,7 @@ article.story { padding: 28px 0 80px; }
   };
 
   // ---------- State ----------
-  let currentTab = store.get(STORE.tab, 'home');
-  if (!FEEDS.some(f => f.id === currentTab)) currentTab = 'home';
+  let currentTab = tabFromHash() || 'home';
   let homeModules = [];           // homepage layout: [{ heading, kind, showHeading, ids }]
   let items = [];                 // items in the current tab
   let categoryFilter = null;
@@ -418,12 +491,46 @@ article.story { padding: 28px 0 80px; }
     }
   }
 
+  // Column pages (Street Talk, Chanticleer…) embed their latest 20 stories in the
+  // same hydration JSON as article pages.
+  function parseTagPage(html, feed) {
+    const marker = 'window.__staticRouterHydrationData = JSON.parse(';
+    const start = html.indexOf(marker);
+    if (start === -1) throw new Error(feed.name + ' page data not found');
+    const s0 = start + marker.length;
+    const data = JSON.parse(JSON.parse(html.slice(s0, html.indexOf(');<\/script>', s0))));
+    const find = (o, d) => {
+      if (!o || typeof o !== 'object' || d > 8) return null;
+      if (o.assetsConnection && Array.isArray(o.assetsConnection.assets)) return o.assetsConnection.assets;
+      for (const k in o) { const r = find(o[k], d + 1); if (r) return r; }
+      return null;
+    };
+    const assets = find(data, 0) || [];
+    return assets.filter(a => STORY_TYPES.has(a.assetType)).map(a => {
+      const st = homeStory(a);
+      // Every story here carries the column's own tag, so show its topic tag instead, as afr.com does.
+      const tags = a.tags || {};
+      if (tags.primary && tags.primary.displayName === (feed.tagName || feed.name)) {
+        const topic = (tags.secondary || []).find(t => t.context === 'Topic');
+        st.tag = topic ? topic.displayName : '';
+      }
+      return st;
+    }).filter(st => st.title);
+  }
+
   async function fetchFeedItems(feed) {
+    if (feed.tagPage) {
+      const list = parseTagPage(await fetchText(feed.url, t => t.indexOf('assetsConnection') !== -1), feed);
+      if (!list.length) throw new Error(feed.name + ' had no stories');
+      return list;
+    }
     const xml = await fetchText(feed.url, t => /<item[\s>]/.test(t));
     const list = parseFeed(xml);
     if (!list.length) throw new Error(feed.name + ' feed was empty');
     return list;
   }
+
+  const STORY_TYPES = new Set(['article', 'featureArticle', 'liveArticle']);
 
   // ---------- Homepage ----------
   // afr.com ships its whole homepage layout in window.__REDUX_STATE__ (a JS literal, not
@@ -453,18 +560,19 @@ article.story { padding: 28px 0 80px; }
       '%2C$width_' + c[2] + '%2C$x_' + c[3] + '%2C$y_' + c[4] + '/t_crop_custom/q_86%2Cf_auto/' + c[0];
   }
 
-  const STORY_TYPES = new Set(['article', 'featureArticle', 'liveArticle']);
+  
   function homeStory(a) {
     const fi = a.featuredImages || {};
     const path = a.urls && ((a.urls.canonical && a.urls.canonical.path) || (a.urls.published && a.urls.published.afr && a.urls.published.afr.path));
     const tag = a.tags && a.tags.primary ? a.tags.primary.displayName : ((a.category && a.category.name) || '');
     const authors = ((a.participants && a.participants.authors) || []).map(x => x.name).filter(Boolean);
     const sq = cropOf(fi, 'square1x1'), l32 = cropOf(fi, 'landscape3x2'), l169 = cropOf(fi, 'landscape16x9');
+    const id = a.shortId || a.id;
     return {
-      id: a.id,
-      link: path ? 'https://www.afr.com' + path : 'https://www.afr.com/link/follow-20180101-' + a.id,
-      title: (a.asset && a.asset.headlines && a.asset.headlines.headline) || '',
-      desc: (a.asset && a.asset.about) || '',
+      id,
+      link: path ? 'https://www.afr.com' + path : 'https://www.afr.com/link/follow-20180101-' + id,
+      title: (a.asset && a.asset.headlines && a.asset.headlines.headline) || (a.headlines && a.headlines.headline) || '',
+      desc: (a.asset && a.asset.about) || a.about || '',
       tag, label: a.label || '',
       category: tag,
       author: (a.asset && a.asset.byline) || authors.join(', '),
@@ -560,7 +668,7 @@ article.story { padding: 28px 0 80px; }
     try {
       // Latest = the front-page feed plus every section feed, which catches far more
       // of the day's stories than the single 20-item feed.
-      const sources = feed.id === 'latest' ? FEEDS.filter(f => !f.home) : [feed];
+      const sources = feed.id === 'latest' ? FEEDS.filter(f => !f.home && !f.tagPage) : [feed];
       const results = await Promise.allSettled(sources.map(fetchFeedItems));
       const ok = results.filter(r => r.status === 'fulfilled');
       if (!ok.length) throw new Error(results[0].reason.message);
@@ -795,6 +903,7 @@ article.story { padding: 28px 0 80px; }
     const q = $('search').value.trim().toLowerCase();
     const isHome = currentTab === 'home';
     document.body.classList.toggle('on-home', isHome);
+    renderBrief('auto');
     if (isHome && !q) { chipsEl.innerHTML = ''; renderHome(); return; }
 
     const cats = {};
@@ -839,7 +948,7 @@ article.story { padding: 28px 0 80px; }
 
   async function openArticle(id) {
     document.body.classList.add('reading');
-    $('backBtn').hidden = false; $('sizeUp').hidden = false; $('sizeDown').hidden = false;
+    $('backBtn').hidden = false; $('sizeUp').hidden = false; $('sizeDown').hidden = false; $('settingsBtn').hidden = true;
     window.scrollTo(0, 0);
 
     const item = findItem(id) || { id, link: 'https://www.afr.com/link/follow-20180101-' + id, title: '', desc: '' };
@@ -880,6 +989,7 @@ article.story { padding: 28px 0 80px; }
       (author && author.avatar ? '<img src="' + escAttr(img(author.avatar, 120)) + '" alt="">' : '') +
       '<div><div class="who">' + esc(a.byline || item.author || 'Financial Review') + '</div>' +
       '<div class="when">' + esc([when, mins].filter(Boolean).join(' · ')) + '</div></div></div>';
+    html += '<section class="ai" id="aiSum"></section>';
     if (a.hero) html += figure(a.hero.id, a.hero.caption, a.hero.credit, 'hero', a.hero.aspect);
     html += '<div class="body" id="storyBody"></div>';
     html += '<div class="story-foot">' +
@@ -891,6 +1001,7 @@ article.story { padding: 28px 0 80px; }
     html += '</article>';
     readerEl.innerHTML = html;
     $('storyBody').appendChild(buildBody(a.body, a.placeholders));
+    renderSummary(item, a, false);
     $('shareBtn').onclick = () => share(a.headline || item.title, url);
     updateProgress();
   }
@@ -1010,6 +1121,23 @@ article.story { padding: 28px 0 80px; }
     const m = /^#a\/(.+)$/.exec(location.hash);
     return m ? decodeURIComponent(m[1]) : null;
   }
+  // Tabs live in the URL (#t/latest) so the back button and swipe-back move between them.
+  function tabFromHash() {
+    const m = /^#t\/([\w-]+)$/.exec(location.hash);
+    return m && FEEDS.some(f => f.id === m[1]) ? m[1] : null;
+  }
+  function switchTab(id) {
+    if (id === currentTab) return false;
+    feedScrolls[currentTab] = window.scrollY;
+    currentTab = id; store.set(STORE.tab, id);
+    categoryFilter = null; $('search').value = '';
+    renderTabs();
+    const sel = $('tabs').querySelector('[aria-selected="true"]');
+    if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
+    loadFeed(false);
+    return true;
+  }
+  const feedScrolls = {};
   let feedScroll = 0;
   let cameFromFeed = false;
   function route() {
@@ -1018,13 +1146,16 @@ article.story { padding: 28px 0 80px; }
       if (!document.body.classList.contains('reading')) { feedScroll = window.scrollY; cameFromFeed = booted; }
       openArticle(id);
     } else {
+      const wasReading = document.body.classList.contains('reading');
       cameFromFeed = false;
       document.body.classList.remove('reading');
-      $('backBtn').hidden = true; $('sizeUp').hidden = true; $('sizeDown').hidden = true;
+      $('backBtn').hidden = true; $('sizeUp').hidden = true; $('sizeDown').hidden = true; $('settingsBtn').hidden = false;
       readerEl.innerHTML = '';
       $('progress').style.width = '0';
-      renderList();
-      requestAnimationFrame(() => window.scrollTo(0, feedScroll));
+      const changed = switchTab(tabFromHash() || 'home');
+      if (!changed) renderList();
+      const y = wasReading ? feedScroll : (changed ? (feedScrolls[currentTab] || 0) : window.scrollY);
+      requestAnimationFrame(() => window.scrollTo(0, y));
     }
   }
 
@@ -1089,14 +1220,250 @@ article.story { padding: 28px 0 80px; }
   function escAttr(s) { return esc(s); }
   function cssEsc(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'); }
 
+  // ---------- AI (OpenAI, key kept on this device only) ----------
+  const SPARK = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>';
+  function aiKey() {
+    // Fall back to the key already saved for Ask Ben on this device, if there is one.
+    let k = store.get(STORE.key, null);
+    if (!k) { try { k = localStorage.getItem('ben-chat-openai-key'); } catch (e) { k = null; } }
+    return k || '';
+  }
+  function aiModel() { return store.get(STORE.model, '') || DEFAULT_MODEL; }
+  function aiPrefs() { return Object.assign({ autoBrief: true, autoSum: true }, store.get(STORE.aiPrefs, {})); }
+
+  async function openaiJSON(system, user, maxTokens) {
+    const key = aiKey();
+    if (!key) throw Object.assign(new Error('No OpenAI key'), { code: 'nokey' });
+    const body = {
+      model: aiModel(),
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      response_format: { type: 'json_object' },
+      max_completion_tokens: maxTokens || 3000,
+      reasoning_effort: 'low',
+    };
+    const call = b => fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(b),
+    });
+    let r = await call(body);
+    if (r.status === 400) {
+      const t = await r.clone().text();
+      if (/reasoning_effort/.test(t)) { delete body.reasoning_effort; r = await call(body); }
+    }
+    if (!r.ok) {
+      let msg = 'HTTP ' + r.status;
+      try { const j = await r.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e) {}
+      if (r.status === 401) msg = 'OpenAI rejected the key — check it in Settings.';
+      if (r.status === 429) msg = 'OpenAI rate limit or quota reached — try again shortly. (' + msg + ')';
+      throw new Error(msg);
+    }
+    const j = await r.json();
+    const text = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+    if (!text) throw new Error('Empty response from OpenAI');
+    return JSON.parse(text);
+  }
+
+  function bulletsHtml(bullets, withRefs) {
+    return '<ul>' + (bullets || []).slice(0, 8).map(b => {
+      let refs = '';
+      if (withRefs && Array.isArray(b.ids)) {
+        const links = b.ids.map(id => findItem(String(id))).filter(Boolean).slice(0, 3)
+          .map(it => '<a href="#a/' + encodeURIComponent(it.id) + '">' + esc(shorten(it.title, 58)) + '</a>');
+        if (links.length) refs = '<span class="refs">' + links.join('') + '</span>';
+      }
+      return '<li><b>' + esc(String(b.lead || '').replace(/[:.\s]+$/, '')) + '.</b> ' + esc(b.text || '') + refs + '</li>';
+    }).join('') + '</ul>';
+  }
+  function shorten(t, n) { t = String(t || ''); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t; }
+  function aiNoKey(label) {
+    return '<p class="ai-msg">Add your OpenAI key in <button type="button" data-open-settings>Settings</button> to get ' + label + '.</p>';
+  }
+  function skeleton(n) { let h = ''; for (let i = 0; i < n; i++) h += '<div class="skl"></div>'; return h; }
+  function articleText(a) {
+    const doc = new DOMParser().parseFromString('<div>' + (a.body || '') + '</div>', 'text/html');
+    doc.querySelectorAll('x-placeholder, script, style').forEach(n => n.remove());
+    return Array.from(doc.querySelectorAll('p, h2, h3, li')).map(n => n.textContent.trim()).filter(Boolean).join('\n\n');
+  }
+
+  // --- Article summary: five bullets, bold lead-ins, analysis not just recap ---
+  const SUM_SYSTEM = [
+    'You are a senior financial journalist and markets analyst briefing a time-poor Australian executive and investor on an Australian Financial Review article.',
+    'Write exactly 5 bullets. Each bullet has a bold lead-in ("lead": 2–6 words that make the point itself, never a label like "Key point" or "Implications") and "text": 1–2 dense sentences.',
+    'Go well beyond a recap. Across the five bullets cover: (1) the core news with the specifics that matter — figures, names, dates, deal terms; (2) what is really driving it and why it matters now; (3) the implications for investors, markets, the sector, competitors or policy — who wins and who loses; (4) a genuine counterpoint, risk, tension or open question — what critics or the other side would say, or what the story leaves unsaid; (5) what to watch next and when.',
+    'Where you go beyond what the article reports, make that clear ("the bigger risk is…", "reading between the lines…"). Never invent facts, numbers or quotes. Do not repeat the headline. Australian English. No filler, no hedging boilerplate.',
+    'Return JSON only: {"bullets":[{"lead":"…","text":"…"}]}',
+  ].join('\n');
+
+  const sumInflight = new Map();
+  async function renderSummary(item, a, force) {
+    const el = $('aiSum'); if (!el) return;
+    const id = item.id;
+    const head = '<div class="ai-head">' + SPARK + '<span>AI summary</span><span class="spacer"></span>';
+    const cache = store.get(STORE.sums, {});
+    const hit = !force && cache[id];
+    if (hit) {
+      el.innerHTML = head + '<button type="button" data-resum>Regenerate</button></div>' + bulletsHtml(hit.bullets) +
+        '<div class="ai-foot">' + esc(hit.model || '') + ' · ' + esc(timeAgo(hit.at)) + '</div>';
+      return;
+    }
+    if (!aiKey()) { el.innerHTML = head + '</div>' + aiNoKey('a five-point summary of every article'); return; }
+    if (!force && !aiPrefs().autoSum) { el.innerHTML = head + '</div><p class="ai-msg"><button type="button" data-resum>Summarise this article</button></p>'; return; }
+    el.innerHTML = head + '</div><p class="ai-msg">Reading the article…</p>' + skeleton(5);
+    try {
+      let p = sumInflight.get(id);
+      if (!p) {
+        const user = 'Headline: ' + (a.headline || item.title) + '\nStandfirst: ' + (a.about || item.desc || '') +
+          '\nBy: ' + (a.byline || item.author || '') + '\nPublished: ' + (a.published || item.date || '') +
+          '\nSection: ' + [a.label, (a.categories || []).join(' / ')].filter(Boolean).join(' · ') +
+          '\n\nARTICLE:\n' + articleText(a).slice(0, 24000);
+        p = openaiJSON(SUM_SYSTEM, user, 2500).finally(() => sumInflight.delete(id));
+        sumInflight.set(id, p);
+      }
+      const out = await p;
+      if (!Array.isArray(out.bullets) || !out.bullets.length) throw new Error('Unexpected response shape');
+      const all = store.get(STORE.sums, {});
+      all[id] = { at: Date.now(), model: aiModel(), bullets: out.bullets.slice(0, 5) };
+      const keys = Object.keys(all);
+      if (keys.length > 200) keys.sort((x, y) => all[x].at - all[y].at).slice(0, keys.length - 200).forEach(k => delete all[k]);
+      store.set(STORE.sums, all);
+      if (currentRoute() === id) renderSummary(item, a, false);
+    } catch (e) {
+      if (currentRoute() !== id) return;
+      el.innerHTML = head + '</div><p class="ai-msg">Couldn’t summarise: ' + esc(e.message) + ' <button type="button" data-resum>Try again</button></p>';
+    }
+  }
+
+  // --- Tab briefing: a coffee-length read on everything in the tab ---
+  function briefSystem(tabName) {
+    return [
+      'You are the editor of a premium morning briefing read over coffee by a senior Australian executive and investor before their day starts.',
+      'You are given the current stories from the Australian Financial Review' + (tabName === 'Home' ? ' front page (in the editors’ running order)' : ' "' + tabName + '" section') + ', some with article excerpts.',
+      'Write: "take" — one or two sentences on the big picture: the dominant theme or mood today and why it matters; then "bullets" — 5 to 7 items ordered by importance to a business reader (not by list order).',
+      'Each bullet has a bold lead-in ("lead": 2–6 words that state the point) and "text": 2–3 sentences that synthesise rather than list — connect related stories, give the key specifics (figures, names), explain why it matters, and add perspective: market or investor implications, who wins and loses, tensions, what is contested, or what the coverage implies but does not say. Mark your own analysis clearly as such. Never invent facts.',
+      'Each bullet also has "ids": the 1–3 story ids it draws on, copied exactly from the list.',
+      'Finish with "watch": one sentence on what to watch today or this week.',
+      'Australian English. No filler, no "In today’s news". Return JSON only: {"take":"…","bullets":[{"lead":"…","text":"…","ids":["…"]}],"watch":"…"}',
+    ].join('\n');
+  }
+  function briefSignature(list) { return list.slice(0, 20).map(i => i.id).join(','); }
+  const briefInflight = new Map();
+
+  // mode: 'auto' when the list is drawn, 'force' from the Refresh button, 'show' after a new one lands.
+  function renderBrief(mode) {
+    mode = mode || 'auto';
+    const el = $('brief');
+    const tab = currentTab, feed = FEEDS.find(f => f.id === tab);
+    if (!items.length || $('search').value.trim()) { el.innerHTML = ''; return; }
+    const title = tab === 'home' ? 'Morning briefing' : feed.name + ' briefing';
+    const collapsed = store.get('afr-brief-collapsed', false);
+    const head = '<div class="ai-head">' + SPARK + '<span>' + esc(title) + '</span><span class="spacer"></span>';
+    const cached = mode === 'force' ? null : store.get(STORE.brief(tab), null);
+    const sig = briefSignature(items);
+    const fresh = cached && (Date.now() - cached.at < 6 * 3600e3) && (cached.sig === sig || Date.now() - cached.at < 90 * 60e3);
+    const canAuto = aiKey() && aiPrefs().autoBrief;
+    if (cached) {
+      const busy = briefInflight.has(tab);
+      el.innerHTML = '<section class="ai' + (collapsed ? ' collapsed' : '') + '">' + head +
+        '<button type="button" data-rebrief>' + (busy ? 'Updating…' : 'Refresh') + '</button><button type="button" data-collapse>' + (collapsed ? 'Show' : 'Hide') + '</button></div>' +
+        (cached.data.take ? '<p class="ai-take">' + esc(cached.data.take) + '</p>' : '') +
+        bulletsHtml(cached.data.bullets, true) +
+        (cached.data.watch ? '<p class="ai-watch"><b>Watch:</b> ' + esc(cached.data.watch) + '</p>' : '') +
+        '<div class="ai-foot">' + esc(cached.model || '') + ' · written ' + esc(timeAgo(cached.at)) + (cached.sig !== sig && !busy ? ' · new stories since' : '') + '</div></section>';
+      if (mode === 'auto' && !fresh && canAuto) generateBrief(tab, feed);
+      return;
+    }
+    if (!aiKey()) { el.innerHTML = '<section class="ai">' + head + '</div>' + aiNoKey('a morning briefing across these stories') + '</section>'; return; }
+    if (mode === 'auto' && !canAuto) {
+      el.innerHTML = '<section class="ai">' + head + '</div><p class="ai-msg"><button type="button" data-rebrief>Write the briefing</button></p></section>';
+      return;
+    }
+    el.innerHTML = '<section class="ai">' + head + '</div><p class="ai-msg">Reading today’s stories…</p>' + skeleton(6) + '</section>';
+    generateBrief(tab, feed);
+  }
+
+  async function generateBrief(tab, feed) {
+    if (briefInflight.has(tab)) return;
+    briefInflight.set(tab, true);
+    // Give the top stories a moment to download so the briefing can use their full text.
+    await Promise.race([prefetchTop(), new Promise(r => setTimeout(r, 20000))]);
+    if (currentTab !== tab) { briefInflight.delete(tab); return; }
+    const list = items.slice(0, 40), sig = briefSignature(items);
+    const lines = list.map((i, n) => {
+      const a = getCachedArticle(i.id);
+      let line = '[' + i.id + '] ' + (i.label ? i.label + ' · ' : '') + (i.tag || tagFromCategory(i.category) || '') + ' — ' + i.title + (i.desc ? ' — ' + i.desc : '');
+      if (a && n < 14) line += '\n   Excerpt: ' + articleText(a).slice(0, 1400).replace(/\s+/g, ' ');
+      return line;
+    }).join('\n');
+    const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' });
+    try {
+      const out = await openaiJSON(briefSystem(feed.name), 'Today is ' + today + '.\n\nSTORIES:\n' + lines, 4000);
+      if (!Array.isArray(out.bullets) || !out.bullets.length) throw new Error('Unexpected response shape');
+      store.set(STORE.brief(tab), { at: Date.now(), sig, model: aiModel(), data: out });
+      briefInflight.delete(tab);
+      if (currentTab === tab && !currentRoute()) renderBrief('show');
+    } catch (e) {
+      if (currentTab === tab && !currentRoute()) {
+        const el = $('brief');
+        const box = el.querySelector('.ai') || el;
+        const msg = document.createElement('p'); msg.className = 'ai-msg';
+        msg.innerHTML = 'Couldn’t write the briefing: ' + esc(e.message) + ' <button type="button" data-rebrief>Try again</button>';
+        box.querySelectorAll('.skl').forEach(n => n.remove());
+        const old = box.querySelector('.ai-msg'); if (old && !box.querySelector('ul')) old.remove();
+        box.appendChild(msg);
+      }
+    } finally { briefInflight.delete(tab); }
+  }
+
+  // --- Settings ---
+  function openSettings() {
+    const k = store.get(STORE.key, '');
+    $('keyInput').value = k || '';
+    let benKey = ''; try { benKey = localStorage.getItem('ben-chat-openai-key') || ''; } catch (e) {}
+    $('keyInput').placeholder = !k && benKey ? 'Using the key saved for Ask Ben' : 'sk-…';
+    $('modelInput').value = store.get(STORE.model, '') || '';
+    $('modelInput').placeholder = DEFAULT_MODEL;
+    const pr = aiPrefs();
+    $('autoBrief').checked = pr.autoBrief; $('autoSum').checked = pr.autoSum;
+    $('darkMode').checked = isDark();
+    try { $('settings').showModal(); } catch (e) { $('settings').setAttribute('open', ''); }
+  }
+  $('settingsBtn').addEventListener('click', openSettings);
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-open-settings]')) { e.preventDefault(); openSettings(); }
+    else if (e.target.closest('[data-rebrief]')) { e.preventDefault(); if (!briefInflight.has(currentTab)) { store.set(STORE.brief(currentTab), null); renderBrief('force'); } }
+    else if (e.target.closest('[data-collapse]')) { e.preventDefault(); store.set('afr-brief-collapsed', !store.get('afr-brief-collapsed', false)); renderBrief('show'); }
+    else if (e.target.closest('[data-resum]')) {
+      e.preventDefault();
+      const id = currentRoute(), a = id && getCachedArticle(id);
+      if (a) renderSummary(findItem(id) || { id, title: a.headline, desc: a.about }, a, true);
+    }
+  });
+  $('settingsForm').addEventListener('submit', () => {
+    const k = $('keyInput').value.trim();
+    if (k) store.set(STORE.key, k);
+    const m = $('modelInput').value.trim();
+    store.set(STORE.model, m || '');
+    store.set(STORE.aiPrefs, { autoBrief: $('autoBrief').checked, autoSum: $('autoSum').checked });
+    const dark = $('darkMode').checked;
+    if (dark !== isDark()) { applyTheme(dark ? 'dark' : 'light'); store.set(STORE.theme, dark ? 'dark' : 'light'); }
+    toast(k ? 'Saved — key stored on this device' : 'Saved');
+    if (currentRoute()) { const id = currentRoute(), a = getCachedArticle(id); if (a) renderSummary(findItem(id) || { id }, a, false); }
+    else renderBrief('auto');
+  });
+  $('forgetKey').addEventListener('click', () => {
+    try { localStorage.removeItem(STORE.key); } catch (e) {}
+    $('keyInput').value = ''; toast('Key removed from this device');
+  });
+  $('clearAi').addEventListener('click', () => {
+    try { Object.keys(localStorage).filter(k => k === STORE.sums || k.indexOf('afr-ai-brief-') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    toast('Saved summaries cleared');
+  });
+
   // ---------- Events ----------
   $('tabs').addEventListener('click', e => {
     const b = e.target.closest('[data-tab]'); if (!b) return;
-    if (b.dataset.tab === currentTab && !document.body.classList.contains('reading')) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    currentTab = b.dataset.tab; store.set(STORE.tab, currentTab);
-    categoryFilter = null; $('search').value = '';
-    renderTabs(); feedScroll = 0; window.scrollTo(0, 0);
-    loadFeed(false);
+    if (b.dataset.tab === currentTab) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    feedScrolls[b.dataset.tab] = 0;
+    location.hash = 't/' + b.dataset.tab;
   });
   chipsEl.addEventListener('click', e => {
     const c = e.target.closest('[data-cat]'); if (!c) return;
@@ -1113,22 +1480,23 @@ article.story { padding: 28px 0 80px; }
     } else loadFeed(true);
   });
   // Go back through history when we arrived from the feed, so its scroll position survives.
-  $('backBtn').addEventListener('click', () => { if (cameFromFeed) history.back(); else location.hash = ''; });
-  $('brand').addEventListener('click', e => { e.preventDefault(); if (currentRoute()) location.hash = ''; else window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  $('backBtn').addEventListener('click', () => { if (cameFromFeed) history.back(); else location.hash = 't/' + currentTab; });
+  // The masthead always takes you to the front page, like afr.com.
+  $('brand').addEventListener('click', e => {
+    e.preventDefault();
+    if (currentTab === 'home' && !currentRoute()) window.scrollTo({ top: 0, behavior: 'smooth' });
+    else { feedScrolls.home = 0; location.hash = 't/home'; }
+  });
   let size = store.get(STORE.size, 20);
   applySize(size);
   $('sizeUp').addEventListener('click', () => { size = applySize(size + 1); });
   $('sizeDown').addEventListener('click', () => { size = applySize(size - 1); });
   applyTheme(store.get(STORE.theme, null));
-  $('themeBtn').addEventListener('click', () => {
-    const dark = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() === '#121417';
-    const next = dark ? 'light' : 'dark';
-    applyTheme(next); store.set(STORE.theme, next);
-  });
+  function isDark() { return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() === '#121417'; }
   window.addEventListener('scroll', updateProgress, { passive: true });
   window.addEventListener('hashchange', route);
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && currentRoute()) location.hash = '';
+    if (e.key === 'Escape' && currentRoute() && !$('settings').open) $('backBtn').click();
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && !currentRoute()) loadFeed(false);
@@ -1137,6 +1505,7 @@ article.story { padding: 28px 0 80px; }
   // ---------- Boot ----------
   let booted = false;
   renderTabs();
+  if (!currentRoute() && !tabFromHash()) history.replaceState(null, '', '#t/home');
   loadFeed(false);
   route();
   booted = true;
