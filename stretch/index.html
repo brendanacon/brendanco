@@ -130,6 +130,36 @@ button.row:hover{background:var(--surface)}
 .chip.lo{background:color-mix(in srgb,var(--hot) 18%,transparent)}
 .chip.hi{background:var(--accent-soft);color:var(--accent)}
 .saved{font-size:13px;color:var(--accent);text-align:center;margin-top:8px;min-height:1.2em}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:14px 0 0}
+.wday{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-weight:500}
+.tick{width:100%;max-width:40px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:transparent;border:2px solid transparent}
+.tick svg.lucide{width:18px;height:18px;stroke-width:3}
+.tick.on{background:var(--accent);color:var(--on)}
+.tick.today{border-color:var(--accent)}
+.tick:disabled{opacity:.35;cursor:default}
+.streakline{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--muted)}
+.streakline button{color:var(--accent);font-weight:600;display:flex;align-items:center;gap:2px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+.tile{background:var(--surface);border-radius:12px;padding:12px}
+.tile b{display:block;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile span{font-size:13px;color:var(--muted)}
+.monthbar{display:flex;align-items:center;justify-content:space-between;margin:20px 0 6px}
+.monthbar b{font-size:16px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{font-size:11px;color:var(--muted);text-align:center;font-weight:600;padding-bottom:2px}
+.cell{aspect-ratio:1;border-radius:8px;background:var(--surface);display:grid;place-items:center;font-size:13px;font-variant-numeric:tabular-nums;border:2px solid transparent;position:relative}
+.cell.on{background:var(--accent);color:var(--on);font-weight:600}
+.cell.manual::after{content:"";position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:currentColor}
+.cell.today{border-color:var(--accent)}
+.cell.sel{outline:2px solid var(--ink);outline-offset:1px}
+.cell:disabled{opacity:.35;cursor:default}
+.cell.blank{background:none}
+.dayinfo{font-size:14px;margin-top:10px;min-height:2.8em;line-height:1.45}
+.dayinfo small{display:block;color:var(--muted);font-size:13px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;background:var(--surface)}
+.legend i.on{background:var(--accent)}
+.legend i.today{border:2px solid var(--accent);background:none}
 @media (prefers-reduced-motion:reduce){.flash{animation:none}}
 </style>
 </head>
@@ -138,6 +168,8 @@ button.row:hover{background:var(--surface)}
 <div class="wrap" id="home">
   <h1>Stretch</h1>
   <div class="sub" id="stats"></div>
+  <div class="week" id="week" aria-label="This week – tap a day to tick it"></div>
+  <div class="streakline"><span id="streakTxt"></span><button id="trackBtn">Tracker<i data-lucide="chevron-right"></i></button></div>
   <div class="sec">Routines</div>
   <div class="list" id="routineList"></div>
   <div class="sec">Tracking</div>
@@ -199,6 +231,29 @@ button.row:hover{background:var(--surface)}
     <button class="play" id="playBtn" aria-label="Pause"></button>
     <button class="ctl" id="nextBtn" aria-label="Next stretch"><i data-lucide="skip-forward"></i></button>
   </div>
+</div>
+
+<div class="wrap hidden" id="trackView">
+  <div class="topbar">
+    <button class="iconbtn" id="trackBack" aria-label="Back to routines"><i data-lucide="chevron-left"></i></button>
+  </div>
+  <h1>Stretch tracker</h1>
+  <div class="sub">Finished routines tick themselves. Tap any other day to tick it by hand.</div>
+  <div class="tiles">
+    <div class="tile"><b id="tCur">0</b><span>day streak</span></div>
+    <div class="tile"><b id="tBest">0</b><span>best streak</span></div>
+    <div class="tile"><b id="tWeek">0</b><span>days this week</span></div>
+    <div class="tile"><b id="tMonth">0</b><span id="tMonthLbl">days this month</span></div>
+  </div>
+  <div class="monthbar">
+    <button class="iconbtn" id="mPrev" aria-label="Previous month"><i data-lucide="chevron-left"></i></button>
+    <b id="mTitle"></b>
+    <button class="iconbtn" id="mNext" aria-label="Next month"><i data-lucide="chevron-right"></i></button>
+  </div>
+  <div class="cal" id="cal"></div>
+  <div class="legend"><span><i class="on"></i>Stretched</span><span><i></i>Not yet</span><span><i class="today"></i>Today</span><span>• ticked by hand</span></div>
+  <div class="dayinfo" id="dayInfo"></div>
+  <div class="sub" id="tTotal" style="margin-top:6px"></div>
 </div>
 
 <div class="wrap hidden" id="checkView">
@@ -374,15 +429,10 @@ const thumbHTML=key=>{const src=imgOf(key);return src?`<img src="${src}" alt="">
 /* storage */
 function loadLog(){try{return JSON.parse(localStorage.getItem('unstiff-log')||'[]')}catch(e){return []}}
 function saveLog(l){try{localStorage.setItem('unstiff-log',JSON.stringify(l))}catch(e){}}
-function dayKey(t){const d=new Date(t);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()}
 function renderStats(){
-  const log=loadLog().map(x=>typeof x==='number'?x:x.t),el=document.getElementById('stats');
-  if(!log.length){el.textContent='One short session a day beats one long one a week.';return}
-  const wk=log.filter(t=>t>Date.now()-7*864e5).length;
-  const days=new Set(log.map(dayKey));let streak=0,d=new Date();
-  if(!days.has(dayKey(d)))d.setDate(d.getDate()-1);
-  while(days.has(dayKey(d))){streak++;d.setDate(d.getDate()-1)}
-  el.textContent=`${wk} session${wk===1?'':'s'} this week`+(streak>1?`, ${streak}-day streak`:'');
+  const n=loadLog().length,el=document.getElementById('stats');
+  el.textContent=n?`${n} session${n===1?'':'s'} done`:'One short session a day beats one long one a week.';
+  renderWeek();
 }
 
 /* home */
@@ -500,7 +550,7 @@ function finish(){
 function stopSession(){clearInterval(timer);releaseWake();show('detail')}
 async function requestWake(){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
 function releaseWake(){try{wakeLock&&wakeLock.release();wakeLock=null}catch(e){}}
-function show(id){['home','detail','player','doneView','logView','checkView'].forEach(v=>document.getElementById(v).classList.toggle('hidden',v!==id));window.scrollTo(0,0);icons()}
+function show(id){['home','detail','player','doneView','logView','checkView','trackView'].forEach(v=>document.getElementById(v).classList.toggle('hidden',v!==id));window.scrollTo(0,0);icons()}
 
 document.getElementById('playBtn').addEventListener('click',togglePause);
 document.getElementById('nextBtn').addEventListener('click',()=>advance(1));
@@ -511,6 +561,66 @@ document.getElementById('muteBtn').addEventListener('click',e=>{muted=!muted;e.c
 document.addEventListener('keydown',e=>{if(document.getElementById('player').classList.contains('hidden'))return;
   if(e.code==='Space'){e.preventDefault();togglePause()}if(e.key==='ArrowRight')advance(1);if(e.key==='ArrowLeft')document.getElementById('prevBtn').click()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!document.getElementById('player').classList.contains('hidden'))requestWake()});
+/* stretch tracker: a day counts if a routine was finished that day or it was ticked by hand */
+const iso=d=>{const z=new Date(d);return z.getFullYear()+'-'+String(z.getMonth()+1).padStart(2,'0')+'-'+String(z.getDate()).padStart(2,'0')};
+const addDays=(day,n)=>{const d=new Date(day+'T12:00');d.setDate(d.getDate()+n);return iso(d)};
+function loadManual(){try{return JSON.parse(localStorage.getItem('unstiff-manual')||'[]')}catch(e){return []}}
+function saveManual(a){try{localStorage.setItem('unstiff-manual',JSON.stringify(a))}catch(e){}}
+function sessionsByDay(){const m={};loadLog().forEach(x=>{const t=typeof x==='number'?x:x.t,d=iso(t);(m[d]=m[d]||[]).push(typeof x==='object'?x.r:null)});return m}
+function stretchDays(){const d=new Set(Object.keys(sessionsByDay()));loadManual().forEach(x=>d.add(x));return d}
+function toggleManual(day){
+  if(day>iso(Date.now()))return;
+  if(sessionsByDay()[day]){return 'auto'}
+  const m=loadManual(),i=m.indexOf(day);i<0?m.push(day):m.splice(i,1);saveManual(m);
+}
+function streaks(days){
+  const today=iso(Date.now());let cur=0,d=days.has(today)?today:addDays(today,-1);
+  while(days.has(d)){cur++;d=addDays(d,-1)}
+  let best=0,run=0,prev=null;[...days].sort().forEach(x=>{run=prev&&addDays(prev,1)===x?run+1:1;best=Math.max(best,run);prev=x});
+  return {cur,best,aliveToday:days.has(today)};
+}
+const mondayOf=day=>{const d=new Date(day+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)};
+function renderWeek(){
+  const days=stretchDays(),today=iso(Date.now()),mon=mondayOf(today);
+  document.getElementById('week').innerHTML=[0,1,2,3,4,5,6].map(i=>{const d=addDays(mon,i),on=days.has(d),dt=new Date(d+'T12:00');
+    return `<div class="wday">${dt.toLocaleDateString(undefined,{weekday:'narrow'})}<button class="tick${on?' on':''}${d===today?' today':''}" data-d="${d}" ${d>today?'disabled':''} aria-pressed="${on}" aria-label="${dt.toLocaleDateString(undefined,{weekday:'long'})}${on?', stretched':''}"><i data-lucide="check"></i></button></div>`}).join('');
+  document.querySelectorAll('#week .tick').forEach(b=>b.addEventListener('click',()=>{
+    if(toggleManual(b.dataset.d)==='auto'){flashNote('Ticked by a finished routine');return}renderStats();if(!document.getElementById('trackView').classList.contains('hidden'))renderTracker()}));
+  const st=streaks(days);
+  document.getElementById('streakTxt').textContent=st.cur?`${st.cur}-day streak${st.aliveToday?'':' – stretch today to keep it'}`:'No streak yet – tick today';
+  icons();
+}
+let noteTimer=null;
+function flashNote(t){const el=document.getElementById('streakTxt'),old=el.textContent;el.textContent=t;clearTimeout(noteTimer);noteTimer=setTimeout(()=>el.textContent=old,1800)}
+let calMonth=null,selDay=null;
+const RNAME=id=>(ROUTINES.find(r=>r.id===id)||{}).name||'Session';
+function renderTracker(){
+  const days=stretchDays(),today=iso(Date.now()),st=streaks(days),man=new Set(loadManual()),sess=sessionsByDay();
+  document.getElementById('tCur').textContent=st.cur;document.getElementById('tBest').textContent=st.best;
+  const mon=mondayOf(today);document.getElementById('tWeek').textContent=[...days].filter(d=>d>=mon&&d<=today).length;
+  const ym=today.slice(0,7);document.getElementById('tMonth').textContent=[...days].filter(d=>d.startsWith(ym)).length;
+  const y=calMonth.getFullYear(),m=calMonth.getMonth(),first=new Date(y,m,1,12),n=new Date(y,m+1,0).getDate(),lead=(first.getDay()+6)%7;
+  document.getElementById('mTitle').textContent=first.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  document.getElementById('mNext').disabled=iso(new Date(y,m+1,1))>today;document.getElementById('mNext').style.opacity=document.getElementById('mNext').disabled?.3:1;
+  const dows=[0,1,2,3,4,5,6].map(i=>`<div class="dow">${new Date(2024,0,1+i).toLocaleDateString(undefined,{weekday:'narrow'})}</div>`).join('');
+  let cells='';for(let i=0;i<lead;i++)cells+='<div class="cell blank"></div>';
+  for(let dnum=1;dnum<=n;dnum++){const d=iso(new Date(y,m,dnum,12)),on=days.has(d),byHand=on&&!sess[d]&&man.has(d);
+    cells+=`<button class="cell${on?' on':''}${byHand?' manual':''}${d===today?' today':''}${d===selDay?' sel':''}" data-d="${d}" ${d>today?'disabled':''} aria-pressed="${on}" aria-label="${new Date(d+'T12:00').toLocaleDateString(undefined,{day:'numeric',month:'long'})}${on?', stretched':''}">${dnum}</button>`}
+  document.getElementById('cal').innerHTML=dows+cells;
+  document.querySelectorAll('#cal .cell[data-d]').forEach(b=>b.addEventListener('click',()=>{selDay=b.dataset.d;toggleManual(selDay);renderTracker();renderStats()}));
+  const info=document.getElementById('dayInfo');
+  if(selDay){const on=days.has(selDay),s2=sess[selDay],label=new Date(selDay+'T12:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
+    info.innerHTML=`<b>${label}</b><small>${s2?s2.map(RNAME).join(', ')+' – ticked automatically':on?'Ticked by hand – tap again to untick':'Not ticked – tap to mark it'}</small>`}
+  else info.innerHTML='<small>Tap a day to see what you did or to tick it.</small>';
+  document.getElementById('tTotal').textContent=`${days.size} day${days.size===1?'':'s'} stretched in total`;
+  icons();
+}
+function openTracker(){calMonth=new Date();calMonth.setDate(1);selDay=null;renderTracker();show('trackView')}
+document.getElementById('trackBtn').addEventListener('click',openTracker);
+document.getElementById('trackBack').addEventListener('click',()=>{show('home');renderHome()});
+document.getElementById('mPrev').addEventListener('click',()=>{calMonth.setMonth(calMonth.getMonth()-1);renderTracker()});
+document.getElementById('mNext').addEventListener('click',()=>{if(document.getElementById('mNext').disabled)return;calMonth.setMonth(calMonth.getMonth()+1);renderTracker()});
+
 document.getElementById('liftCuesX').addEventListener('click',()=>document.getElementById('liftCues').classList.add('hidden'));
 
 /* headache log */
