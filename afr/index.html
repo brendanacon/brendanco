@@ -330,7 +330,7 @@ article.story { padding: 28px 0 80px; }
     </label>
     <p class="hint" id="keyHint">Stored only on this device (in this browser’s local storage) and sent only to api.openai.com. Nothing is saved in the site’s code or on any server.</p>
     <label class="fld">Model
-      <input type="text" id="modelInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gpt-5.2">
+      <input type="text" id="modelInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gpt-5.5">
     </label>
     <label class="chk"><input type="checkbox" id="autoBrief"> Write the briefing automatically when a tab opens</label>
     <label class="chk"><input type="checkbox" id="autoSum"> Summarise articles automatically when opened</label>
@@ -385,10 +385,10 @@ article.story { padding: 28px 0 80px; }
     key: 'afr-openai-key',
     model: 'afr-openai-model',
     aiPrefs: 'afr-ai-prefs',
-    sums: 'afr-ai-summaries',
-    brief: id => 'afr-ai-brief-' + id,
+    sums: 'afr-ai-summaries-v2',
+    brief: id => 'afr-ai-brief2-' + id,
   };
-  const DEFAULT_MODEL = 'gpt-5.2';
+  const DEFAULT_MODEL = 'gpt-5.5';
   const img = (id, w) => 'https://static.ffx.io/images/$width_' + (w || 800) + '/t_resize_width/q_86%2Cf_auto/' + id;
 
   // ---------- Storage helpers (never throw) ----------
@@ -1228,7 +1228,7 @@ article.story { padding: 28px 0 80px; }
     if (!k) { try { k = localStorage.getItem('ben-chat-openai-key'); } catch (e) { k = null; } }
     return k || '';
   }
-  function aiModel() { return store.get(STORE.model, '') || DEFAULT_MODEL; }
+  function aiModel() { const m = store.get(STORE.model, ''); return m && m !== 'gpt-5.2' ? m : DEFAULT_MODEL; }
   function aiPrefs() { return Object.assign({ autoBrief: true, autoSum: true }, store.get(STORE.aiPrefs, {})); }
 
   async function openaiJSON(system, user, maxTokens) {
@@ -1287,9 +1287,9 @@ article.story { padding: 28px 0 80px; }
   // --- Article summary: five bullets, bold lead-ins, analysis not just recap ---
   const SUM_SYSTEM = [
     'You are a senior financial journalist and markets analyst briefing a time-poor Australian executive and investor on an Australian Financial Review article.',
-    'Write exactly 5 bullets. Each bullet has a bold lead-in ("lead": 2–6 words that make the point itself, never a label like "Key point" or "Implications") and "text": 1–2 dense sentences.',
+    'Write exactly 5 bullets. Each has a bold lead-in ("lead": 2–5 words that make the point itself, never a label like "Key point") and "text": ONE sentence of at most 22 words. Be terse and specific: numbers and names over adjectives.',
     'Go well beyond a recap. Across the five bullets cover: (1) the core news with the specifics that matter — figures, names, dates, deal terms; (2) what is really driving it and why it matters now; (3) the implications for investors, markets, the sector, competitors or policy — who wins and who loses; (4) a genuine counterpoint, risk, tension or open question — what critics or the other side would say, or what the story leaves unsaid; (5) what to watch next and when.',
-    'Where you go beyond what the article reports, make that clear ("the bigger risk is…", "reading between the lines…"). Never invent facts, numbers or quotes. Do not repeat the headline. Australian English. No filler, no hedging boilerplate.',
+    'Signal your own inference in a word or two ("likely", "the risk:") — never long disclaimers. Never invent facts, numbers or quotes. Do not repeat the headline. Australian English. No filler.',
     'Return JSON only: {"bullets":[{"lead":"…","text":"…"}]}',
   ].join('\n');
 
@@ -1337,10 +1337,10 @@ article.story { padding: 28px 0 80px; }
     return [
       'You are the editor of a premium morning briefing read over coffee by a senior Australian executive and investor before their day starts.',
       'You are given the current stories from the Australian Financial Review' + (tabName === 'Home' ? ' front page (in the editors’ running order)' : ' "' + tabName + '" section') + ', some with article excerpts.',
-      'Write: "take" — one or two sentences on the big picture: the dominant theme or mood today and why it matters; then "bullets" — 5 to 7 items ordered by importance to a business reader (not by list order).',
-      'Each bullet has a bold lead-in ("lead": 2–6 words that state the point) and "text": 2–3 sentences that synthesise rather than list — connect related stories, give the key specifics (figures, names), explain why it matters, and add perspective: market or investor implications, who wins and loses, tensions, what is contested, or what the coverage implies but does not say. Mark your own analysis clearly as such. Never invent facts.',
+      'It must be skimmable in under a minute. Write: "take" — ONE sentence (max 25 words) on the day’s dominant theme; then "bullets" — exactly 5 items ordered by importance to a business reader (not list order).',
+      'Each bullet has a bold lead-in ("lead": 2–5 words that state the point) and "text": ONE sentence, max 28 words, that synthesises rather than lists — the key specific (a figure or name) plus why it matters or the angle others miss (who wins/loses, the tension, the risk). Signal your own inference in a word ("likely", "risk:"), never with long disclaimers. Never invent facts.',
       'Each bullet also has "ids": the 1–3 story ids it draws on, copied exactly from the list.',
-      'Finish with "watch": one sentence on what to watch today or this week.',
+      'Finish with "watch": what to watch today or this week, max 15 words.',
       'Australian English. No filler, no "In today’s news". Return JSON only: {"take":"…","bullets":[{"lead":"…","text":"…","ids":["…"]}],"watch":"…"}',
     ].join('\n');
   }
@@ -1454,7 +1454,7 @@ article.story { padding: 28px 0 80px; }
     $('keyInput').value = ''; toast('Key removed from this device');
   });
   $('clearAi').addEventListener('click', () => {
-    try { Object.keys(localStorage).filter(k => k === STORE.sums || k.indexOf('afr-ai-brief-') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    try { Object.keys(localStorage).filter(k => k.indexOf('afr-ai-summaries') === 0 || k.indexOf('afr-ai-brief') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
     toast('Saved summaries cleared');
   });
 

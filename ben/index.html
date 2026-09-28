@@ -2340,14 +2340,17 @@
                         'Authorization': 'Bearer ' + apiKey
                     },
                     body: JSON.stringify({
-                        model: 'gpt-5.2',
+                        model: 'gpt-5.5',
                         messages: [
                             { role: 'system', content: systemPrompt }
                         ].concat(conversationHistory).concat([
                             { role: 'user', content: query }
                         ]),
                         stream: true,
-                        max_completion_tokens: 1000
+                        // gpt-5.5 reasons by default and reasoning tokens count toward this cap,
+                        // so keep effort low and leave headroom; the word-count prompt sets length.
+                        reasoning_effort: 'low',
+                        max_completion_tokens: 2500
                     })
                 });
 
