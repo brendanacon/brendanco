@@ -344,6 +344,17 @@ const EX={
   happybaby:{name:'Happy baby',img:'happy-baby',pos:'lie',dur:45,feel:'Inner thighs and lower back',cues:['On your back, grab the outsides of your feet','Knees wide, toward your armpits','Rock gently side to side if it feels good'],why:'Opens the hips and lets the lower back flatten.'},
   child:{name:'Child\'s pose',img:'childs-pose',pos:'rest',dur:60,feel:'Back and shoulders',cues:['Knees wide, sit back toward your heels','Arms long, forehead down – rest','Breathe into your back ribs'],why:'A calm finish. Let everything go.'},
   legswall:{name:'Legs up the wall',img:'legs-up-the-wall',pos:'rest',dur:90,feel:'Hamstrings and lower back',cues:['Lie with your bum close to a wall, legs up it','Arms relaxed by your sides','Close your eyes and breathe slowly'],why:'A deeply calming finish. Good before bed.'},
+  /* seated / bus – small, seat-only moves */
+  sbreathe:{name:'Settle in',pos:'seat',dur:45,feel:'Belly and ribs',cues:['Sit back in the seat, feet flat','In through the nose for 4, out for 6','Let your shoulders drop with every exhale'],why:'Takes the edge off before you move. Nobody can tell you\'re doing it.'},
+  schin:{name:'Seated chin nods',pos:'seat',dur:40,feel:'Deep front of the neck',cues:['Sit tall, eyes level','Glide your chin straight back – a small double chin','Hold 3 seconds, relax. Jaw loose'],why:'Resets the head-forward posture you drift into looking at your phone.'},
+  srolls:{name:'Shoulder rolls',pos:'seat',dur:30,feel:'Tops of the shoulders',cues:['Slowly lift your shoulders up, back and down','Keep the circles small – elbows stay by your sides','Backwards only'],why:'Loosens the upper traps without taking up any space.'},
+  sblades:{name:'Shoulder blade squeeze',pos:'seat',dur:40,feel:'Between the shoulder blades',cues:['Gently draw your shoulder blades back and down','Hold 5 seconds, release','Don\'t shrug and don\'t arch your lower back'],why:'Wakes up the mid-back muscles that stop you slumping.'},
+  sneck:{name:'Anchored neck stretch',img:'neck-side-stretch',pos:'seat',dur:30,sided:true,feel:'Side of the neck',cues:['Hold the edge of your seat with one hand','Tip your other ear toward that shoulder','No pulling – the anchored arm does the work'],why:'Holding the seat keeps the shoulder down, so the stretch lands in the upper trap.'},
+  slevator:{name:'Look to your pocket',pos:'seat',dur:25,sided:true,feel:'Back and side of the neck',cues:['Turn your head about 45° to one side','Nod your chin down toward that pocket','Keep it gentle – just breathe into it'],why:'Stretches levator scapulae, a common source of neck-to-head tension.'},
+  stwist:{name:'Seat twist',pos:'seat',dur:25,sided:true,feel:'Mid back',cues:['Sit tall, hand on the opposite knee','Turn your chest a little toward that side','Grow tall on the inhale, turn a touch more on the exhale'],why:'Small rotation for a stiff mid-back. Keep it within your own seat.'},
+  spelvic:{name:'Pelvic tilts',pos:'seat',dur:40,feel:'Lower back',cues:['Hands on your thighs','Slowly roll your pelvis back (slump), then forward (tall)','Small, smooth, in time with your breath'],why:'Moves the lower back that\'s been fixed in one position.'},
+  sfig4:{name:'Seated figure-4',pos:'seat',dur:30,sided:true,feel:'Outer hip and glute',cues:['Only if you have room: ankle over the opposite knee','Sit tall and lean forward slightly from the hips','No room? Press your knees together and apart instead'],why:'Opens the glutes and outer hips, which tighten from sitting.'},
+  sankles:{name:'Ankle pumps',pos:'seat',dur:30,feel:'Calves and shins',cues:['Heels down, lift your toes','Then toes down, lift your heels','Keep a steady rhythm'],why:'Gets blood moving in your legs after a long sit.'},
   /* gym prep – upper day */
   catcamel:{name:'Cat–camel',img:'cat-cow',pos:'fours',dur:50,feel:'Whole spine',cues:['On hands and knees, move slowly','Exhale – round up through the upper back','Inhale – let the chest sink, no neck crank'],why:'Wakes up the spine before you load it. Easy range, no forcing.'},
   openbook:{name:'Open book',pos:'lie',dur:35,sided:true,feel:'Upper back and chest',cues:['Lie on your side, knees bent and stacked, arms out in front','Sweep the top arm up and over, following it with your eyes','Knees stay together – only the upper back turns'],why:'Rotation for the thoracic spine, so pull-ups and rows don\'t steal it from your neck.'},
@@ -370,6 +381,8 @@ const ROUTINES=[
     {label:'Settle',pick:1,from:['breathe']},
     {label:'Neck',pick:1,from:['neck']},
     {label:'Shoulders and sides',pick:3,from:['crossbody','doorway','triceps','sidebend']}]},
+  {id:'bus',name:'Bus commute',focus:'Seated – bus or train',icon:'easy-pose',fixed:true,quiet:true,desc:'All in your seat, small and low-key – nothing that takes up your neighbour\'s space. Sound starts off; tap the speaker if you have headphones in.',
+   stages:['sbreathe','schin','srolls','sblades','sneck','slevator','stwist','spelvic','sfig4','sankles'].map(k=>({label:EX[k].name,pick:1,from:[k]}))},
   {id:'upper',name:'Upper body opener',focus:'Chest, shoulders, back',icon:'puppy',desc:'For a tight chest and rounded shoulders. Less neck, more opening up.',
    stages:[
     {label:'Settle',pick:1,from:['breathe']},
@@ -457,7 +470,7 @@ function renderDetail(anim){
   document.getElementById('dDesc').textContent=r.desc;
   document.getElementById('shuffleBtn').classList.toggle('hidden',!!r.fixed);
   const list=document.getElementById('dList');
-  list.innerHTML=p.map(s=>`<div class="stagelbl">${s.label}</div><div class="list">${s.items.map(k=>{const e=EX[k];
+  list.innerHTML=p.map(s=>`${s.items.length===1&&EX[s.items[0]].name===s.label?'':`<div class="stagelbl">${s.label}</div>`}<div class="list">${s.items.map(k=>{const e=EX[k];
     return `<div class="row"><div class="thumb">${thumbHTML(k)}</div><div class="rowtext"><b>${e.name}</b><span>${e.feel}${e.sided?', each side':''}</span></div><div class="rowend">${e.sided?e.dur+'s ×2':e.dur+'s'}</div></div>`}).join('')}</div>`).join('');
   if(anim){list.classList.remove('flash');void list.offsetWidth;list.classList.add('flash')}
   icons();
@@ -491,7 +504,9 @@ function buildQueue(p){
   });
   return q;
 }
+function setMuted(m){muted=m;document.getElementById('muteBtn').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`;icons()}
 function start(r){
+  if(r.quiet)setMuted(true);
   routine=r;queue=buildQueue(plans[r.id]);idx=0;paused=false;
   show('player');
   try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();ctx.resume()}catch(e){}
@@ -557,7 +572,7 @@ document.getElementById('nextBtn').addEventListener('click',()=>advance(1));
 document.getElementById('prevBtn').addEventListener('click',()=>{idx=Math.max(0,queue[idx].type==='ex'?idx-1:idx-2);loadStep()});
 document.getElementById('closeBtn').addEventListener('click',stopSession);
 document.getElementById('homeBtn').addEventListener('click',()=>{show('home');renderHome()});
-document.getElementById('muteBtn').addEventListener('click',e=>{muted=!muted;e.currentTarget.innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`;icons()});
+document.getElementById('muteBtn').addEventListener('click',()=>setMuted(!muted));
 document.addEventListener('keydown',e=>{if(document.getElementById('player').classList.contains('hidden'))return;
   if(e.code==='Space'){e.preventDefault();togglePause()}if(e.key==='ArrowRight')advance(1);if(e.key==='ArrowLeft')document.getElementById('prevBtn').click()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!document.getElementById('player').classList.contains('hidden'))requestWake()});
