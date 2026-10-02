@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unsaid · Anonymous 360 feedback</title>
+<meta name="description" content="Hear what your team won't say to your face. Anonymous feedback rounds with an AI synthesis: no quotes, no names, just the patterns.">
+<meta name="theme-color" content="#f2f3e8">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..600,50..100&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f2f3e8; --bg-2: #fcfcf5; --card: #fcfdfa; --ink: #101828; --ink-2: #1e1e1e;
+  --muted: #78796c; --line: #e4e4dc; --line-2: #c6c7bb; --soft: #e9eadf;
+  --orange: #ff5a39; --orange-2: #e34a2b; --orange-ink: #c63d21;
+  --purple: #e8b9ff; --blue: #6eccff; --green: #aee52f; --pink: #ec73a4; --yellow: #ecd541; --teal: #44c4a2; --indigo: #6981ff;
+  --on-pastel: #101828;
+  --night: #101828; --night-2: #1b2333; --night-ink: #f2f3e8; --night-muted: #a1a297;
+  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 12px 40px -12px rgba(16,24,40,.14);
+  --r: 24px;
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d111a; --bg-2: #121722; --card: #171d2a; --ink: #f2f3e8; --ink-2: #e4e4dc;
+    --muted: #a1a297; --line: #262d3b; --line-2: #3a4253; --soft: #1e2534;
+    --orange-ink: #ff7a5f;
+    --night: #171d2a; --night-2: #202838;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 40px -16px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+a { color: inherit; }
+img, svg { display: block; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+.narrow { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+.serif { font-family: var(--serif); font-weight: 300; font-variation-settings: 'SOFT' 100; letter-spacing: -.02em; }
+.muted { color: var(--muted); }
+.hide { display: none !important; }
+
+/* Highlights, borrowed from the brand's marker-pill headline style */
+.hl { padding: 0 .14em; border-radius: .22em; color: var(--on-pastel); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.hl-purple { background: var(--purple); } .hl-blue { background: var(--blue); } .hl-green { background: var(--green); } .hl-yellow { background: var(--yellow); } .hl-pink { background: var(--pink); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 14px 24px; font-weight: 500; font-size: 15px; text-decoration: none; white-space: nowrap; transition: background .15s, transform .15s, border-color .15s; border: 1px solid transparent; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--orange); color: #fff; }
+.btn.primary:hover { background: var(--orange-2); }
+.btn.dark { background: var(--ink); color: var(--bg); }
+.btn.ghost { border-color: var(--line-2); background: transparent; }
+.btn.ghost:hover { border-color: var(--ink); }
+.btn.sm { padding: 9px 16px; font-size: 14px; }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.link { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
+.link:hover { text-decoration-color: currentColor; }
+
+/* Nav */
+.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px); border-bottom: 1px solid transparent; transition: border-color .2s; }
+.nav.scrolled { border-bottom-color: var(--line); }
+.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 16px; }
+.logo { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; font-family: var(--serif); font-size: 26px; font-weight: 400; letter-spacing: -.03em; font-variation-settings: 'SOFT' 100; }
+.logo svg { width: 30px; height: 30px; }
+.nav-links { display: flex; align-items: center; gap: 28px; font-size: 14.5px; }
+.nav-links button, .nav-links a { color: var(--ink); text-decoration: none; opacity: .8; }
+.nav-links button:hover, .nav-links a:hover { opacity: 1; }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+@media (max-width: 820px) { .nav-links { display: none; } }
+
+.preview-bar { background: var(--ink); color: var(--bg); font-size: 13px; text-align: center; padding: 8px 16px; }
+.preview-bar button { text-decoration: underline; text-underline-offset: 2px; color: inherit; }
+
+/* Hero */
+.hero { padding: 64px 0 40px; }
+.hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; padding: 6px 14px 6px 8px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
+.eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); margin-left: 4px; }
+.hero h1 { font-size: clamp(44px, 6.4vw, 82px); line-height: 1.02; margin: 22px 0 22px; }
+.hero p.lede { font-size: 18px; max-width: 34em; color: var(--ink); opacity: .78; }
+.hero .ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.hero .fine { margin-top: 16px; font-size: 13px; color: var(--muted); }
+@media (max-width: 920px) { .hero .wrap { grid-template-columns: 1fr; gap: 48px; } .hero { padding-top: 40px; } }
+
+/* Hero visual */
+.stage { position: relative; min-height: 470px; }
+.blk { position: absolute; border-radius: 30px; }
+.blk.a { background: var(--purple); width: 46%; height: 52%; right: 0; top: 0; transform: rotate(6deg); }
+.blk.b { background: var(--blue); width: 38%; height: 40%; left: 2%; bottom: 2%; transform: rotate(-7deg); }
+.blk.c { background: var(--green); width: 24%; height: 24%; right: 6%; bottom: 6%; transform: rotate(12deg); border-radius: 22px; }
+.mock { position: relative; z-index: 2; margin: 40px 7% 0; background: var(--card); border-radius: 26px; box-shadow: var(--shadow); padding: 22px; border: 1px solid var(--line); }
+.mock-top { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--muted); }
+.mock h4 { font-family: var(--serif); font-weight: 400; font-size: 21px; line-height: 1.28; margin: 14px 0 16px; letter-spacing: -.01em; }
+.mock-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.mock-row b { font-weight: 500; display: block; }
+.mock-row span.t { color: var(--muted); font-size: 13px; }
+.badge-float { position: absolute; z-index: 3; left: -2%; top: 8px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 500; padding: 10px 14px; border-radius: 14px; display: flex; gap: 8px; align-items: center; box-shadow: var(--shadow); transform: rotate(-3deg); }
+.badge-float.two { left: auto; right: -1%; top: auto; bottom: 22px; background: var(--card); color: var(--ink); border: 1px solid var(--line); transform: rotate(3deg); }
+@media (max-width: 520px) { .stage { min-height: 420px; } .mock { margin: 34px 0 0; } .badge-float { left: 4px; top: 0; } .badge-float.two { right: 4px; bottom: 8px; } }
+
+/* Consensus chips */
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; white-space: nowrap; color: var(--on-pastel); }
+.chip.most { background: var(--green); } .chip.several { background: var(--blue); } .chip.one { background: var(--purple); }
+.chip.plain { background: var(--soft); color: var(--ink); }
+
+/* Sections */
+section.sec { padding: 96px 0; scroll-margin-top: 60px; }
+#form { scroll-margin-top: 84px; }
+.sec-head { max-width: 760px; margin-bottom: 48px; }
+.sec-head .kicker { font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--orange-ink); }
+.sec-head h2 { font-size: clamp(34px, 4.4vw, 54px); line-height: 1.06; margin-top: 14px; }
+.sec-head p { margin-top: 16px; font-size: 17px; opacity: .78; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 920px) { .grid3, .grid4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .grid3, .grid4 { grid-template-columns: 1fr; } section.sec { padding: 72px 0; } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 28px; }
+.card h3 { font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.2; letter-spacing: -.01em; margin-bottom: 10px; }
+.card p { font-size: 15px; opacity: .78; }
+.tile { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 22px; color: var(--on-pastel); }
+.tile svg { width: 22px; height: 22px; }
+
+.steps { counter-reset: s; }
+.step { position: relative; padding-top: 74px; }
+.step::before { counter-increment: s; content: counter(s); position: absolute; top: 0; left: 0; font-family: var(--serif); font-weight: 300; font-size: 64px; line-height: 1; color: var(--orange); }
+
+.night { background: var(--night); color: var(--night-ink); border-radius: 40px; margin: 0 12px; }
+.night .sec-head p, .night .card p { color: var(--night-muted); opacity: 1; }
+.night .card { background: var(--night-2); border-color: transparent; }
+@media (max-width: 600px) { .night { margin: 0 8px; border-radius: 28px; } }
+
+.compare { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; font-size: 15px; }
+.compare th, .compare td { text-align: left; padding: 18px 22px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.compare tr:last-child td { border-bottom: 0; }
+.compare thead th { font-weight: 500; font-size: 13px; color: var(--muted); background: var(--bg-2); }
+.compare td:first-child { font-weight: 500; width: 24%; }
+.compare td.us { background: color-mix(in srgb, var(--green) 18%, transparent); }
+@media (max-width: 600px) { .compare th, .compare td { padding: 14px 12px; font-size: 14px; } .compare td:first-child { width: 28%; } }
+
+.price { display: flex; flex-direction: column; }
+.price .amt { font-family: var(--serif); font-size: 46px; font-weight: 300; letter-spacing: -.03em; margin: 8px 0 2px; }
+.price .amt small { font-family: var(--sans); font-size: 14px; color: var(--muted); letter-spacing: 0; }
+.price ul { list-style: none; margin: 20px 0 26px; font-size: 14.5px; flex: 1; }
+.price li { padding: 7px 0 7px 26px; position: relative; }
+.price li::before { content: ''; position: absolute; left: 2px; top: 13px; width: 12px; height: 7px; border-left: 2px solid var(--teal); border-bottom: 2px solid var(--teal); transform: rotate(-45deg); }
+.price.feature { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.price.feature p, .price.feature .amt small { color: var(--bg); opacity: .7; }
+.price-note { margin-top: 18px; font-size: 13px; color: var(--muted); }
+
+.faq details { border-top: 1px solid var(--line); padding: 22px 0; }
+.faq details:last-child { border-bottom: 1px solid var(--line); }
+.faq summary { list-style: none; cursor: pointer; font-size: 18px; font-weight: 500; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; font-weight: 300; font-size: 26px; line-height: 1; transition: transform .2s; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin-top: 12px; opacity: .78; max-width: 46em; }
+
+.band { background: var(--orange); color: #fff; border-radius: 40px; padding: 72px 32px; text-align: center; margin: 0 12px; }
+.band h2 { font-size: clamp(34px, 5vw, 60px); line-height: 1.05; max-width: 15em; margin: 0 auto 28px; }
+.band .btn.dark { background: #101828; color: #f2f3e8; }
+@media (max-width: 600px) { .band { margin: 0 8px; border-radius: 28px; padding: 56px 22px; } }
+footer.foot { padding: 48px 0 56px; font-size: 13px; color: var(--muted); }
+footer.foot .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+/* App pages */
+.page { padding: 40px 0 96px; }
+.page-head h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.06; margin: 10px 0 10px; }
+.page-head p { opacity: .78; font-size: 17px; }
+.back { font-size: 14px; color: var(--muted); text-decoration: none; display: inline-flex; gap: 6px; align-items: center; }
+.back:hover { color: var(--ink); }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 28px; margin-top: 20px; }
+.panel h2 { font-family: var(--serif); font-weight: 400; font-size: 26px; letter-spacing: -.01em; line-height: 1.2; }
+.panel h2 + p { margin-top: 6px; color: var(--muted); font-size: 14.5px; }
+@media (max-width: 600px) { .panel { padding: 22px 18px; } }
+
+.tpls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 28px; }
+@media (max-width: 820px) { .tpls { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 460px) { .tpls { grid-template-columns: 1fr; } }
+.tpl { text-align: left; background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; padding: 20px; transition: border-color .15s, transform .15s; }
+.tpl:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.tpl.on { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent); }
+.tpl .tile { margin-bottom: 16px; width: 40px; height: 40px; border-radius: 12px; }
+.tpl b { display: block; font-weight: 500; margin-bottom: 4px; }
+.tpl span { font-size: 13.5px; color: var(--muted); line-height: 1.45; display: block; }
+
+.field { margin-top: 22px; }
+.field > label, .label { display: block; font-weight: 500; font-size: 14.5px; margin-bottom: 8px; }
+.field .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.input, .textarea { width: 100%; background: var(--bg-2); border: 1.5px solid var(--line); border-radius: 14px; padding: 13px 15px; font-size: 16px; outline: none; transition: border-color .15s, box-shadow .15s; }
+.input:focus, .textarea:focus { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 8%, transparent); }
+.textarea { resize: vertical; min-height: 96px; line-height: 1.5; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .row2 { grid-template-columns: 1fr; } }
+
+.qlist { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.q { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; background: var(--bg-2); border: 1.5px solid var(--line); border-radius: 16px; padding: 10px; }
+.q textarea { border: 0; background: transparent; resize: none; outline: none; font-size: 15.5px; padding: 6px 4px; min-height: 0; line-height: 1.45; width: 100%; overflow: hidden; }
+.q:focus-within { border-color: var(--ink); }
+.seg { display: inline-flex; background: var(--soft); border-radius: 999px; padding: 3px; }
+.seg button { font-size: 12.5px; font-weight: 500; padding: 5px 11px; border-radius: 999px; color: var(--muted); }
+.seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.icon-btn { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
+.icon-btn:hover { background: var(--soft); color: var(--ink); }
+.icon-btn svg { width: 18px; height: 18px; }
+@media (max-width: 520px) { .q { grid-template-columns: 1fr auto; } .q .seg { grid-column: 1 / -1; justify-self: start; } }
+.addq { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+.stepper { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-2); border: 1.5px solid var(--line); border-radius: 999px; padding: 4px; }
+.stepper button { width: 36px; height: 36px; border-radius: 50%; font-size: 20px; line-height: 1; }
+.stepper button:hover { background: var(--soft); }
+.stepper output { min-width: 34px; text-align: center; font-weight: 600; font-size: 17px; }
+.warn { margin-top: 10px; font-size: 13.5px; background: color-mix(in srgb, var(--yellow) 30%, transparent); padding: 10px 14px; border-radius: 12px; }
+.err { margin-top: 16px; font-size: 14px; color: var(--orange-ink); font-weight: 500; }
+.form-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
+
+/* Dashboard */
+.dash-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; margin-top: 28px; }
+.dash-grid > * { margin-top: 0; }
+@media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+.progress { display: flex; gap: 20px; align-items: center; }
+.ring { width: 96px; height: 96px; flex: none; position: relative; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .num { position: absolute; inset: 0; display: flex; align-items: baseline; justify-content: center; padding-top: 26px; font-family: var(--serif); font-size: 30px; font-weight: 400; }
+.ring .num small { font-size: 14px; color: var(--muted); font-family: var(--sans); }
+.inv { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.inv:first-of-type { border-top: 0; }
+.inv .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv .acts { display: flex; gap: 4px; flex: none; }
+.tag { font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 999px; background: var(--soft); color: var(--muted); }
+.sample-bar { background: color-mix(in srgb, var(--purple) 45%, var(--card)); color: var(--on-pastel); border-radius: 18px; padding: 16px 18px; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-top: 24px; font-size: 14.5px; }
+.sample-bar .btn.dark { background: #101828; color: #f2f3e8; }
+
+.locked { text-align: center; padding: 48px 20px; }
+.locked .lock { width: 64px; height: 64px; border-radius: 20px; background: var(--soft); display: grid; place-items: center; margin: 0 auto 18px; }
+.locked .lock svg { width: 28px; height: 28px; }
+.locked h2 { margin-bottom: 8px; }
+.locked p { color: var(--muted); max-width: 30em; margin: 0 auto; }
+
+/* Report */
+.rep-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rep-headline { font-family: var(--serif); font-weight: 300; font-size: clamp(24px, 2.8vw, 32px); line-height: 1.25; letter-spacing: -.015em; margin: 22px 0 6px; font-variation-settings: 'SOFT' 100; }
+.rep-sec { margin-top: 36px; }
+.rep-sec > h3 { font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.rep-sec > h3 i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.theme { padding: 16px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; }
+.theme b { font-weight: 500; font-size: 16.5px; }
+.theme p { grid-column: 1 / -1; font-size: 15px; opacity: .8; }
+.scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.score { background: var(--bg-2); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.score .big { font-family: var(--serif); font-size: 40px; font-weight: 300; line-height: 1; letter-spacing: -.03em; }
+.score .big small { font-family: var(--sans); font-size: 14px; color: var(--muted); letter-spacing: 0; }
+.score p { font-size: 13.5px; margin: 10px 0 14px; opacity: .8; min-height: 2.9em; }
+.dist { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--soft); gap: 2px; }
+.dist span { display: block; height: 100%; }
+.dist-key { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.qsum { padding: 16px 0; border-top: 1px solid var(--line); }
+.qsum b { font-weight: 500; display: block; margin-bottom: 4px; }
+.qsum p { font-size: 15px; opacity: .8; }
+.actions { list-style: none; counter-reset: a; }
+.actions li { counter-increment: a; display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); align-items: start; }
+.actions li::before { content: counter(a); width: 30px; height: 30px; border-radius: 50%; background: var(--orange); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 600; }
+.rep-foot { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.skl { height: 14px; border-radius: 8px; background: linear-gradient(90deg, var(--soft), var(--line), var(--soft)); background-size: 200% 100%; animation: sh 1.4s infinite; margin: 12px 0; }
+@keyframes sh { to { background-position: -200% 0; } }
+
+.list-round { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; border-top: 1px solid var(--line); text-decoration: none; }
+.list-round:first-child { border-top: 0; }
+.list-round b { font-weight: 500; display: block; }
+.list-round span { font-size: 13.5px; color: var(--muted); }
+.list-round:hover b { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Respond flow */
+.flow { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.flow-top { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; max-width: 860px; width: 100%; margin: 0 auto; }
+.flow-top .logo { font-size: 20px; } .flow-top .logo svg { width: 24px; height: 24px; }
+.bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; width: 140px; }
+.bar span { display: block; height: 100%; background: var(--orange); transition: width .35s ease; }
+.flow-body { flex: 1; display: flex; align-items: center; padding: 20px 20px 40px; }
+.flow-inner { max-width: 720px; width: 100%; margin: 0 auto; animation: up .35s ease both; }
+@keyframes up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.flow h1 { font-size: clamp(32px, 5.2vw, 52px); line-height: 1.08; margin: 14px 0 18px; }
+.flow .qn { font-size: 14px; color: var(--orange-ink); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.flow .qtext { font-family: var(--serif); font-weight: 300; font-variation-settings: 'SOFT' 100; font-size: clamp(28px, 4.2vw, 42px); line-height: 1.16; letter-spacing: -.02em; margin: 12px 0 28px; }
+.promise { list-style: none; margin: 26px 0 34px; display: grid; gap: 12px; }
+.promise li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; font-size: 16px; }
+.promise li .tile { width: 34px; height: 34px; border-radius: 11px; margin: 0; }
+.promise li .tile svg { width: 17px; height: 17px; }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.scale button { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 18px 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color .12s, background .12s, transform .12s; }
+.scale button:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.scale button b { font-family: var(--serif); font-size: 30px; font-weight: 400; line-height: 1; }
+.scale button span { font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.3; }
+.scale button.on { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.scale button.on span { color: var(--bg); opacity: .75; }
+@media (max-width: 560px) { .flow-body { align-items: flex-start; padding-top: 24px; } .scale { grid-template-columns: 1fr; gap: 8px; } .scale button { flex-direction: row; padding: 14px 18px; gap: 16px; } .scale button b { font-size: 24px; width: 22px; } }
+.flow .textarea { font-size: 18px; min-height: 160px; background: var(--card); border-radius: 18px; padding: 18px; }
+.nudge { margin-top: 12px; font-size: 14px; background: color-mix(in srgb, var(--yellow) 30%, transparent); padding: 12px 14px; border-radius: 12px; }
+.flow-nav { display: flex; align-items: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+.kbd { font-size: 12.5px; color: var(--muted); }
+.kbd kbd { font-family: var(--sans); font-size: 11.5px; border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 6px; }
+@media (hover: none) { .kbd { display: none; } }
+
+/* Modal + toast */
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(16,24,40,.45); display: grid; place-items: center; padding: 20px; animation: fade .15s ease; }
+@keyframes fade { from { opacity: 0; } }
+.modal .panel { max-width: 480px; width: 100%; margin: 0; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: all .2s; z-index: 60; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: rot .7s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+@media print {
+  .nav, .preview-bar, .no-print, .sample-bar, footer { display: none !important; }
+  body { background: #fff; color: #101828; }
+  .dash-grid { display: block; }
+  .panel { border: 0; padding: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import * as core from './core.js';
+const { TEMPLATES, SCALE_LABELS, MIN_THRESHOLD, DEFAULT_THRESHOLD, LIMITS, fill } = core;
+
+// Set this to the deployed worker URL (see worker/README.md) to make links work across devices.
+// While it is empty the app runs in preview mode: everything lives in this browser.
+const API_BASE = '';
+const MODEL = 'gpt-5.5';
+
+const raw = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+const ls = {
+  get(k, d) { const v = raw.get(k); if (v == null) return d; try { return JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { raw.set(k, JSON.stringify(v)); },
+};
+const API = (raw.get('unsaid-api') || API_BASE).replace(/\/+$/, '');
+const LIVE = !!API;
+
+const app = document.getElementById('app');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const enc = encodeURIComponent;
+const httpErr = (status, message) => Object.assign(new Error(message), { status });
+
+// ---------- Icons ----------
+const I = {
+  mark: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 4h18a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5h-8.5L10 29.5V24H7a5 5 0 0 1-5-5V9a5 5 0 0 1 5-5z" fill="#ff5a39"/><circle cx="10.5" cy="14" r="2" fill="#fff"/><circle cx="16" cy="14" r="2" fill="#fff"/><circle cx="21.5" cy="14" r="2" fill="#fff"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>',
+  unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.8-1.2"/></svg>',
+  quote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16"/><path d="M9 7H5.5A1.5 1.5 0 0 0 4 8.5V12h4v4H5M19 12h-3V8.5A1.5 1.5 0 0 1 17.5 7H20"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 8.5 4.5 9.5 7a13 13 0 0 1-2.4 3.6M6.4 6.4C4.3 7.8 3 10 2.5 12c1 2.5 4.5 7 9.5 7 1.8 0 3.4-.6 4.7-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.2A6.5 6.5 0 0 1 21.5 20"/></svg>',
+  compass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>',
+  pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 7l11-3v3M16 13.5h.01"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></svg>',
+  msg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v6.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V12"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  left: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+  spark: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+};
+const TPL_STYLE = { leader: ['purple', I.users], direction: ['blue', I.compass], ideas: ['green', I.bulb], custom: ['yellow', I.pen] };
+const tile = (color, icon) => '<div class="tile" style="background:var(--' + color + ')">' + icon + '</div>';
+
+// ---------- AI (preview mode only: the live backend runs this on the server) ----------
+function aiKey() { return raw.get('unsaid-openai-key') || raw.get('ben-chat-openai-key') || ''; }
+async function openaiJSON(messages) {
+  const key = aiKey();
+  if (!key) throw Object.assign(new Error('No OpenAI key'), { code: 'nokey' });
+  const body = { model: MODEL, messages, response_format: { type: 'json_object' }, max_completion_tokens: 4000, reasoning_effort: 'low' };
+  const call = b => fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(b),
+  });
+  let r = await call(body);
+  if (r.status === 400 && /reasoning_effort/.test(await r.clone().text())) { delete body.reasoning_effort; r = await call(body); }
+  if (!r.ok) {
+    let msg = 'HTTP ' + r.status;
+    try { const j = await r.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e) {}
+    if (r.status === 401) msg = 'OpenAI rejected the key. Check it and try again.';
+    throw new Error(msg);
+  }
+  const j = await r.json();
+  return JSON.parse(j.choices[0].message.content);
+}
+
+// ---------- Backends ----------
+// Both expose the same five calls. `remote` talks to the worker; `local` mimics it in localStorage.
+async function http(method, path, payload) {
+  let r;
+  try {
+    r = await fetch(API + path, { method, headers: payload ? { 'Content-Type': 'application/json' } : {}, body: payload ? JSON.stringify(payload) : undefined });
+  } catch (e) { throw httpErr(0, "Couldn't reach the server. Check your connection and try again."); }
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw httpErr(r.status, j.error || 'Request failed (' + r.status + ').');
+  return j;
+}
+const remote = {
+  create: spec => http('POST', '/rounds', spec),
+  invite: (id, t) => http('GET', '/rounds/' + enc(id) + '/invite/' + enc(t)),
+  submit: (id, t, answers) => http('POST', '/rounds/' + enc(id) + '/invite/' + enc(t), { answers }),
+  admin: (id, k) => http('GET', '/rounds/' + enc(id) + '/admin/' + enc(k)),
+  report: (id, k) => http('POST', '/rounds/' + enc(id) + '/admin/' + enc(k) + '/report', {}),
+};
+
+const DB = 'unsaid:db';
+const db = () => ls.get(DB, { rounds: {} });
+const pub = r => ({ id: r.id, ownerName: r.ownerName, title: r.title, questions: r.questions, threshold: r.threshold, created: r.created });
+function need(d, id) {
+  const r = d.rounds[id];
+  if (!r) throw httpErr(404, LIVE ? 'This round does not exist.' : "This round isn't on this device. In preview mode, rounds and their links only work in the browser that created them.");
+  return r;
+}
+async function admin(d, id, key) {
+  const r = need(d, id);
+  if ((await core.sha256(key)) !== r.adminHash) throw httpErr(403, 'This admin link is not valid.');
+  return r;
+}
+const local = {
+  async create(spec) {
+    const c = core.validateRoundSpec(spec);
+    const id = core.randomId(10), adminKey = core.randomId(24);
+    const tokens = Array.from({ length: c.invites }, () => core.randomId(16));
+    const d = db();
+    d.rounds[id] = {
+      id, ownerName: c.ownerName, title: c.title, questions: c.questions, threshold: c.threshold, created: new Date().toISOString(),
+      adminHash: await core.sha256(adminKey), tokens: await Promise.all(tokens.map(core.sha256)), used: [], responses: [], report: null,
+    };
+    ls.set(DB, d);
+    return { id, adminKey, tokens };
+  },
+  async invite(id, token) {
+    const r = need(db(), id);
+    const th = await core.sha256(token);
+    if (!r.tokens.includes(th)) throw httpErr(404, 'This invite link is not valid.');
+    return { ...pub(r), used: r.used.includes(th) };
+  },
+  async submit(id, token, answers) {
+    const d = db(), r = need(d, id), th = await core.sha256(token);
+    if (!r.tokens.includes(th)) throw httpErr(404, 'This invite link is not valid.');
+    if (r.used.includes(th)) throw httpErr(409, 'This link has already been used.');
+    const clean = core.validateAnswers(r.questions, answers);
+    r.responses.splice(Math.floor(Math.random() * (r.responses.length + 1)), 0, clean);
+    r.used.push(th);
+    ls.set(DB, d);
+    return { ok: true };
+  },
+  async admin(id, key) {
+    const r = await admin(db(), id, key);
+    const unlocked = r.responses.length >= r.threshold;
+    return {
+      ...pub(r), invites: r.tokens.length, count: r.responses.length, unlocked, sample: !!r.sample,
+      stats: unlocked ? core.computeStats(r.questions, r.responses) : null, report: unlocked ? r.report : null,
+    };
+  },
+  async report(id, key) {
+    const r = await admin(db(), id, key);
+    if (r.responses.length < r.threshold) throw httpErr(409, 'The report unlocks at ' + r.threshold + ' responses.');
+    const rawReport = r.sample && !aiKey() ? SAMPLE_REPORT : await openaiJSON(core.synthesisMessages(r, r.responses));
+    const report = core.normaliseReport(rawReport, r, r.responses.length);
+    const d = db();
+    if (d.rounds[id]) { d.rounds[id].report = report; ls.set(DB, d); }
+    return { report };
+  },
+};
+const backend = id => (id === 'sample' || !LIVE ? local : remote);
+
+// Rounds this device created: the admin key and the invite links, which only ever live here.
+const MINE = 'unsaid:mine';
+const mine = () => ls.get(MINE, []);
+const mineGet = id => mine().find(m => m.id === id);
+function mineSave(entry) { ls.set(MINE, [entry, ...mine().filter(m => m.id !== entry.id)]); }
+
+const base = () => location.origin + location.pathname;
+const inviteUrl = (id, token) => base() + '#/a/' + id + '/' + token;
+const adminUrl = (id, key) => base() + '#/r/' + id + '/' + key;
+
+// ---------- Sample round ----------
+const SAMPLE_INVITES = ['Alex', 'Priya', 'Jordan', 'Mei', 'Tom', 'Chris', 'Ana', 'Spare link 1', 'Spare link 2'];
+const SAMPLE_RESPONSES = [
+  { q1: 4, q2: 2, q3: 4, q4: 'Being out in front with customers. The energy is contagious.', q5: 'Stop changing priorities mid-sprint. We lose a week every time it happens.', q6: 'Sometimes the Friday Slack messages feel like orders, not a discussion.' },
+  { q1: 3, q2: 3, q3: 4, q4: "Sharing the numbers openly, even when they're bad.", q5: 'Start writing decisions down so we know why something changed.', q6: "I'd like more say on hiring for my own team." },
+  { q1: 2, q2: 2, q3: 3, q4: 'Hiring good people.', q5: 'Let people finish things before the next big idea arrives.', q6: "When you push back in meetings it shuts people down, even if you don't mean it to." },
+  { q1: 4, q2: 4, q3: 5, q4: 'Being honest about runway. It made me trust you more.', q5: 'Get out of the weeds on design reviews and trust the team.', q6: 'Nothing major, I like working here.' },
+  { q1: 3, q2: 2, q3: 4, q4: 'The vision is clear and genuinely exciting.', q5: 'Stop jumping into Slack threads at 11pm. Everyone feels they have to reply.', q6: "I'm stretched thin and don't feel I can say it." },
+  { q1: 4, q2: 3, q3: 4, q4: 'Fast decisions.', q5: "Priorities change too often and it's hard to plan anything.", q6: 'Honestly it is a f***ing mess some weeks.' },
+  { q1: 2, q2: 1, q3: 3, q5: "You're a control freak." },
+];
+const SAMPLE_REPORT = {
+  headline: 'People trust your judgement and value how open you are about the business. Shifting priorities, and the way disagreement lands, are costing the team focus and candour.',
+  strengths: [
+    { theme: 'Openness about the numbers', detail: 'You share how the business is really going, bad news included. This is a big reason people trust you.', count: 2 },
+    { theme: 'Customer energy and vision', detail: 'Your enthusiasm with customers and the clarity of where you want to go are motivating.', count: 2 },
+    { theme: 'Quick, confident decisions', detail: "You make calls fast and you've hired well, so the team can move.", count: 2 },
+  ],
+  growth: [
+    { theme: 'Priorities keep moving', detail: 'Most people raised this. Mid-cycle changes leave work half finished and make planning hard. People want to finish what they start before the next idea lands.', count: 5 },
+    { theme: "Disagreeing doesn't feel safe", detail: 'Pushback in meetings can end the conversation, and some messages read as instructions rather than discussion. It is the lowest score in the round.', count: 3 },
+    { theme: 'Letting go of the detail', detail: 'Stepping into reviews and small decisions signals a lack of trust, even when that is not the intent.', count: 2 },
+    { theme: 'Out-of-hours pressure', detail: 'Late-night messages create an expectation to reply, and workload is starting to wear on people.', count: 1 },
+  ],
+  mixed: [
+    { theme: 'How close you should be', detail: 'Some want more say in decisions that affect their own area. Others want you to step back from day-to-day reviews. Both point at clearer ownership.' },
+  ],
+  questions: [
+    { id: 'q4', summary: 'Transparency about the business and your energy with customers come up most. Speed of decisions and the quality of hires follow.' },
+    { id: 'q5', summary: 'The clear call is to stop changing priorities mid-cycle and write down the reason when something must change. People also want you to step back from detailed reviews and keep messages to working hours.' },
+    { id: 'q6', summary: 'The unsaid things are mostly about tone: disagreement feels risky and some messages feel like orders. A few people want more ownership over their own area, and workload is becoming a concern.' },
+  ],
+  actions: [
+    'Lock priorities for each cycle, and when something must change, write down why and what drops off.',
+    'In your next team meeting, ask for the strongest counter-argument before giving your own view.',
+    'Set a quiet-hours norm for Slack and stick to it yourself first.',
+  ],
+  removed: 1,
+};
+async function seedSample(reset) {
+  const d = db();
+  if (d.rounds.sample && !reset) return;
+  const t = TEMPLATES[0];
+  const round = {
+    id: 'sample', sample: true, ownerName: 'Sam', title: 'How am I doing as a founder?', threshold: 5,
+    created: new Date(Date.now() - 6 * 864e5).toISOString(),
+    questions: t.questions.map((q, i) => ({ id: 'q' + (i + 1), type: q.type, prompt: q.prompt })),
+    adminHash: await core.sha256('demo'),
+    tokens: await Promise.all(SAMPLE_INVITES.map((_, i) => core.sha256('demo-' + (i + 1)))),
+    responses: SAMPLE_RESPONSES.map(r => ({ ...r })),
+  };
+  round.used = round.tokens.slice(0, SAMPLE_RESPONSES.length);
+  round.report = core.normaliseReport(SAMPLE_REPORT, round, SAMPLE_RESPONSES.length);
+  d.rounds.sample = round;
+  ls.set(DB, d);
+}
+
+// ---------- Shared bits ----------
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove('on'), 1800);
+}
+async function copy(text, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) {}
+    ta.remove();
+  }
+  toast(msg || 'Copied');
+}
+const fmtDate = iso => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const people = n => n + (n === 1 ? ' person' : ' people');
+
+function nav() {
+  return (LIVE ? '' : '<div class="preview-bar">Preview mode: rounds live in this browser, so invite links only open on this device. <button data-act="about-preview">What does that mean?</button></div>') +
+    '<header class="nav"><div class="wrap">' +
+    '<a class="logo" href="#/">' + I.mark + 'unsaid</a>' +
+    '<nav class="nav-links"><button data-scroll="how">How it works</button><button data-scroll="anon">Anonymity</button><button data-scroll="pricing">Pricing</button><a href="#/sample">Sample report</a></nav>' +
+    '<div class="nav-right">' + (mine().length ? '<a class="btn ghost sm" href="#/rounds">My rounds</a>' : '') + '<a class="btn primary sm" href="#/new">Start a round</a></div>' +
+    '</div></header>';
+}
+function footer() {
+  return '<footer class="foot"><div class="wrap"><span>Unsaid. Honest feedback, safely.</span><span>A brendanco experiment · ' + new Date().getFullYear() + '</span></div></footer>';
+}
+
+// ---------- Landing ----------
+function viewLanding() {
+  const c = (cls, t) => '<span class="chip ' + cls + '">' + t + '</span>';
+  return nav() + `
+<section class="hero"><div class="wrap">
+  <div>
+    <span class="eyebrow"><i></i>Anonymous 360 feedback for founders and managers</span>
+    <h1 class="serif">Hear what your team <span class="hl hl-purple">won't say</span> to your face.</h1>
+    <p class="lede">Ask five or more people a few sharp questions. Unsaid holds every answer until enough are in, then gives you an AI read of the patterns. No quotes, no names, no guessing who said what.</p>
+    <div class="ctas"><a class="btn primary" href="#/new">Start a round, free ${I.arrow}</a><a class="btn ghost" href="#/sample">See a sample report</a></div>
+    <p class="fine">Three minutes to set up. No account needed.</p>
+  </div>
+  <div class="stage" aria-hidden="true">
+    <div class="blk a"></div><div class="blk b"></div><div class="blk c"></div>
+    <div class="badge-float">${I.unlock.replace('<svg', '<svg width="16" height="16"')} Unlocked at 5 responses</div>
+    <div class="mock">
+      <div class="mock-top"><span>Leadership round · 7 responses</span><span class="chip plain">AI synthesis</span></div>
+      <h4>People trust your judgement. Shifting priorities are costing the team focus.</h4>
+      <div class="mock-row">${c('most', 'Most people')}<div><b>Priorities keep moving</b><span class="t">Mid-cycle changes leave work half finished.</span></div></div>
+      <div class="mock-row">${c('several', 'Several people')}<div><b>Disagreeing feels risky</b><span class="t">Pushback in meetings can end the conversation.</span></div></div>
+      <div class="mock-row">${c('one', 'One voice')}<div><b>Out-of-hours pressure</b><span class="t">Late messages create an expectation to reply.</span></div></div>
+    </div>
+    <div class="badge-float two">${I.quote.replace('<svg', '<svg width="16" height="16"')} Zero direct quotes</div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-head"><div class="kicker">The problem</div><h2 class="serif">The feedback exists. It just never reaches you.</h2></div>
+  <div class="grid3">
+    <div class="card">${tile('pink', I.bulb)}<h3>Ideas die in heads</h3><p>People sit on ideas that might sound silly, and on criticism that might cost them. Juniors most of all.</p></div>
+    <div class="card">${tile('yellow', I.eye)}<h3>Surveys aren't anonymous enough</h3><p>In a team of eight, a free-text answer is as good as signed. Everyone knows it, so nobody writes the real thing.</p></div>
+    <div class="card">${tile('blue', I.wallet)}<h3>Consultants cost a fortune</h3><p>A firm-run 360 means interviews, psychometric kits and an invoice in the tens of thousands. Once a year, if that.</p></div>
+  </div>
+</div></section>
+
+<section class="sec" id="how" style="padding-top:24px"><div class="wrap">
+  <div class="sec-head"><div class="kicker">How it works</div><h2 class="serif">Three steps. <span class="hl hl-green">No transcript.</span></h2></div>
+  <div class="grid3 steps">
+    <div class="step"><h3 class="serif" style="font-size:26px;font-weight:400;margin-bottom:8px">Pick what you want to hear about</h3><p class="muted">Your leadership, the company's direction, or the ideas people are sitting on. Start from a template or write your own.</p></div>
+    <div class="step"><h3 class="serif" style="font-size:26px;font-weight:400;margin-bottom:8px">Send each person a private link</h3><p class="muted">Five people minimum. Each link works once, so nobody can stack the vote, and nobody can tell who answered.</p></div>
+    <div class="step"><h3 class="serif" style="font-size:26px;font-weight:400;margin-bottom:8px">Get the read, not the transcript</h3><p class="muted">Once enough answers are in, AI writes up the patterns: strengths, blind spots, where people disagree, and three things to do next.</p></div>
+  </div>
+</div></section>
+
+<section class="sec night" id="anon"><div class="wrap">
+  <div class="sec-head"><div class="kicker" style="color:var(--orange)">Anonymity by design</div><h2 class="serif">Safe enough that people actually say it.</h2><p>The rules are enforced by the system, not by a promise. Even the person who set up the round can't get around them.</p></div>
+  <div class="grid4">
+    <div class="card">${tile('green', I.lock)}<h3>Nothing until five</h3><p>The report stays locked until the threshold is met. Not one answer is visible before then, and ratings only ever show as totals.</p></div>
+    <div class="card">${tile('purple', I.quote)}<h3>No quotes, ever</h3><p>Every point is rewritten in neutral words, so phrasing, slang and writing style can't give anyone away.</p></div>
+    <div class="card">${tile('blue', I.eye)}<h3>We don't know who you asked</h3><p>Invite links are stored scrambled. Answers carry no timestamp and no link back to the invite they came from.</p></div>
+    <div class="card">${tile('yellow', I.shield)}<h3>Abuse out, signal in</h3><p>Insults get dropped. If there's a real point underneath, it's kept and rephrased calmly.</p></div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-head"><div class="kicker">Why software</div><h2 class="serif">A 360 without the consultant.</h2></div>
+  <table class="compare">
+    <thead><tr><th></th><th>Consultant-run 360</th><th>Unsaid</th></tr></thead>
+    <tbody>
+      <tr><td>Cost</td><td>Tens of thousands per engagement</td><td class="us">Free to start. Team plans in the low thousands a year</td></tr>
+      <tr><td>Time to results</td><td>Weeks of interviews and write-up</td><td class="us">Minutes after the fifth answer lands</td></tr>
+      <tr><td>How often</td><td>Once a year, maybe</td><td class="us">Whenever you want. Monthly if you like</td></tr>
+      <tr><td>Anonymity</td><td>Interviews with a stranger, then a report with quotes</td><td class="us">Locked threshold, no raw answers, no quotes</td></tr>
+    </tbody>
+  </table>
+</div></section>
+
+<section class="sec" id="pricing" style="padding-top:24px"><div class="wrap">
+  <div class="sec-head"><div class="kicker">Pricing</div><h2 class="serif">Start on yourself. Roll it out when it works.</h2></div>
+  <div class="grid3">
+    <div class="card price"><b>Starter</b><div class="amt">$0</div><p>For trying it on yourself.</p>
+      <ul><li>One open round at a time</li><li>Up to 10 people per round</li><li>Full AI report</li><li>Templates and custom questions</li></ul>
+      <a class="btn ghost block" href="#/new">Start a round</a></div>
+    <div class="card price feature"><b>Startup</b><div class="amt">$49<small> / month</small></div><p>For founders who want a regular pulse.</p>
+      <ul><li>Unlimited rounds, up to 50 people</li><li>Monthly pulse on autopilot</li><li>Trends between rounds</li><li>Rounds for every manager</li></ul>
+      <a class="btn primary block" href="#/new">Start free, upgrade later</a></div>
+    <div class="card price"><b>Company</b><div class="amt">$4.8k<small> / year</small></div><p>Roll it out to everyone.</p>
+      <ul><li>Anyone can request feedback</li><li>Monthly team digests</li><li>SSO and HR controls</li><li>Priority support</li></ul>
+      <a class="btn ghost block" href="#/new">Start free</a></div>
+  </div>
+  <p class="price-note">Early-access pricing in AUD. Starter works today; Startup and Company features are on the way.</p>
+</div></section>
+
+<section class="sec faq" style="padding-top:24px"><div class="narrow">
+  <div class="sec-head"><div class="kicker">Questions</div><h2 class="serif">The awkward ones.</h2></div>
+  <details><summary>Can I see individual answers?</summary><p>No. Not before the threshold, and not after. You see rating totals across everyone and the written synthesis. The raw answers are never shown to you.</p></details>
+  <details><summary>What if only four people reply?</summary><p>The report stays locked. Nudge people with the message on your dashboard, or invite a few more. That's the point: with fewer people, it gets too easy to work out who said what.</p></details>
+  <details><summary>Couldn't I guess who said what from the ratings?</summary><p>Ratings only ever appear as totals, and only once the threshold is met. There's no per-person breakdown, no timestamps and no order to read anything into.</p></details>
+  <details><summary>What stops someone just being cruel?</summary><p>The synthesis drops insults and abuse. If an angry comment has a real point inside it, the point survives in calm language. The report tells you how many comments were removed, never what they said.</p></details>
+  <details><summary>Who is this for?</summary><p>Founders and managers in small teams who want the truth faster than an annual review or a consultant will give it to them. Five people is enough to start.</p></details>
+</div></section>
+
+<div class="band"><h2 class="serif">Your team already knows what you need to hear.</h2><a class="btn dark" href="#/new">Start a round ${I.arrow}</a></div>
+` + footer();
+}
+
+// ---------- Create ----------
+const DRAFT = 'unsaid:draft';
+let draft = null;
+function newDraft(tplId) {
+  const t = TEMPLATES.find(x => x.id === tplId) || TEMPLATES[0];
+  const prev = draft || ls.get(DRAFT, null) || {};
+  return { tpl: t.id, ownerName: prev.ownerName || '', title: t.title, questions: t.questions.map(q => ({ ...q })), threshold: prev.threshold || DEFAULT_THRESHOLD, people: prev.people || '' };
+}
+const saveDraft = () => ls.set(DRAFT, draft);
+const peopleList = () => (draft.people || '').split(/\n|,/).map(s => s.trim()).filter(Boolean).slice(0, LIMITS.invites);
+
+function viewCreate() {
+  draft = draft || ls.get(DRAFT, null);
+  const tpls = TEMPLATES.map(t => {
+    const [col, ic] = TPL_STYLE[t.id];
+    return '<button class="tpl' + (draft && draft.tpl === t.id ? ' on' : '') + '" data-act="tpl" data-id="' + t.id + '">' + tile(col, ic) + '<b>' + esc(t.name) + '</b><span>' + esc(t.blurb) + '</span></button>';
+  }).join('');
+  return nav() + '<main class="page"><div class="narrow" style="max-width:900px">' +
+    '<div class="page-head"><a class="back" href="#/">' + I.left + ' Back</a><h1 class="serif">What do you want to hear about?</h1><p>Pick a starting point. You can edit every question.</p></div>' +
+    '<div class="tpls">' + tpls + '</div>' +
+    '<div id="form">' + (draft ? formHtml() : '') + '</div>' +
+    '</div></main>';
+}
+function formHtml() {
+  const n = peopleList().length;
+  const th = draft.threshold;
+  return '<div class="panel" style="margin-top:28px">' +
+    '<h2>Set up the round</h2><p>Use {name} in a question and it becomes your name.</p>' +
+    '<div class="row2"><div class="field"><label for="f-name">Your first name</label><input class="input" id="f-name" data-f="ownerName" maxlength="' + LIMITS.name + '" placeholder="Sam" value="' + esc(draft.ownerName) + '"></div>' +
+    '<div class="field"><label for="f-title">Round title</label><input class="input" id="f-title" data-f="title" maxlength="' + LIMITS.title + '" placeholder="How am I doing as a leader?" value="' + esc(draft.title) + '"></div></div>' +
+    '<div class="field"><span class="label">Questions</span><div class="qlist">' + draft.questions.map((q, i) =>
+      '<div class="q"><div class="seg" role="group" aria-label="Question type"><button class="' + (q.type === 'scale' ? 'on' : '') + '" data-act="qtype" data-i="' + i + '" data-type="scale">Rating</button><button class="' + (q.type === 'text' ? 'on' : '') + '" data-act="qtype" data-i="' + i + '" data-type="text">Open</button></div>' +
+      '<textarea rows="1" data-q="' + i + '" maxlength="' + LIMITS.prompt + '" placeholder="' + (q.type === 'scale' ? 'A statement people rate from 1 to 5' : 'An open question') + '">' + esc(q.prompt) + '</textarea>' +
+      '<button class="icon-btn" data-act="qdel" data-i="' + i + '" aria-label="Remove question">' + I.x + '</button></div>').join('') + '</div>' +
+    (draft.questions.length < LIMITS.questions ? '<div class="addq"><button class="btn ghost sm" data-act="qadd" data-type="text">+ Open question</button><button class="btn ghost sm" data-act="qadd" data-type="scale">+ Rating</button></div>' : '') +
+    '<p class="hint">Ratings go 1 to 5, from strongly disagree to strongly agree. Open questions are where the useful stuff comes from.</p></div>' +
+    '<div class="field"><span class="label">Anonymity threshold</span><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div class="stepper"><button data-act="th" data-d="-1" aria-label="Fewer">−</button><output>' + th + '</output><button data-act="th" data-d="1" aria-label="More">+</button></div><span class="muted" style="font-size:14px">Report unlocks once ' + th + ' people have answered.</span></div>' +
+    (th < 5 ? '<div class="warn">Below five, it gets easier to work out who said what. Fine for a close team that trusts each other, but five is safer.</div>' : '') + '</div>' +
+    '<div class="field"><label for="f-people">Who are you asking?</label><textarea class="textarea" id="f-people" data-f="people" placeholder="One name per line">' + esc(draft.people) + '</textarea>' +
+    '<p class="hint"><b id="pc">' + people(n) + '</b>. Names are only labels so you know which link to send to whom. They stay on this device and are never attached to answers.</p></div>' +
+    '<div class="err hide" id="f-err"></div>' +
+    '<div class="form-foot"><span class="muted" style="font-size:13.5px">Each person gets a private link that works once.</span><button class="btn primary" data-act="create">Create round and get links ' + I.arrow + '</button></div>' +
+    '</div>';
+}
+function sizeTextareas() {
+  document.querySelectorAll('.q textarea').forEach(t => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; });
+}
+async function createRound(btn) {
+  const err = document.getElementById('f-err');
+  const people = peopleList();
+  const spec = { ownerName: draft.ownerName, title: draft.title, questions: draft.questions, threshold: draft.threshold, invites: people.length };
+  err.classList.add('hide');
+  try {
+    if (people.length < draft.threshold) throw new Error('Add at least ' + draft.threshold + ' people, or the report can never unlock.');
+    core.validateRoundSpec(spec);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Creating';
+    const res = await (LIVE ? remote : local).create(spec);
+    mineSave({ id: res.id, adminKey: res.adminKey, title: draft.title.trim(), ownerName: draft.ownerName.trim(), created: new Date().toISOString(), live: LIVE,
+      invites: res.tokens.map((token, i) => ({ label: people[i], token })) });
+    raw.del(DRAFT);
+    draft = null;
+    location.hash = '#/r/' + res.id + '/' + res.adminKey + '/new';
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.remove('hide');
+    btn.disabled = false;
+    btn.innerHTML = 'Create round and get links ' + I.arrow;
+  }
+}
+
+// ---------- My rounds ----------
+function viewMine() {
+  const list = mine();
+  return nav() + '<main class="page"><div class="narrow"><div class="page-head"><a class="back" href="#/">' + I.left + ' Home</a><h1 class="serif">My rounds</h1><p>Rounds created on this device.</p></div>' +
+    '<div class="panel">' + (list.length ? list.map(m =>
+      '<a class="list-round" href="#/r/' + m.id + '/' + m.adminKey + '"><div><b>' + esc(m.title) + '</b><span>' + fmtDate(m.created) + ' · ' + plural(m.invites.length, 'invite') + '</span></div>' + I.arrow + '</a>').join('')
+      : '<p class="muted">Nothing yet. <a class="link" href="#/new">Start your first round.</a></p>') + '</div>' +
+    '<p class="muted" style="font-size:13px;margin-top:16px">The admin link is the only key to a round. Bookmark it or keep it somewhere safe.</p></div></main>';
+}
+
+// ---------- Dashboard ----------
+let dash = null;
+async function viewDashboard(id, key, fresh) {
+  app.innerHTML = nav() + '<main class="page"><div class="wrap"><div class="skl" style="width:40%;height:40px;margin-top:40px"></div><div class="skl" style="width:60%"></div></div></main>';
+  if (id === 'sample') await seedSample();
+  let data;
+  try { data = await backend(id).admin(id, key); }
+  catch (e) { return errorPage(e.message); }
+  const m = mineGet(id);
+  if (m && m.title !== data.title) mineSave({ ...m, title: data.title });
+  dash = { id, key, data, fresh, invites: id === 'sample' ? SAMPLE_INVITES.map((label, i) => ({ label, token: 'demo-' + (i + 1) })) : (m ? m.invites : null) };
+  renderDashboard();
+}
+function renderDashboard() {
+  const { id, data, fresh, invites } = dash;
+  const pct = Math.min(1, data.count / data.threshold);
+  const C = 2 * Math.PI * 42;
+  const ring = '<div class="ring"><svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="42" fill="none" stroke="var(--line)" stroke-width="8"/><circle cx="48" cy="48" r="42" fill="none" stroke="' + (data.unlocked ? 'var(--teal)' : 'var(--orange)') + '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + (C * (1 - pct)) + '"/></svg><div class="num">' + data.count + '<small>/' + data.threshold + '</small></div></div>';
+  const progress = '<div class="panel no-print"><div class="progress">' + ring + '<div><b style="font-weight:500">' + (data.unlocked ? 'Report unlocked' : (data.threshold - data.count) + ' more to unlock') + '</b><p class="muted" style="font-size:14px;margin-top:2px">' + plural(data.count, 'response') + ' from ' + plural(data.invites, 'invite') + '. ' + (data.unlocked ? 'New answers keep improving the report.' : 'Nothing is visible until ' + data.threshold + ' people answer.') + '</p></div></div></div>';
+
+  const inv = invites ? '<div class="panel no-print"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="font-size:22px">Invite links</h2><button class="btn ghost sm" data-act="copy-all">Copy all</button></div><p>' + (fresh ? 'Send each person their own link now. ' : '') + "Each works once. You won't see who has answered.</p>" +
+    '<div style="margin-top:14px">' + invites.map((v, i) =>
+      '<div class="inv"><span class="who">' + esc(v.label) + '</span><span class="acts">' +
+      '<button class="icon-btn" data-act="copy-link" data-i="' + i + '" title="Copy link" aria-label="Copy link for ' + esc(v.label) + '">' + I.copy + '</button>' +
+      '<button class="icon-btn" data-act="copy-msg" data-i="' + i + '" title="Copy a message with the link" aria-label="Copy message for ' + esc(v.label) + '">' + I.msg + '</button>' +
+      (navigator.share ? '<button class="icon-btn" data-act="share" data-i="' + i + '" title="Share" aria-label="Share link for ' + esc(v.label) + '">' + I.share + '</button>' : '') +
+      '</span></div>').join('') + '</div>' +
+    '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><button class="link muted" style="font-size:13.5px" data-act="copy-admin">Copy this dashboard\'s private link</button></div></div>'
+    : '<div class="panel no-print"><h2 style="font-size:22px">Invite links</h2><p>The invite links for this round live on the device that created it.</p></div>';
+
+  const sample = data.sample ? '<div class="sample-bar no-print"><span><b style="font-weight:600">This is a sample round.</b> Sam asked nine people and seven answered. Try a spare link to see what respondents see.</span><span style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn dark sm" href="#/a/sample/demo-' + firstSpare() + '">Answer as a respondent</a><button class="btn ghost sm" data-act="reset-sample" style="border-color:rgba(16,24,40,.25)">Reset</button></span></div>' : '';
+
+  app.innerHTML = nav() + '<main class="page"><div class="wrap">' +
+    '<div class="page-head"><a class="back no-print" href="' + (data.sample ? '#/' : '#/rounds') + '">' + I.left + ' ' + (data.sample ? 'Home' : 'My rounds') + '</a>' +
+    '<h1 class="serif">' + esc(data.title) + '</h1><p class="muted" style="font-size:15px">Feedback for ' + esc(data.ownerName) + ' · started ' + fmtDate(data.created) + '</p></div>' +
+    sample +
+    '<div class="dash-grid"><div>' + progress + inv + '</div><div class="panel" id="report">' + reportHtml() + '</div></div>' +
+    '</div></main>';
+}
+function firstSpare() {
+  const n = dash.data.count;
+  return Math.min(SAMPLE_INVITES.length, n + 1);
+}
+function reportHtml() {
+  const { data } = dash;
+  if (!data.unlocked) {
+    return '<div class="locked"><div class="lock">' + I.lock + '</div><h2>The report is locked</h2><p>It opens once ' + data.threshold + ' people have answered. Until then, nobody can see anything, including you.</p></div>';
+  }
+  if (dash.loading) return '<div class="rep-head"><span class="chip plain">' + I.spark + ' Writing the synthesis</span></div><div class="skl" style="height:28px;width:90%;margin-top:24px"></div><div class="skl" style="height:28px;width:70%"></div>' + '<div class="skl"></div>'.repeat(6);
+  if (dash.error) return '<div class="locked"><h2>Couldn\'t write the report</h2><p>' + esc(dash.error) + '</p><div style="margin-top:18px"><button class="btn primary" data-act="gen">Try again</button></div></div>';
+  if (dash.needKey) return keyFormHtml();
+  const r = data.report;
+  if (!r) {
+    return '<div class="locked"><div class="lock" style="background:var(--green);color:var(--on-pastel)">' + I.unlock + '</div><h2>Ready when you are</h2><p>' + people(data.count) + ' answered. The AI reads everything and writes up the patterns, without quoting anyone.</p><div style="margin-top:20px"><button class="btn primary" data-act="gen">' + I.spark + ' Write my report</button></div></div>';
+  }
+  const stale = data.count > r.n;
+  const themes = list => list.map(t => '<div class="theme"><b>' + esc(t.theme) + '</b>' + chip(t.label) + '<p>' + esc(t.detail) + '</p></div>').join('');
+  const qText = id => { const q = data.questions.find(x => x.id === id); return q ? fill(q.prompt, data.ownerName) : ''; };
+  const DIST = ['var(--pink)', 'var(--orange)', 'var(--line-2)', 'var(--blue)', 'var(--teal)'];
+  const scores = (data.stats || []).map(s => '<div class="score"><div class="big">' + (s.mean == null ? '–' : s.mean.toFixed(1)) + '<small> / 5</small></div><p>' + esc(fill(s.prompt, data.ownerName)) + '</p>' +
+    '<div class="dist" role="img" aria-label="' + s.counts.map((c, i) => c + ' ' + SCALE_LABELS[i].toLowerCase()).join(', ') + '">' + s.counts.map((c, i) => c ? '<span style="flex:' + c + ';background:' + DIST[i] + '" title="' + c + ' × ' + SCALE_LABELS[i] + '"></span>' : '').join('') + '</div>' +
+    '<div class="dist-key"><span>Disagree</span><span>Agree</span></div></div>').join('');
+  return '<div class="rep-head"><span class="chip plain">' + I.spark + ' Synthesis of ' + plural(r.n, 'response') + '</span><span class="no-print" style="display:flex;gap:8px">' +
+    (stale ? '<button class="btn primary sm" data-act="gen">Update with ' + plural(data.count - r.n, 'new answer') + '</button>' : '<button class="btn ghost sm" data-act="gen">Regenerate</button>') +
+    '<button class="btn ghost sm" data-act="print">Save PDF</button></span></div>' +
+    '<p class="rep-headline">' + esc(r.headline) + '</p>' +
+    (scores ? '<div class="rep-sec"><h3>Ratings</h3><div class="scores">' + scores + '</div></div>' : '') +
+    (r.strengths.length ? '<div class="rep-sec"><h3><i style="background:var(--green)"></i>What people value</h3>' + themes(r.strengths) + '</div>' : '') +
+    (r.growth.length ? '<div class="rep-sec"><h3><i style="background:var(--orange)"></i>Where to grow</h3>' + themes(r.growth) + '</div>' : '') +
+    (r.mixed.length ? '<div class="rep-sec"><h3><i style="background:var(--purple)"></i>Where people disagree</h3>' + r.mixed.map(t => '<div class="theme"><b>' + esc(t.theme) + '</b><span></span><p>' + esc(t.detail) + '</p></div>').join('') + '</div>' : '') +
+    (r.questions.length ? '<div class="rep-sec"><h3><i style="background:var(--blue)"></i>Question by question</h3>' + r.questions.map(q => '<div class="qsum"><b>' + esc(qText(q.id)) + '</b><p>' + esc(q.summary) + '</p></div>').join('') + '</div>' : '') +
+    (r.actions.length ? '<div class="rep-sec"><h3><i style="background:var(--yellow)"></i>What to do next</h3><ol class="actions">' + r.actions.map(a => '<li><span>' + esc(a) + '</span></li>').join('') + '</ol></div>' : '') +
+    '<div class="rep-foot">Based on ' + plural(r.n, 'anonymous response') + '. Nothing here is a direct quote. ' + (r.removed ? plural(r.removed, 'comment') + ' removed for abuse with nothing constructive inside. ' : '') + 'Written ' + fmtDate(r.generatedAt) + '.</div>';
+}
+function chip(label) {
+  const cls = label === 'Most people' ? 'most' : label === 'Several people' ? 'several' : 'one';
+  return '<span class="chip ' + cls + '">' + esc(label) + '</span>';
+}
+function keyFormHtml() {
+  return '<div class="locked" style="text-align:left;max-width:460px;margin:0 auto"><h2>Connect AI to write the report</h2><p style="margin:0">In preview mode the report is written in your browser with your own OpenAI key. Once the backend is live, this happens on the server and nobody needs a key.</p>' +
+    '<div class="field"><label for="k">OpenAI API key</label><input class="input" id="k" type="password" placeholder="sk-..." autocomplete="off"><p class="hint">Stored only in this browser and sent only to api.openai.com.</p></div>' +
+    '<div style="display:flex;gap:10px;margin-top:18px"><button class="btn primary" data-act="save-key">Save and write report</button><button class="btn ghost" data-act="cancel-key">Cancel</button></div></div>';
+}
+async function generate() {
+  dash.loading = true; dash.error = null; dash.needKey = false;
+  document.getElementById('report').innerHTML = reportHtml();
+  try {
+    const res = await backend(dash.id).report(dash.id, dash.key);
+    dash.data = await backend(dash.id).admin(dash.id, dash.key);
+    if (!dash.data.report) dash.data.report = res.report;
+  } catch (e) {
+    if (e.code === 'nokey') dash.needKey = true;
+    else dash.error = e.message;
+  }
+  dash.loading = false;
+  document.getElementById('report').innerHTML = reportHtml();
+}
+function inviteMessage(v) {
+  const d = dash.data;
+  return 'Hi ' + (/^spare link/i.test(v.label) ? 'there' : v.label.split(/[\s@]/)[0]) + ", I'm asking a few people for honest feedback: \"" + d.title + "\"\n\n" +
+    "It's genuinely anonymous. I'll only see an AI summary of patterns once at least " + d.threshold + ' people have answered, never your actual words. It takes about three minutes.\n\n' +
+    inviteUrl(d.id, v.token) + '\n\nThis link is just for you, so please don\'t forward it.';
+}
+
+// ---------- Respond ----------
+let R = null;
+const ansKey = () => 'unsaid:ans:' + R.id + ':' + R.token;
+async function viewRespond(id, token) {
+  app.innerHTML = '<div class="flow"><div class="flow-body"><div class="flow-inner"><div class="skl" style="width:50%;height:40px"></div><div class="skl" style="width:80%"></div></div></div></div>';
+  if (id === 'sample') await seedSample();
+  let round;
+  try { round = await backend(id).invite(id, token); }
+  catch (e) { return flowMessage("This link doesn't work", e.message); }
+  if (round.used) return flowMessage('This link has already been used', 'Each link works once, so every voice counts the same. If you were sent this by mistake, let the sender know.');
+  round.questions = round.questions.map(q => ({ ...q, prompt: fill(q.prompt, round.ownerName) }));
+  R = { id, token, round, step: -1, answers: ls.get('unsaid:ans:' + id + ':' + token, {}) };
+  renderFlow();
+}
+function flowShell(inner, progress) {
+  return '<div class="flow"><div class="flow-top"><a class="logo" href="#/">' + I.mark + 'unsaid</a>' + (progress != null ? '<div class="bar"><span style="width:' + Math.round(progress * 100) + '%"></span></div>' : '') + '</div><div class="flow-body"><div class="flow-inner">' + inner + '</div></div></div>';
+}
+function flowMessage(title, body, extra) {
+  app.innerHTML = flowShell('<h1 class="serif">' + esc(title) + '</h1><p style="font-size:18px;opacity:.8;max-width:34em">' + esc(body) + '</p>' + (extra || ''));
+}
+const ABUSE = /\b(c+u+n+t+s?|f+u+c+k+\w*|f\*+\w*|sh[i1]t\w*|idiot\w*|moron\w*|retard\w*|dickhead\w*|arse?hole\w*|asshole\w*|bitch\w*|twat\w*|wanker\w*|prick\w*|useless|pathetic|stupid)\b/i;
+function renderFlow() {
+  const { round, step, answers } = R;
+  const qs = round.questions;
+  const owner = esc(round.ownerName);
+  if (step === -1) {
+    const li = (col, ic, t) => '<li>' + tile(col, ic) + '<span>' + t + '</span></li>';
+    app.innerHTML = flowShell('<span class="eyebrow"><i></i>' + owner + ' wants your honest take</span><h1 class="serif">' + esc(round.title) + '</h1>' +
+      '<ul class="promise">' +
+      li('green', I.lock, 'Nothing is released until <b>' + round.threshold + ' people</b> have answered.') +
+      li('purple', I.quote, owner + ' never sees your words. Only an AI summary of patterns across everyone.') +
+      li('blue', I.eye, "Your answers aren't linked to this link, your name or the time you answered.") +
+      li('yellow', I.shield, 'Be candid, be specific. Insults get filtered out; the point behind them stays.') +
+      '</ul><button class="btn primary" data-act="go">Start · ' + plural(qs.length, 'question') + ', about 3 minutes ' + I.arrow + '</button>', 0);
+    return;
+  }
+  if (step >= qs.length) {
+    app.innerHTML = flowShell('<div class="qn">All done</div><div class="qtext">Ready to send?</div><p style="opacity:.8;font-size:17px">Your answers will be mixed in with everyone else\'s. You can\'t edit them after this.</p>' +
+      '<div class="err hide" id="s-err"></div><div class="flow-nav"><button class="btn ghost" data-act="prev">' + I.left + ' Back</button><button class="btn primary" data-act="submit">Send anonymously ' + I.arrow + '</button></div>', 1);
+    return;
+  }
+  const q = qs[step];
+  const v = answers[q.id];
+  let input;
+  if (q.type === 'scale') {
+    input = '<div class="scale" role="radiogroup">' + SCALE_LABELS.map((l, i) => '<button role="radio" aria-checked="' + (v === i + 1) + '" class="' + (v === i + 1 ? 'on' : '') + '" data-act="pick" data-v="' + (i + 1) + '"><b>' + (i + 1) + '</b><span>' + l + '</span></button>').join('') + '</div>';
+  } else {
+    input = '<textarea class="textarea" id="ans" maxlength="' + LIMITS.text + '" placeholder="Type your answer…">' + esc(v || '') + '</textarea>' +
+      '<div class="nudge' + (ABUSE.test(v || '') ? '' : ' hide') + '" id="nudge">This will be filtered out unless there\'s a point in it. What\'s the behaviour behind it, and what would help?</div>';
+  }
+  const canNext = q.type === 'scale' ? !!v : true;
+  const nextLabel = q.type === 'text' && !(v || '').trim() ? 'Skip' : 'Next';
+  app.innerHTML = flowShell('<div class="qn">' + (step + 1) + ' of ' + qs.length + (q.type === 'text' ? ' <span class="muted" style="font-weight:400">· optional</span>' : '') + '</div><div class="qtext">' + esc(q.prompt) + '</div>' + input +
+    '<div class="flow-nav"><button class="btn ghost" data-act="prev">' + I.left + ' Back</button><button class="btn primary" id="next" data-act="next"' + (canNext ? '' : ' disabled') + '>' + nextLabel + ' ' + I.arrow + '</button>' +
+    '<span class="kbd">' + (q.type === 'scale' ? 'Press <kbd>1</kbd>–<kbd>5</kbd>' : 'Press <kbd>⌘</kbd>+<kbd>Enter</kbd>') + '</span></div>', (step + 1) / (qs.length + 1));
+  const ta = document.getElementById('ans');
+  if (ta && matchMedia('(hover: hover)').matches) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+function flowStep(d) {
+  R.step = Math.max(-1, Math.min(R.round.questions.length, R.step + d));
+  renderFlow();
+  window.scrollTo(0, 0);
+}
+async function submitFlow(btn) {
+  const err = document.getElementById('s-err');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Sending';
+  try {
+    await backend(R.id).submit(R.id, R.token, R.answers);
+    raw.del(ansKey());
+    app.innerHTML = flowShell('<div class="tile" style="background:var(--green);width:56px;height:56px;border-radius:18px">' + I.check.replace('width="16" height="16"', 'width="26" height="26"') + '</div>' +
+      '<h1 class="serif">Sent. Thank you.</h1><p style="font-size:18px;opacity:.8;max-width:32em">Your answers are now mixed in with everyone else\'s. ' + esc(R.round.ownerName) + ' will see a summary once ' + R.round.threshold + ' people have answered.</p>' +
+      '<div class="panel" style="margin-top:36px"><h2 style="font-size:22px">Want honest feedback of your own?</h2><p>Set up a round for yourself in three minutes. Free, no account.</p><div style="margin-top:16px"><a class="btn dark" href="#/">See how it works ' + I.arrow + '</a></div></div>' +
+      (R.id === 'sample' ? '<p style="margin-top:20px"><a class="link" href="#/r/sample/demo">Back to the sample dashboard</a></p>' : ''), 1);
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.remove('hide');
+    btn.disabled = false;
+    btn.innerHTML = 'Send anonymously ' + I.arrow;
+  }
+}
+
+// ---------- Errors / modals ----------
+function errorPage(msg) {
+  app.innerHTML = nav() + '<main class="page"><div class="narrow"><div class="page-head"><a class="back" href="#/">' + I.left + ' Home</a><h1 class="serif">Can\'t open this round</h1><p>' + esc(msg) + '</p></div></div></main>';
+}
+function modal(html) {
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = '<div class="panel">' + html + '<div style="margin-top:20px"><button class="btn dark" data-act="close-modal">Got it</button></div></div>';
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
+
+// ---------- Events ----------
+document.addEventListener('click', async e => {
+  const s = e.target.closest('[data-scroll]');
+  if (s) {
+    if (!document.getElementById(s.dataset.scroll)) { location.hash = '#/'; await new Promise(r => setTimeout(r, 50)); }
+    const el = document.getElementById(s.dataset.scroll);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const act = b.dataset.act, i = Number(b.dataset.i);
+  switch (act) {
+    case 'tpl': {
+      draft = newDraft(b.dataset.id); saveDraft();
+      document.querySelectorAll('.tpl').forEach(t => t.classList.toggle('on', t === b));
+      document.getElementById('form').innerHTML = formHtml(); sizeTextareas();
+      document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      break;
+    }
+    case 'qtype': draft.questions[i].type = b.dataset.type; saveDraft(); rerenderForm(); break;
+    case 'qdel': draft.questions.splice(i, 1); if (!draft.questions.length) draft.questions.push({ type: 'text', prompt: '' }); saveDraft(); rerenderForm(); break;
+    case 'qadd': {
+      draft.questions.push({ type: b.dataset.type, prompt: '' }); saveDraft(); rerenderForm();
+      const all = document.querySelectorAll('.q textarea'); all[all.length - 1].focus();
+      break;
+    }
+    case 'th': draft.threshold = Math.max(MIN_THRESHOLD, Math.min(10, draft.threshold + Number(b.dataset.d))); saveDraft(); rerenderForm(); break;
+    case 'create': createRound(b); break;
+    case 'copy-link': copy(inviteUrl(dash.data.id, dash.invites[i].token), 'Link copied for ' + dash.invites[i].label); break;
+    case 'copy-msg': copy(inviteMessage(dash.invites[i]), 'Message copied for ' + dash.invites[i].label); break;
+    case 'share': try { await navigator.share({ title: dash.data.title, text: inviteMessage(dash.invites[i]) }); } catch (err) {} break;
+    case 'copy-all': copy(dash.invites.map(v => v.label + ': ' + inviteUrl(dash.data.id, v.token)).join('\n'), 'All links copied'); break;
+    case 'copy-admin': copy(adminUrl(dash.id, dash.key), 'Dashboard link copied. Keep it private.'); break;
+    case 'gen': generate(); break;
+    case 'print': window.print(); break;
+    case 'save-key': {
+      const k = document.getElementById('k').value.trim();
+      if (!k) return;
+      raw.set('unsaid-openai-key', k); generate(); break;
+    }
+    case 'cancel-key': dash.needKey = false; document.getElementById('report').innerHTML = reportHtml(); break;
+    case 'reset-sample': await seedSample(true); viewDashboard('sample', 'demo'); toast('Sample reset'); break;
+    case 'about-preview': modal('<h2>About preview mode</h2><p style="color:var(--muted);margin-top:10px;font-size:15px">The backend isn\'t switched on yet, so every round is stored in this browser. You can build a round, open the invite links yourself on this device, answer as different people and generate the report. To send links to other people, the backend needs deploying (about five minutes). Try the <a class="link" href="#/sample">sample round</a> to see the full flow.</p>'); break;
+    case 'close-modal': b.closest('.modal').remove(); break;
+    case 'go': flowStep(1); break;
+    case 'prev': flowStep(-1); break;
+    case 'next': flowStep(1); break;
+    case 'pick': {
+      const q = R.round.questions[R.step];
+      R.answers[q.id] = Number(b.dataset.v); ls.set(ansKey(), R.answers);
+      renderFlow();
+      setTimeout(() => { if (R && R.round.questions[R.step] === q) flowStep(1); }, 260);
+      break;
+    }
+    case 'submit': submitFlow(b); break;
+  }
+});
+function rerenderForm() { document.getElementById('form').innerHTML = formHtml(); sizeTextareas(); }
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.f && draft) {
+    draft[t.dataset.f] = t.value; saveDraft();
+    if (t.dataset.f === 'people') { const n = peopleList().length; document.getElementById('pc').textContent = n + ' ' + (n === 1 ? 'person' : 'people'); }
+  } else if (t.dataset.q != null && draft) {
+    draft.questions[Number(t.dataset.q)].prompt = t.value; saveDraft();
+    t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px';
+  } else if (t.id === 'ans' && R) {
+    const q = R.round.questions[R.step];
+    R.answers[q.id] = t.value; ls.set(ansKey(), R.answers);
+    document.getElementById('nudge').classList.toggle('hide', !ABUSE.test(t.value));
+    const nb = document.getElementById('next');
+    nb.innerHTML = (t.value.trim() ? 'Next' : 'Skip') + ' ' + I.arrow;
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (!R || !location.hash.startsWith('#/a/') || R.step < 0 || R.step >= R.round.questions.length) return;
+  const q = R.round.questions[R.step];
+  if (q.type === 'scale' && /^[1-5]$/.test(e.key) && !e.metaKey && !e.ctrlKey) {
+    const btn = document.querySelector('[data-act="pick"][data-v="' + e.key + '"]');
+    if (btn) btn.click();
+  } else if (e.key === 'Enter' && (q.type === 'scale' ? !!R.answers[q.id] : (e.metaKey || e.ctrlKey))) {
+    e.preventDefault(); flowStep(1);
+  }
+});
+
+addEventListener('scroll', () => { const n = document.querySelector('.nav'); if (n) n.classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+
+// ---------- Router ----------
+async function route() {
+  const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+  const [p, a, b, c] = parts;
+  if (p !== 'a') R = null;
+  if (p !== 'r') dash = null;
+  window.scrollTo(0, 0);
+  if (!p) { app.innerHTML = viewLanding(); }
+  else if (p === 'new') { app.innerHTML = viewCreate(); sizeTextareas(); }
+  else if (p === 'rounds') { app.innerHTML = viewMine(); }
+  else if (p === 'sample') { await seedSample(); location.replace('#/r/sample/demo'); }
+  else if (p === 'r' && a && b) { await viewDashboard(a, b, c === 'new'); }
+  else if (p === 'a' && a && b) { await viewRespond(a, b); }
+  else { app.innerHTML = viewLanding(); }
+}
+addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
