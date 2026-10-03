@@ -281,6 +281,44 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .recent a b { display: block; font-weight: 700; font-size: 16px; line-height: 1.2; }
 .recent a span { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 
+/* ---------- Comments (Coral) ---------- */
+.cc { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: .04em; }
+.cc:empty { display: none; }
+.cc svg { width: 14px; height: 14px; }
+.cbtn { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 7px 12px; border: 1px solid currentColor; border-radius: 4px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; color: inherit; }
+.cbtn svg { width: 16px; height: 16px; }
+.cmts { margin-top: 34px; border-top: 6px solid var(--purple); padding-top: 12px; }
+.cmts-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cmts-head h2 { font-family: var(--sans); font-weight: 800; font-size: 28px; letter-spacing: -0.02em; }
+.cmts-head h2 span { color: var(--purple-ink); }
+.cmts-note { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.cmts-sort { display: inline-flex; background: var(--track); border-radius: 999px; margin: 12px 0 4px; }
+.cmts-sort button { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; color: var(--ink-2); }
+.cmts-sort button[aria-pressed="true"] { background: var(--purple); color: #fff; }
+.cmt { padding: 16px 0 4px; border-top: 1px solid var(--rule); }
+.cmt .cmt { border-top: 0; padding-top: 12px; }
+.cmt-reps { margin-left: 14px; padding-left: 14px; border-left: 2px solid var(--rule); }
+.cmt-reps.flat { margin-left: 0; padding-left: 0; border-left: 0; }
+.cmt-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cmt-av { width: 30px; height: 30px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 13px; color: #fff; text-transform: uppercase; }
+.cmt-u { font-family: var(--sans); font-weight: 700; font-size: 15px; }
+.cmt-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; background: var(--lav); color: var(--purple-ink); }
+.cmt-badge.staff { background: var(--purple); color: #fff; }
+.cmt-t { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.cmt-to { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+.cmt-b { font-family: var(--sans); font-size: 16px; line-height: 1.5; margin-top: 8px; overflow-wrap: anywhere; }
+.cmt-b p, .cmt-b div { margin: 0 0 .5em; }
+.cmt-b a { color: inherit; text-decoration: underline; text-decoration-color: var(--purple); text-underline-offset: 2px; }
+.cmt-b blockquote { border-left: 3px solid var(--rule); padding-left: 10px; color: var(--ink-2); margin: .4em 0; }
+.cmt-b.gone { color: var(--ink-3); font-style: italic; }
+.cmt-m img { max-width: 100%; max-height: 260px; border-radius: 6px; margin-top: 6px; display: block; }
+.cmt-f { display: flex; gap: 14px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin: 6px 0 4px; }
+.cmt-f svg { width: 14px; height: 14px; vertical-align: -2px; }
+.cmt-more, .cmts-more { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--purple-ink); padding: 10px 0; }
+.cmts-more { display: block; width: 100%; text-align: center; border: 1px solid var(--rule); border-radius: 999px; margin: 18px 0 8px; }
+.cmts .ai { margin: 12px 0 8px; }
+.cmts-empty { padding: 20px 0; color: var(--ink-3); }
+
 @media (max-width: 420px) {
   .c.lead h2 { font-size: 48px; }
   .thumb { width: 96px; height: 96px; }
@@ -490,6 +528,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       img: (th.horizontal && th.horizontal.url) || '',
       sq: (th.square && th.square.url) || '',
       kind, template: n.template || '',
+      gid: typeof n.id === 'string' && /^dmcy/.test(n.id) ? n.id : null,
     };
     if (kind === 'quick') {
       const parts = [];
@@ -625,6 +664,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       body: bodyHtml,
       wordCount: node.wordCount || 0,
       url: node.permalink,
+      gid: node.id,
     };
   }
 
@@ -739,7 +779,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
   const readCls = i => readSet.has(i.id) ? ' is-read' : '';
   const ready = i => '<span class="ready-slot">' + (getCachedArticle(i.id) ? '<span class="dot-ready" title="Ready offline"></span>' : '') + '</span>';
   function byline(i, withTime) {
-    return '<div class="meta">' + ready(i) + (i.author ? '<span class="by">' + esc(i.author) + '</span>' : '') + (withTime && i.date ? '<span class="when">' + esc(timeAgo(i.date)) + '</span>' : '') + '</div>';
+    return '<div class="meta">' + ready(i) + (i.author ? '<span class="by">' + esc(i.author) + '</span>' : '') + (withTime && i.date ? '<span class="when">' + esc(timeAgo(i.date)) + '</span>' : '') + ccSlot(i) + '</div>';
   }
 
   // Verge's card types.
@@ -768,7 +808,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
     const body = sanitizeHtml(i.quick || '<p>' + esc(i.desc) + '</p>', true);
     return '<div class="q' + readCls(i) + '" data-id="' + escAttr(i.id) + '"><div class="q-head">' +
       (i.avatar ? '<img src="' + escAttr(vimg(i.avatar, 120)) + '" alt="" loading="lazy">' : '') +
-      '<div><span class="by">' + esc(i.author || 'The Verge') + '</span><span class="when">' + esc(timeAgo(i.date)) + '</span></div></div>' +
+      '<div><span class="by">' + esc(i.author || 'The Verge') + '</span><span class="when">' + esc(timeAgo(i.date)) + ' ' + ccSlot(i) + '</span></div></div>' +
       '<div class="q-body"><a class="q-title" href="' + href(i) + '">' + esc(i.title) + '</a> ' + body + '</div>' +
       (i.att ? '<a class="q-att" href="' + escAttr(i.att.url) + '" target="_blank" rel="noopener"><b>' + esc(i.att.title) + '</b>' + (i.att.source ? '<span>[' + esc(i.att.source) + ']</span>' : '') + '</a>' : '') +
       '</div>';
@@ -788,6 +828,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       if (m.kind === 'popular') return head + st.map((s, k) => cardPopular(s, k + 1)).join('');
       return head + st.map((s, k) => k === 0 ? cardBig(s) : cardThumbRight(s)).join('');
     }).join('');
+    fillCounts();
   }
 
   function renderList() {
@@ -812,6 +853,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       if (i.kind === 'quick') return head + cardQuick(i);
       return head + (k === 0 && !q && !categoryFilter && i.img ? cardBig(i) : cardThumbRight(i, true));
     }).join('');
+    fillCounts();
   }
 
   // ---------- Sanitising ----------
@@ -899,17 +941,23 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       (pills.length ? '<div class="pills">' + pills.map(p => '<span>' + esc(p) + '</span>').join('') + '</div>' : '') +
       '<h1>' + esc(a.headline || item.title) + '</h1>' + (a.about ? '<p class="s-dek">' + esc(a.about) + '</p>' : '') +
       '<div class="by-line">' + (au && au.avatar ? '<img src="' + escAttr(vimg(au.avatar, 120)) + '" alt="">' : '') +
-      '<div><div>by <b>' + esc(a.byline || 'The Verge') + '</b></div><div class="dt">' + esc([fmtDate(a.published), mins].filter(Boolean).join(' · ')) + '</div></div></div></div>';
+      '<div><div>by <b>' + esc(a.byline || 'The Verge') + '</b></div><div class="dt">' + esc([fmtDate(a.published), mins].filter(Boolean).join(' · ')) + '</div></div></div>' +
+      '<a class="cbtn" href="#" data-goto-comments>' + BUBBLE + '<span>Comments</span> <span class="cc" data-gid="' + escAttr(storyGid(a, item)) + '"></span></a></div>';
     if (a.hero) h += '<figure class="hero"><img src="' + escAttr(vimg(a.hero.url, 1200)) + '" alt="">' + ((a.hero.caption || a.hero.credit) ? '<figcaption>' + esc(a.hero.caption) + (a.hero.credit ? ' <span class="credit">| ' + esc(a.hero.credit) + '</span>' : '') + '</figcaption>' : '') + '</figure>';
     h += '<section class="ai sum" id="aiSum"></section>';
     h += '<div class="body" id="storyBody">' + sanitizeHtml(a.body) + '</div>';
     h += '<div class="story-foot"><a class="pill" href="' + escAttr(url) + '" target="_blank" rel="noopener">Open on The Verge ↗</a><button class="pill" id="shareBtn">Share</button></div>';
+    h += '<section class="cmts" id="comments"><div class="cmts-head"><h2>Comments <span id="cmtsN"></span></h2><span class="cmts-note" id="cmtsNote"></span></div>' +
+      '<div class="cmts-sort" role="group" aria-label="Sort comments">' + [['CREATED_AT_DESC', 'Newest'], ['CREATED_AT_ASC', 'Oldest'], ['REACTION_DESC', 'Top']].map(o => '<button type="button" data-csort="' + o[0] + '" aria-pressed="' + (cmtSort === o[0]) + '">' + o[1] + '</button>').join('') + '</div>' +
+      '<div id="cmtsAi"></div><div id="cmtsList"><div class="cmts-empty">Comments load as you reach them…</div></div><div id="cmtsMore"></div></section>';
     h += nextUpHtml(item.id);
     if (neighbour(item.id, 1) || neighbour(item.id, -1)) h += '<p class="swipe-hint">Swipe left or right for the next or previous story</p>';
     h += '</article>';
     readerEl.innerHTML = h;
     $('shareBtn').onclick = () => share(a.headline, url);
     renderSummary(item, a, false);
+    setupComments(item, a);
+    fillCounts();
     updateProgress();
   }
   function renderFailure(item, e) {
@@ -1101,6 +1149,189 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
     } finally { briefInflight.delete(tab.id); }
   }
 
+  // ---------- Comments: The Verge runs Coral; read its public stream queries ----------
+  const CORAL = 'https://theverge.coral.coralproject.net';
+  const BUBBLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+  const HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+  // Persisted-query ids from Coral's stream bundle; rediscovered automatically if Coral updates.
+  let coralIds = Object.assign({ stream: '03389a0bb6eb2348569224b1a6b4219e', more: 'fe810f606e292cc9fe27e8975d5dcd9f', replies: '486c9d9f9c415dc5337646dfc5be5cde' }, store.get('verge-coral-ids', {}));
+  const QUERY_NAMES = { stream: 'AllCommentsTabQuery', more: 'AllCommentsTabContainerPaginationQuery', replies: 'ReplyListContainerLastFlattenedPaginationQuery' };
+  let cmtSort = store.get('verge-cmt-sort', 'CREATED_AT_DESC');
+  let cmt = null; // { gid, url, item, a, loaded, loading, cursor, more, seen:Set, texts:[], total, closed }
+
+  function storyGid(a, item) {
+    if (a && a.gid) return a.gid;
+    if (item && item.gid) return item.gid;
+    const id = (a && a.id) || (item && item.id);
+    if (!/^\d+$/.test(id || '')) return '';
+    return btoa('vg2:' + ((item && item.kind === 'quick') || /QuickPost/.test((a && a.kind) || '') ? 'quickPost' : 'post') + ':' + id);
+  }
+  function ccSlot(i) { const g = storyGid(null, i); return g ? '<span class="cc" data-gid="' + escAttr(g) + '"></span>' : ''; }
+
+  // Comment counts for every card on screen, batched like theverge.com does.
+  const counts = new Map();
+  async function fillCounts() {
+    const spans = Array.from(document.querySelectorAll('.cc[data-gid]'));
+    const paint = () => spans.forEach(sp => { const c = counts.get(sp.dataset.gid); if (c && c.n > 0) sp.innerHTML = (sp.closest('.cbtn') ? '' : BUBBLE) + c.n; });
+    paint();
+    const need = Array.from(new Set(spans.map(s => s.dataset.gid))).filter(g => g && !(counts.get(g) && Date.now() - counts.get(g).at < 10 * 60e3));
+    for (let i = 0; i < need.length; i += 40) {
+      const chunk = need.slice(i, i + 40);
+      try {
+        const j = JSON.parse(await fetchText(ORIGIN + '/api/coral-counts?' + chunk.map(g => 'c=' + encodeURIComponent(g)).join('&'), t => /^\s*\{/.test(t)));
+        chunk.forEach(g => counts.set(g, { n: (j.data && j.data[g]) || 0, at: Date.now() }));
+      } catch (e) { return; }
+    }
+    paint();
+  }
+
+  async function discoverCoralIds() {
+    const boot = JSON.parse(await fetchText(CORAL + '/embed/bootstrap', t => /^\s*\{/.test(t)));
+    const js = ((boot.assets && boot.assets.js) || []).map(x => x.src).find(src => /(^|\/)stream\./.test(src));
+    if (!js) throw new Error('comment widget not found');
+    const bundle = await fetchText(CORAL + '/' + js, t => t.length > 10000);
+    const found = {};
+    Object.keys(QUERY_NAMES).forEach(k => {
+      const m = new RegExp('params:\\{id:"([0-9a-f]{32})",metadata:\\{\\},name:"' + QUERY_NAMES[k] + '"').exec(bundle);
+      if (m) found[k] = m[1];
+    });
+    if (!found.stream) throw new Error('comment queries not found');
+    coralIds = Object.assign(coralIds, found);
+    store.set('verge-coral-ids', coralIds);
+  }
+  async function coralQuery(which, vars, retried) {
+    const url = CORAL + '/api/graphql?query=&id=' + coralIds[which] + '&variables=' + encodeURIComponent(JSON.stringify(vars));
+    const j = JSON.parse(await fetchText(url, t => /^\s*\{/.test(t)));
+    if (!j.data) {
+      if (!retried) { await discoverCoralIds(); return coralQuery(which, vars, true); }
+      throw new Error((j.error && j.error.message) || (j.errors && j.errors[0] && j.errors[0].message) || 'comments unavailable');
+    }
+    return j.data;
+  }
+
+  function hue(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+  function commentHtml(n, depth) {
+    if (!n || cmt.seen.has(n.id)) return '';
+    cmt.seen.add(n.id);
+    const au = n.author || {}, name = au.username || 'Anonymous';
+    const badges = (au.badges || []).map(b => '<span class="cmt-badge' + (/staff|verge|moderator|admin/i.test(b) ? ' staff' : '') + '">' + esc(b) + '</span>').join('');
+    const med = n.revision && n.revision.media;
+    const gone = n.deleted || (!strip(n.body) && !(med && med.url));
+    const body = gone ? '<div class="cmt-b gone">This comment was deleted.</div>' : strip(n.body) ? '<div class="cmt-b">' + sanitizeHtml(n.body) + '</div>' : '';
+    const media = med && med.url ? (/\.(gif|png|jpe?g|webp)(\?|$)/i.test(med.url) || /Giphy|Klipy|Tenor/i.test(med.__typename || '')
+      ? '<div class="cmt-m"><img src="' + escAttr(med.url) + '" alt="' + escAttr(med.title || 'GIF') + '" loading="lazy"></div>'
+      : '<div class="cmt-m"><a href="' + escAttr(med.url) + '" target="_blank" rel="noopener">' + esc(med.title || 'Attached media') + ' ↗</a></div>') : '';
+    const reacts = (n.actionCounts && n.actionCounts.reaction && n.actionCounts.reaction.total) || 0;
+    if (!gone) cmt.texts.push({ u: name, r: reacts, d: depth, t: strip(n.body).slice(0, 500) });
+    const reps = ((n.replies && n.replies.edges) || []).map(e => commentHtml(e.node, depth + 1)).join('');
+    const shown = ((n.replies && n.replies.edges) || []).length;
+    const hidden = (n.replyCount || 0) > shown || (n.replies && n.replies.pageInfo && n.replies.pageInfo.hasNextPage);
+    const moreBtn = hidden ? '<button type="button" class="cmt-more" data-more-replies="' + escAttr(n.id) + '" data-depth="' + (depth + 1) + '" data-cursor="' + escAttr((n.replies && n.replies.pageInfo && n.replies.pageInfo.endCursor) || '') + '">Show ' + (n.replyCount && n.replyCount > shown ? (n.replyCount - shown) + ' more ' : 'more ') + 'replies</button>' : '';
+    const to = depth >= 3 && n.parent && n.parent.author ? '<div class="cmt-to">↳ replying to @' + esc(n.parent.author.username) + '</div>' : '';
+    return '<div class="cmt" data-cid="' + escAttr(n.id) + '"><div class="cmt-h"><span class="cmt-av" style="background:hsl(' + hue(name) + ' 55% 45%)">' + esc(name.slice(0, 1)) + '</span>' +
+      '<span class="cmt-u">' + esc(name) + '</span>' + badges + '<span class="cmt-t">' + esc(timeAgo(n.createdAt)) + (n.editing && n.editing.edited ? ' · edited' : '') + '</span></div>' +
+      to + body + media + '<div class="cmt-f">' + (reacts ? '<span>' + HEART + ' ' + reacts + '</span>' : '') + '</div>' +
+      (reps || moreBtn ? '<div class="cmt-reps' + (depth >= 3 ? ' flat' : '') + '">' + reps + moreBtn + '</div>' : '') + '</div>';
+  }
+
+  function setupComments(item, a) {
+    const gid = storyGid(a, item);
+    cmt = { gid, url: a.url || item.link, item, a, loaded: false, loading: false, cursor: null, more: false, seen: new Set(), texts: [], total: 0, closed: false };
+    const sec = $('comments');
+    if (!gid) { sec.hidden = true; return; }
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); loadComments(false); } }, { rootMargin: '900px 0px' });
+      io.observe(sec);
+    } else loadComments(false);
+  }
+
+  async function loadComments(more) {
+    if (!cmt || cmt.loading || (!more && cmt.loaded)) return;
+    const c = cmt; c.loading = true;
+    const listEl2 = $('cmtsList'), moreEl = $('cmtsMore');
+    if (!more) listEl2.innerHTML = '<div class="cmts-empty"><span class="spin-dot"></span>Loading comments…</div>';
+    else moreEl.innerHTML = '<div class="cmts-empty"><span class="spin-dot"></span>Loading…</div>';
+    try {
+      let conn, story;
+      if (!more) {
+        const d = await coralQuery('stream', { storyID: c.gid, storyURL: c.url, commentsOrderBy: cmtSort, tag: null, storyMode: null, flattenReplies: true, ratingFilter: null, refreshStream: false });
+        story = d.story; conn = story && story.comments;
+        if (story) { c.total = (story.commentCounts && story.commentCounts.totalPublished) || 0; c.closed = !!story.isClosed; }
+      } else {
+        const d = await coralQuery('more', { count: 30, cursor: c.cursor, orderBy: cmtSort, storyID: c.gid, tag: null, flattenReplies: true, ratingFilter: null, refreshStream: false });
+        conn = d.story && d.story.comments;
+      }
+      if (cmt !== c) return;
+      const html = ((conn && conn.edges) || []).map(e => commentHtml(e.node, 0)).join('');
+      if (!more) listEl2.innerHTML = html || '<div class="cmts-empty">' + (c.closed ? 'Comments are closed and there are none yet.' : 'No comments yet.') + '</div>';
+      else listEl2.insertAdjacentHTML('beforeend', html);
+      c.cursor = conn && conn.pageInfo && conn.pageInfo.endCursor;
+      c.more = !!(conn && conn.pageInfo && conn.pageInfo.hasNextPage);
+      c.loaded = true;
+      $('cmtsN').textContent = c.total ? '(' + c.total + ')' : '';
+      $('cmtsNote').textContent = c.closed ? 'Closed' : '';
+      moreEl.innerHTML = c.more ? '<button type="button" class="cmts-more" data-more-comments>Load more comments</button>' : '';
+      paintDiscussionBox();
+      if (c.gid) { counts.set(c.gid, { n: c.total, at: Date.now() }); fillCounts(); }
+    } catch (e) {
+      if (cmt !== c) return;
+      const target = more ? moreEl : listEl2;
+      target.innerHTML = '<div class="cmts-empty">Couldn’t load comments (' + esc(e.message) + '). <button type="button" class="cmt-more" data-retry-comments>Try again</button> · <a href="' + escAttr(c.url + '#comments') + '" target="_blank" rel="noopener">Open on The Verge ↗</a></div>';
+    } finally { c.loading = false; }
+  }
+
+  async function loadMoreReplies(btn) {
+    const c = cmt; if (!c) return;
+    const id = btn.dataset.moreReplies, depth = +btn.dataset.depth || 1;
+    btn.disabled = true; btn.textContent = 'Loading…';
+    try {
+      const d = await coralQuery('replies', { commentID: id, count: 50, cursor: btn.dataset.cursor || null, flattenReplies: true, orderBy: 'CREATED_AT_ASC', refreshStream: false });
+      if (cmt !== c) return;
+      const conn = d.comment && d.comment.replies;
+      const html = ((conn && conn.edges) || []).map(e => commentHtml(e.node, depth)).join('');
+      btn.insertAdjacentHTML('beforebegin', html);
+      if (conn && conn.pageInfo && conn.pageInfo.hasNextPage) { btn.dataset.cursor = conn.pageInfo.endCursor || ''; btn.disabled = false; btn.textContent = 'Show more replies'; }
+      else btn.remove();
+    } catch (e) { btn.disabled = false; btn.textContent = 'Couldn’t load — try again'; }
+  }
+
+  // Optional AI read of the discussion (on demand — costs a request).
+  const DISCUSS_SYSTEM = [
+    'You summarise the reader comments under a story from The Verge for a busy reader who wants to know what people think.',
+    'Return "mood": ONE sentence (max 20 words) on the overall reaction; and "bullets": 3–4 items, each with a bold lead-in ("lead": 2–5 words) and "text": ONE sentence (max 25 words).',
+    'Cover the main viewpoints with rough weight (most / many / a few), the strongest pushback or disagreement, and any genuinely useful insight, correction or first-hand experience. You may quote a few words with the @username. Weigh comments with more reactions more heavily. Ignore jokes unless they dominate.',
+    'Never invent opinions that are not in the comments. Return JSON only: {"mood":"…","bullets":[{"lead":"…","text":"…"}]}',
+  ].join('\n');
+  function paintDiscussionBox(state, html) {
+    const el = $('cmtsAi'); if (!el || !cmt) return;
+    if (cmt.texts.length < 4) { el.innerHTML = ''; return; }
+    const key = 'verge-ai-cmts';
+    const cached = (store.get(key, {}) || {})[cmt.gid];
+    const head = '<div class="ai-head">' + SPARK + '<span>What commenters think</span><span class="spacer"></span>';
+    if (html) { el.innerHTML = '<section class="ai">' + head + '</div>' + html + '</section>'; return; }
+    if (cached) {
+      el.innerHTML = '<section class="ai">' + head + '<button type="button" data-discuss="1">Refresh</button></div>' + (cached.mood ? '<p class="ai-take">' + esc(cached.mood) + '</p>' : '') + bulletsHtml(cached.bullets) +
+        '<div class="ai-foot">From ' + cached.n + ' comments · ' + esc(timeAgo(cached.at)) + '</div></section>';
+      return;
+    }
+    el.innerHTML = '<section class="ai">' + head + '<button type="button" data-discuss="1">Summarise</button></div><p class="ai-msg">Get the gist of ' + cmt.texts.length + ' comments in a few lines.</p></section>';
+  }
+  async function summariseDiscussion() {
+    const c = cmt; if (!c) return;
+    if (!aiKey()) { paintDiscussionBox('', aiNoKey('a summary of the discussion')); return; }
+    paintDiscussionBox('', '<p class="ai-msg">Reading ' + c.texts.length + ' comments…</p>' + skeleton(4));
+    const lines = c.texts.slice().sort((x, y) => y.r - x.r).slice(0, 150).map(t => '@' + t.u + (t.r ? ' [' + t.r + ' reactions]' : '') + (t.d ? ' (reply)' : '') + ': ' + t.t).join('\n');
+    try {
+      const out = await openaiJSON(DISCUSS_SYSTEM, 'Story: ' + (c.a.headline || '') + '\n' + (c.a.about || '') + '\n\nCOMMENTS (' + c.texts.length + ' of ' + (c.total || c.texts.length) + '):\n' + lines, 1500, 'low');
+      if (!Array.isArray(out.bullets)) throw new Error('Unexpected response shape');
+      const all = store.get('verge-ai-cmts', {}) || {};
+      all[c.gid] = { at: Date.now(), n: c.texts.length, mood: out.mood || '', bullets: out.bullets.slice(0, 4) };
+      const ks = Object.keys(all); if (ks.length > 80) ks.sort((x, y) => all[x].at - all[y].at).slice(0, ks.length - 80).forEach(k => delete all[k]);
+      store.set('verge-ai-cmts', all);
+      if (cmt === c) paintDiscussionBox();
+    } catch (e) { if (cmt === c) paintDiscussionBox('', '<p class="ai-msg">Couldn’t summarise: ' + esc(e.message) + ' <button type="button" data-discuss="1">Try again</button></p>'); }
+  }
+
   // ---------- Open any Verge link ----------
   function parseVergeLink(text) {
     const m = /https?:\/\/(?:www\.)?theverge\.com\/[^\s"'<>]+/i.exec(text || '');
@@ -1158,7 +1389,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       cameFromFeed = false;
       document.body.classList.remove('reading');
       $('backBtn').hidden = true; $('sizeUp').hidden = true; $('sizeDown').hidden = true; $('settingsBtn').hidden = false; $('linkBtn').hidden = false;
-      readerEl.innerHTML = ''; $('progress').style.width = '0';
+      readerEl.innerHTML = ''; $('progress').style.width = '0'; cmt = null;
       const changed = switchTab(tabFromHash() || 'home');
       if (!changed) renderList();
       const y = wasReading ? feedScroll : (changed ? (feedScrolls[currentTab] || 0) : window.scrollY);
@@ -1286,6 +1517,16 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
       const m = t.closest('[data-summode]').dataset.summode;
       if (m !== sumMode) { sumMode = m; store.set('verge-sum-mode', m); sumOpen = true; const id = currentRoute(), a = id && getCachedArticle(id); if (a) renderSummary(findItem(id) || { id, title: a.headline }, a, false); }
     }
+    else if (t.closest('[data-goto-comments]')) { e.preventDefault(); const sec = $('comments'); if (sec) { sec.scrollIntoView({ behavior: 'smooth' }); loadComments(false); } }
+    else if (t.closest('[data-csort]')) {
+      e.preventDefault();
+      const v = t.closest('[data-csort]').dataset.csort;
+      if (v !== cmtSort && cmt) { cmtSort = v; store.set('verge-cmt-sort', v); document.querySelectorAll('[data-csort]').forEach(b => b.setAttribute('aria-pressed', b.dataset.csort === v)); Object.assign(cmt, { loaded: false, cursor: null, more: false, seen: new Set(), texts: [] }); loadComments(false); }
+    }
+    else if (t.closest('[data-more-comments]')) { e.preventDefault(); loadComments(true); }
+    else if (t.closest('[data-retry-comments]')) { e.preventDefault(); if (cmt) { cmt.loaded = false; loadComments(!!cmt.cursor); } }
+    else if (t.closest('[data-more-replies]')) { e.preventDefault(); loadMoreReplies(t.closest('[data-more-replies]')); }
+    else if (t.closest('[data-discuss]')) { e.preventDefault(); summariseDiscussion(); }
     else if (t.closest('[data-resum]')) { e.preventDefault(); const id = currentRoute(), a = id && getCachedArticle(id); if (a) { sumOpen = true; renderSummary(findItem(id) || { id, title: a.headline }, a, true); } }
   });
 
