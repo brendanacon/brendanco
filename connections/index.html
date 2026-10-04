@@ -55,6 +55,10 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
 main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 @media (max-width:360px){main{padding:10px 10px 32px}.board{gap:6px!important}.tile{padding:3px!important}.top-in{padding-left:10px}}
+.eds{display:flex;justify-content:center;margin:2px 0 14px}
+.eds div{display:inline-flex;border:1px solid var(--ink);border-radius:32px;padding:3px;gap:2px}
+.eds button{height:34px;padding:0 16px;border-radius:30px;font-size:14px;font-weight:600;color:var(--ink)}
+.eds button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .meta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--soft);margin:4px 0 0}
 .meta b{color:var(--ink);font-weight:700}
 .meta button{font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-size:14px;white-space:nowrap}
@@ -157,7 +161,7 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
   <div class="top-in">
     <div class="brand">
       <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#f9df6d"/><rect x="17" y="1" width="14" height="14" rx="3" fill="#a0c35a"/><rect x="1" y="17" width="14" height="14" rx="3" fill="#b0c4ef"/><rect x="17" y="17" width="14" height="14" rx="3" fill="#ba81c5"/></svg>
-      <div><h1>Connections</h1><span>Bookshelf edition</span></div>
+      <div><h1>Connections</h1><span id="edLabel">Bookshelf edition</span></div>
     </div>
     <button class="ic" id="bHelp" aria-label="How to play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.6-3 4.5"/><circle cx="12" cy="17.6" r=".6" fill="currentColor"/></svg></button>
     <button class="ic" id="bStats" aria-label="Statistics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M12 20V5M19 20v-9"/></svg></button>
@@ -166,6 +170,10 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 </header>
 
 <main>
+  <div class="eds"><div role="tablist" aria-label="Edition">
+    <button role="tab" data-ed="books" aria-selected="true">Bookshelf</button>
+    <button role="tab" data-ed="arch" aria-selected="false">Architecture</button>
+  </div></div>
   <div class="meta"><div id="meta"></div><button id="bToday" class="hidden">Back to today</button></div>
   <p class="prompt" id="prompt">Create four groups of four!</p>
   <div class="hintbar hidden" id="hintbar"></div>
@@ -192,19 +200,60 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 <div id="modal"></div>
 
 <script src="puzzles.js"></script>
+<script src="architecture.js"></script>
 <script>
 (() => {
-const D = window.BOOKSHELF, P = D.puzzles, N = P.length;
+// Two editions share one game; each keeps its own progress and stats under its own storage prefix.
+const EDITIONS = {
+  books: {
+    data: window.BOOKSHELF, prefix: 'bc:', label: 'Bookshelf edition', share: 'Connections: Bookshelf',
+    show: 'Show authors', hide: 'Hide authors', recap: 'On this shelf',
+    line: b => `${esc(b.a)} · read ${b.m}${b.n ? ' · ' + esc(b.n) : ''}`,
+    lost: 'These were tricky ones. Your bookshelf notes are below.',
+    keepGoing: 'it’s your bookshelf',
+    intro: 'Every tile is a book you read this year.',
+    things: 'books',
+    example: ['Ann Cleeves', ['Telling Tales', 'The Crow Trap', 'Silent Voices', 'The Killing Stones']],
+    tips: `<h3>You don’t need a perfect memory</h3>
+    <ul>
+      <li>Most groups are about the <b>words in the title</b> (sea words, one-word titles, a hidden feeling) or <b>who wrote it</b>. No character names, no plot details.</li>
+      <li>Tap <b>Show authors</b> any time to see who wrote each one.</li>
+      <li><b>Hint</b> goes one small step at a time: first it names a group, then it points to one of its books.</li>
+      <li>Now and then a group is about <i>you</i>: books you loved, or ones you gave up on. Leave those till last and they sort themselves out.</li>
+      <li>Out of mistakes? You can keep going with no limit.</li>
+    </ul>`
+  },
+  arch: {
+    data: window.ARCHITECTURE, prefix: 'arch:', label: 'Architecture edition', share: 'Connections: Architecture',
+    show: 'Show architects', hide: 'Hide architects', recap: 'In this puzzle',
+    line: b => `${esc(b.a)} · ${esc(b.m)} · ${esc(b.n)}`,
+    lost: 'These were tricky ones. Who designed what is below.',
+    keepGoing: 'no rush',
+    intro: 'Every tile is a piece of 20th-century architecture from somewhere in the world — mostly buildings, sometimes a famous chair.',
+    things: 'tiles',
+    example: ['Gaudí', ['Casa Batlló', 'Casa Milà', 'Park Güell', 'Sagrada Família']],
+    tips: `<h3>What the groups are about</h3>
+    <ul>
+      <li><b>Who designed it</b> (Wright, Mies, Le Corbusier, Aalto…), <b>where it is</b> (Chicago, Japan, Brazil, Australia…) or <b>what it is</b> (airports, chairs, concert halls, parliaments).</li>
+      <li>The trickier ones: architects’ own homes, buildings named after companies, World’s Fair pavilions, brutalism.</li>
+      <li>Purple is wordplay: a shape hiding in the name, initials, things named for what they look like.</li>
+      <li>Tap <b>Show architects</b> any time, and <b>Hint</b> goes one small step at a time.</li>
+      <li>Out of mistakes? You can keep going with no limit.</li>
+    </ul>`
+  }
+};
+let edition, E, D, P, N;
 const EMOJI = ['🟨','🟩','🟦','🟪'];
 const LAUNCH = new Date(2026, 9, 4); // puzzle #1 is 4 Oct 2026, then one a day, looping the bank
 const $ = id => document.getElementById(id);
 const board = $('board');
 
 // ---------- storage (best effort; game still works without it) ----------
-const store = {
-  get(k, d) { try { const v = localStorage.getItem('bc:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('bc:' + k, JSON.stringify(v)); } catch {} }
+const raw = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+const store = { get: (k, d) => raw.get(E.prefix + k, d), set: (k, v) => raw.set(E.prefix + k, v) };
 
 // ---------- dates ----------
 const dayNum = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - LAUNCH) / 864e5);
@@ -213,20 +262,23 @@ const todayIdx = () => ((dayNum(new Date()) % N) + N) % N;
 
 // ---------- game state ----------
 let idx, puzzle, st, sel = [], busy = false;
-let showAuthors = store.get('authors', false);
+let showAuthors = false;
 
+const sigOf = i => P[i].map(g => g.c + ':' + g.b.join()).join('|');
 function fresh(i) {
   const tiles = P[i].flatMap(g => g.b);
-  return { order: shuffle(tiles.slice()), solved: [], guesses: [], mistakes: 0, hints: [], nudges: [],
+  return { sig: sigOf(i), order: shuffle(tiles.slice()), solved: [], guesses: [], mistakes: 0, hints: [], nudges: [],
            relaxed: false, done: false, won: false, revealed: false };
 }
 function load(i) {
   idx = i; puzzle = P[i]; sel = [];
-  st = store.get('p' + i, null) || fresh(i);
+  st = store.get('p' + i, null);
+  if (!st || st.sig !== sigOf(i)) st = fresh(i); // the puzzle bank was rebuilt since this was saved
   render(); renderHints(); renderMeta();
   window.scrollTo({ top: 0 });
 }
 const save = () => store.set('p' + idx, st);
+const saved = i => { const s = store.get('p' + i, null); return s && s.sig === sigOf(i) ? s : null; };
 
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const groupOf = b => puzzle.findIndex(g => g.b.includes(b));
@@ -235,7 +287,13 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 const SPLITS = { correspondent: 'corre-spondent', resurrection: 'resur-rection', anniversary: 'anni-versary', labyrinth: 'laby-rinth',
   fierceland: 'fierce-land', housemaid: 'house-maid', flashlight: 'flash-light', underworld: 'under-world', afterlife: 'after-life',
   fellowship: 'fellow-ship', librarian: 'libra-rian', detective: 'detec-tive', insidious: 'insid-ious', blackout: 'black-out',
-  edenhope: 'eden-hope', playford: 'play-ford', "husband's": "hus-band's", whistler: 'whis-tler', memorial: 'memo-rial' };
+  edenhope: 'eden-hope', playford: 'play-ford', "husband's": "hus-band's", whistler: 'whis-tler', memorial: 'memo-rial',
+  nationalgalerie: 'national-galerie', sanatorium: 'sana-torium', philharmonie: 'philhar-monie', headquarters: 'head-quarters',
+  gymnasium: 'gymna-sium', cathedral: 'cathe-dral', rockefeller: 'rocke-feller', "d'habitation": "d'habi-tation", assembly: 'assem-bly',
+  parliament: 'parlia-ment', säynätsalo: 'säynät-salo', fallingwater: 'falling-water', tugendhat: 'tugend-hat', farnsworth: 'farns-worth',
+  bangladesh: 'bangla-desh', biosphère: 'bio-sphère', islamabad: 'islam-abad', institute: 'insti-tute', barragán: 'barra-gán',
+  pompidou: 'pompi-dou', chandigarh: 'chandi-garh', pentagon: 'penta-gon', flatiron: 'flat-iron', lipstick: 'lip-stick',
+  residence: 'resi-dence', australia: 'aus-tralia', 'canberra,': 'can-berra,' };
 const soft = t => esc(t).split(' ').map(w => {
   const sp = SPLITS[w.toLowerCase()]; if (!sp) return w;
   const at = sp.indexOf('-'); return w.slice(0, at) + '&shy;' + w.slice(at);
@@ -296,7 +354,7 @@ function renderControls() {
   $('bDeselect').disabled = !sel.length || busy;
   $('bShuffle').disabled = busy;
   $('bAuthors').setAttribute('aria-pressed', showAuthors);
-  $('bAuthors').querySelector('span').textContent = showAuthors ? 'Hide authors' : 'Show authors';
+  $('bAuthors').querySelector('span').textContent = showAuthors ? E.hide : E.show;
   $('bHint').disabled = st.done || busy || nextHint() == null;
   $('controls').classList.toggle('hidden', st.done);
   $('after').classList.toggle('hidden', !st.done);
@@ -439,7 +497,7 @@ async function solveGroup(gi) {
 function outOfMistakes() {
   modal(`
     <h2>Out of mistakes</h2>
-    <p class="sub">That’s four. You can call it here, or keep going with no limit — it’s your bookshelf.</p>
+    <p class="sub">That’s four. You can call it here, or keep going with no limit — ${E.keepGoing}.</p>
     <div class="row">
       <button class="pill" data-act="reveal">Show me the answers</button>
       <button class="pill solid" data-act="relax">Keep going</button>
@@ -502,13 +560,13 @@ function grid() {
 }
 function results() {
   const title = !st.won ? 'Next Time!' : st.relaxed ? 'Got there!' : ['Perfect!', 'Great!', 'Solid!', 'Phew!'][st.mistakes];
-  const sub = !st.won ? 'These were tricky ones. Your bookshelf notes are below.'
+  const sub = !st.won ? E.lost
     : st.relaxed ? `Solved with ${st.mistakes} mistakes and no giving up.`
     : `You completed Puzzle #${idx + 1}${st.hints.length ? ` with ${st.hints.length} hint${st.hints.length > 1 ? 's' : ''}` : ''}.`;
   const rows = grid().map(r => `<div>${[...r].filter(c => c.trim()).map(e => `<span class="c${EMOJI.indexOf(e)}"></span>`).join('')}</div>`).join('');
   const shelf = puzzle.map((g, gi) => g.b.map(b => {
     const bk = D.books[b];
-    return `<li><span class="sw c${gi}"></span><div><div class="bt">${esc(bk.t)}</div><div class="ba">${esc(bk.a)} · read ${bk.m}${bk.n ? ' · ' + esc(bk.n) : ''}</div></div></li>`;
+    return `<li><span class="sw c${gi}"></span><div><div class="bt">${esc(bk.t)}</div><div class="ba">${E.line(bk)}</div></div></li>`;
   }).join('')).join('');
   modal(`
     <h2>${title}</h2>
@@ -519,11 +577,11 @@ function results() {
       <button class="pill" data-act="share">Share Results</button>
       <button class="pill solid" data-act="next">Next Puzzle</button>
     </div>
-    <h3>On this shelf</h3>
+    <h3>${E.recap}</h3>
     <ul class="shelf">${shelf}</ul>`, { share, next: () => { closeModal(); nextPuzzle(); } });
 }
 async function share() {
-  const text = `Connections: Bookshelf\nPuzzle #${idx + 1}\n` + grid().join('\n') + (st.hints.length ? `\n💡 × ${st.hints.length}` : '');
+  const text = `${E.share}\nPuzzle #${idx + 1}\n` + grid().join('\n') + (st.hints.length ? `\n💡 × ${st.hints.length}` : '');
   try {
     if (navigator.share) { await navigator.share({ text }); return; }
     await navigator.clipboard.writeText(text); toastModal('Copied to clipboard');
@@ -538,7 +596,7 @@ function toastModal(msg) {
 // Next puzzle: the next one you haven't finished, walking forward from here.
 function nextPuzzle() {
   for (let k = 1; k <= N; k++) {
-    const i = (idx + k) % N, s = store.get('p' + i, null);
+    const i = (idx + k) % N, s = saved(i);
     if (!s || !s.done) return load(i);
   }
   load((idx + 1) % N);
@@ -561,18 +619,12 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelec
 function help() {
   modal(`
     <h2>How to play</h2>
-    <p class="sub">Every tile is a book you read this year.</p>
-    <p>Find groups of four books that share something. Pick four and tap <b>Submit</b>. You get four mistakes.</p>
-    <div class="ex"><span>Telling Tales</span><span>The Crow Trap</span><span>Silent Voices</span><span>The Killing Stones</span></div>
-    <div class="ex solved c0"><b>Ann Cleeves</b>Telling Tales, The Crow Trap, Silent Voices, The Killing Stones</div>
-    <h3>You don’t need a perfect memory</h3>
-    <ul>
-      <li>Most groups are about the <b>words in the title</b> (sea words, one-word titles, a hidden feeling) or <b>who wrote it</b>. No character names, no plot details.</li>
-      <li>Tap <b>Show authors</b> any time to see who wrote each one.</li>
-      <li><b>Hint</b> goes one small step at a time: first it names a group, then it points to one of its books.</li>
-      <li>Now and then a group is about <i>you</i>: books you loved, or ones you gave up on. Leave those till last and they sort themselves out.</li>
-      <li>Out of mistakes? You can keep going with no limit.</li>
-    </ul>
+    <p class="sub">${E.intro}</p>
+    <p>Find groups of four ${E.things} that share something. Pick four and tap <b>Submit</b>. You get four mistakes.</p>
+    <div class="ex">${E.example[1].map(t => `<span>${esc(t)}</span>`).join('')}</div>
+    <div class="ex solved c0"><b>${esc(E.example[0])}</b>${E.example[1].map(esc).join(', ')}</div>
+    ${E.tips}
+    <p>Switch between the <b>Bookshelf</b> and <b>Architecture</b> editions with the toggle at the top. Each keeps its own progress.</p>
     <h3>Colours</h3>
     <p>Groups go from <span style="background:var(--g0);color:#000;padding:0 4px;border-radius:3px">yellow</span> (most straightforward) to <span style="background:var(--g3);color:#000;padding:0 4px;border-radius:3px">purple</span> (trickiest, often wordplay).</p>
     <h3>A new one every day</h3>
@@ -585,7 +637,7 @@ function statsSheet() {
 function archive() {
   const t = todayIdx();
   const cells = P.map((_, i) => {
-    const s = store.get('p' + i, null);
+    const s = saved(i);
     const cls = s && s.done ? (s.won ? 'won' : 'lost') : '';
     const lab = i === t ? 'today' : s && s.done ? (s.won ? (s.mistakes ? `${s.mistakes} miss${s.mistakes > 1 ? 'es' : ''}` : 'perfect') : 'revealed') : s && s.guesses.length ? 'started' : '';
     return `<button class="arch ${cls}${i === idx ? ' cur' : ''}" data-act="go" data-i="${i}">${i + 1}<small>${lab}</small></button>`;
@@ -603,6 +655,17 @@ $('bShuffle').onclick = () => {
   st.order = [...st.order.filter(b => solvedTiles.has(b)), ...shuffle(st.order.filter(b => !solvedTiles.has(b)))];
   save(); render();
 };
+function setEdition(e, i) {
+  edition = EDITIONS[e] ? e : 'books'; E = EDITIONS[edition]; D = E.data; P = D.puzzles; N = P.length;
+  raw.set('cx:edition', edition);
+  tileEls.clear(); closeModal();
+  showAuthors = store.get('authors', false);
+  $('edLabel').textContent = E.label;
+  document.querySelectorAll('.eds button').forEach(b => b.setAttribute('aria-selected', b.dataset.ed === edition));
+  load(i != null && i >= 0 && i < N ? i : todayIdx());
+  if (!store.get('seenHelp', false)) { store.set('seenHelp', true); help(); }
+}
+document.querySelectorAll('.eds button').forEach(b => b.onclick = () => { if (b.dataset.ed !== edition) setEdition(b.dataset.ed); });
 $('bAuthors').onclick = () => { showAuthors = !showAuthors; store.set('authors', showAuthors); render(); };
 $('bHint').onclick = hint;
 $('bResults').onclick = results;
@@ -612,9 +675,8 @@ $('bStats').onclick = statsSheet;
 $('bArchive').onclick = archive;
 $('bToday').onclick = () => load(todayIdx());
 
-const q = new URLSearchParams(location.search).get('p');
-load(q && +q >= 1 && +q <= N ? +q - 1 : todayIdx());
-if (!store.get('seenHelp', false)) { store.set('seenHelp', true); help(); }
+const qs = new URLSearchParams(location.search), q = qs.get('p');
+setEdition(qs.get('e') || raw.get('cx:edition', 'books'), q ? +q - 1 : null);
 if (document.fonts) document.fonts.ready.then(fitAll);
 
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
