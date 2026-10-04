@@ -57,7 +57,7 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 @media (max-width:360px){main{padding:10px 10px 32px}.board{gap:6px!important}.tile{padding:3px!important}.top-in{padding-left:10px}}
 .eds{display:flex;justify-content:center;margin:2px 0 14px}
 .eds div{display:inline-flex;border:1px solid var(--ink);border-radius:32px;padding:3px;gap:2px}
-.eds button{height:34px;padding:0 16px;border-radius:30px;font-size:14px;font-weight:600;color:var(--ink)}
+.eds button{height:34px;padding:0 14px;border-radius:30px;font-size:14px;font-weight:600;color:var(--ink)}
 .eds button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .meta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--soft);margin:4px 0 0}
 .meta b{color:var(--ink);font-weight:700}
@@ -173,6 +173,7 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
   <div class="eds"><div role="tablist" aria-label="Edition">
     <button role="tab" data-ed="books" aria-selected="true">Bookshelf</button>
     <button role="tab" data-ed="arch" aria-selected="false">Architecture</button>
+    <button role="tab" data-ed="tech" aria-selected="false">Tech</button>
   </div></div>
   <div class="meta"><div id="meta"></div><button id="bToday" class="hidden">Back to today</button></div>
   <p class="prompt" id="prompt">Create four groups of four!</p>
@@ -201,6 +202,7 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 
 <script src="puzzles.js"></script>
 <script src="architecture.js"></script>
+<script src="tech.js"></script>
 <script>
 (() => {
 // Two editions share one game; each keeps its own progress and stats under its own storage prefix.
@@ -239,6 +241,23 @@ const EDITIONS = {
       <li>Purple is wordplay: a shape hiding in the name, initials, things named for what they look like.</li>
       <li>Tap <b>Show architects</b> any time, and <b>Hint</b> goes one small step at a time.</li>
       <li>Out of mistakes? You can keep going with no limit.</li>
+    </ul>`
+  },
+  tech: {
+    data: window.TECH, prefix: 'tech:', label: 'Tech edition', share: 'Connections: Tech',
+    show: 'Show clues', hide: 'Hide clues', recap: 'In this puzzle',
+    line: b => [esc(b.a), b.m, b.n && esc(b.n)].filter(Boolean).join(' · '),
+    lost: 'Tough one. The details are below.',
+    keepGoing: 'no shame in it',
+    intro: 'Every tile is a tech company, product or person. Pitched at a Stratechery reader: not trivia-night obscure, not easy either.',
+    things: 'tiles',
+    example: ['Elon Musk companies', ['Zip2', 'SpaceX', 'Neuralink', 'The Boring Company']],
+    tips: `<h3>What the groups are about</h3>
+    <ul>
+      <li><b>Who owns or bought it</b> (Google, Meta, Amazon, Microsoft), <b>who founded it</b> (Elon, the PayPal Mafia, Y Combinator, OpenAI alumni) and <b>what it does</b> (chips, AI coding tools, AI agents, EVs, rockets).</li>
+      <li><b>Business models</b>: ads vs subscriptions, and Ben Thompson’s original aggregators.</li>
+      <li>Purple is wordplay or deep cuts: Tolkien names, Apple chip names, names that came from places.</li>
+      <li><b>Show clues</b> adds a one-line description to every tile, and <b>Hint</b> goes one small step at a time.</li>
     </ul>`
   }
 };
@@ -293,7 +312,10 @@ const SPLITS = { correspondent: 'corre-spondent', resurrection: 'resur-rection',
   parliament: 'parlia-ment', säynätsalo: 'säynät-salo', fallingwater: 'falling-water', tugendhat: 'tugend-hat', farnsworth: 'farns-worth',
   bangladesh: 'bangla-desh', biosphère: 'bio-sphère', islamabad: 'islam-abad', institute: 'insti-tute', barragán: 'barra-gán',
   pompidou: 'pompi-dou', chandigarh: 'chandi-garh', pentagon: 'penta-gon', flatiron: 'flat-iron', lipstick: 'lip-stick',
-  residence: 'resi-dence', australia: 'aus-tralia', 'canberra,': 'can-berra,' };
+  residence: 'resi-dence', australia: 'aus-tralia', 'canberra,': 'can-berra,',
+  zuckerberg: 'zucker-berg', superintelligence: 'super-intelligence', activision: 'acti-vision', doubleclick: 'double-click',
+  duckduckgo: 'duckduck-go', neuralink: 'neura-link', instacart: 'insta-cart', pinterest: 'pin-terest', perplexity: 'per-plexity',
+  anthropic: 'an-thropic', minecraft: 'mine-craft', blackwell: 'black-well', instagram: 'insta-gram', stratechery: 'strate-chery' };
 const soft = t => esc(t).split(' ').map(w => {
   const sp = SPLITS[w.toLowerCase()]; if (!sp) return w;
   const at = sp.indexOf('-'); return w.slice(0, at) + '&shy;' + w.slice(at);
@@ -624,7 +646,7 @@ function help() {
     <div class="ex">${E.example[1].map(t => `<span>${esc(t)}</span>`).join('')}</div>
     <div class="ex solved c0"><b>${esc(E.example[0])}</b>${E.example[1].map(esc).join(', ')}</div>
     ${E.tips}
-    <p>Switch between the <b>Bookshelf</b> and <b>Architecture</b> editions with the toggle at the top. Each keeps its own progress.</p>
+    <p>Switch between the <b>Bookshelf</b>, <b>Architecture</b> and <b>Tech</b> editions with the toggle at the top. Each keeps its own progress.</p>
     <h3>Colours</h3>
     <p>Groups go from <span style="background:var(--g0);color:#000;padding:0 4px;border-radius:3px">yellow</span> (most straightforward) to <span style="background:var(--g3);color:#000;padding:0 4px;border-radius:3px">purple</span> (trickiest, often wordplay).</p>
     <h3>A new one every day</h3>
