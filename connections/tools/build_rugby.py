@@ -170,6 +170,19 @@ ITEMS = {
   'shamrock':    ("Shamrock", "Emblem", "", "Ireland"),
   'protea':      ("Protea", "Emblem", "", "South Africa"),
   'cockerel':    ("Cockerel", "Emblem", "", "France"),
+  # --- added for variety ---
+  'mcgeechan':   ("Ian McGeechan", "Coach", "", "Coached the Lions on four tours"),
+  'afarrell':    ("Andy Farrell", "Coach", "", "Coached Ireland and the 2025 Lions"),
+  'knockon':     ("Knock-on", "Infringement", "", ""),
+  'forwardpass': ("Forward pass", "Infringement", "", ""),
+  'offside':     ("Offside", "Infringement", "", ""),
+  'hightackle':  ("High tackle", "Infringement", "", ""),
+  'sinbin':      ("Sin bin", "Referee's toolkit", "", "Ten minutes off"),
+  'tmo':         ("TMO", "Referee's toolkit", "", "Television match official"),
+  'yellowcard':  ("Yellow card", "Referee's toolkit", "", ""),
+  'advantage':   ("Advantage", "Referee's toolkit", "", ""),
+  'wallaroos':   ("Wallaroos", "Australia women", "", ""),
+  'lesbleues':   ("Les Bleues", "France women", "", ""),
 }
 
 CATEGORIES = [
@@ -184,7 +197,7 @@ CATEGORIES = [
   C('scoring', 0, "Ways to score", ['try','conversion','dropgoal','penaltytry']),
   C('pacific', 0, "From the Pacific Islands", ['fiji','samoa','tonga','drua','moana']),
 
-  C('wcwin', 1, "World Cup winners", ['allblacks','springboks','wallabies','england'], also=['blackferns','redroses']),
+  C('wcwin', 1, "World Cup winners", ['allblacks','springboks','wallabies','england'], also=['blackferns','redroses','wallaroos','lesbleues']),
   C('aussuper', 1, "Australian Super Rugby sides", ['brumbies','waratahs','reds','force']),
   C('urc', 1, "South African sides", ['bulls','sharks','stormers','lions']),
   C('top14', 1, "French clubs", ['toulouse','larochelle','racing92','stadefr','toulon','clermont']),
@@ -215,15 +228,27 @@ CATEGORIES = [
   C('emblems', 2, "Emblems on the jersey", ['silverfern','rose','thistle','shamrock','protea','cockerel'],
     also=['springboks','braveblossoms']),
 
-  C('animals', 3, "Named after animals", ['springboks','wallabies','pumas','bulls','sharks','brumbies','lions','tigers'],
+  C('animals', 3, "Named after animals", ['springboks','wallabies','pumas','bulls','sharks','brumbies','lions','tigers','wallaroos'],
     also=['cockerel']),
-  C('colours', 3, "A colour in the name", ['blues','reds','allblacks','blackferns','redroses'],
-    key={'blues':'Blues','reds':'Reds','allblacks':'Blacks','blackferns':'Black','redroses':'Red'}),
+  C('colours', 3, "A colour in the name", ['blues','reds','allblacks','blackferns','redroses','lesbleues'],
+    key={'blues':'Blues','reds':'Reds','allblacks':'Blacks','blackferns':'Black','redroses':'Red','lesbleues':'Bleues'}),
   C('plants', 3, "Plants & flowers", ['silverfern','rose','thistle','shamrock','protea','waratahs','braveblossoms'],
     also=['blackferns','redroses']),
   C('history', 3, "Historical figures", ['crusaders','saracens','barbarians','quins','highlanders']),
   C('person', 3, "Named after a person", ['webbellis','bledisloe','mandela','garibaldi'], also=['ellispark','edenpark']),
+  # --- added for variety ---
+  C('locks', 1, "Locks", ['eales','oconnell','awj','etzebeth','itoje','mjohnson','weir'], also=['lock']),
+  C('tens', 1, "Fly-halves", ['carter','wilkinson','sexton','ogara','russell'], also=['barrett','farrell','flyhalf']),
+  C('nines', 1, "Scrum-halves", ['dupont','gregan','gedwards','galthie','kirk','farrjones'], also=['scrumhalf']),
+  C('wingers', 1, "Wingers", ['lomu','campese','habana','swilliams'], also=['kolbe','sailor','tuqiri','robinson','wing']),
+  C('fullbacks', 1, "Fullbacks", ['hogg','halfpenny','blanco','hastings'], also=['folau','robinson','fullback','barrett']),
+  C('flankers', 1, "Flankers", ['mccaw','hooper','pocock','kolisi','pienaar','dusautoir'], also=['flanker']),
+  C('lions', 2, "Coached the British & Irish Lions", ['gatland','woodward','mcgeechan','afarrell'], also=['henry']),
+  C('infringe', 0, "Infringements", ['knockon','forwardpass','offside','hightackle']),
+  C('ref', 0, "The referee's toolkit", ['sinbin','tmo','yellowcard','advantage']),
+  C('women', 1, "Women's national teams", ['blackferns','redroses','wallaroos','lesbleues']),
+  C('everyday', 3, "Positions that are everyday words", ['hooker','prop','lock','wing','centre']),
 ]
 
 if __name__ == '__main__':
-    run(ITEMS, CATEGORIES, 'rugby', 'RUGBY', seed=19870522, n=60)
+    run(ITEMS, CATEGORIES, 'rugby', 'RUGBY', seed=1, n=50, caps=(4, 6), window=7)

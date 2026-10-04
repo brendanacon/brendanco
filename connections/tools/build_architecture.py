@@ -130,6 +130,19 @@ ITEMS = {
   'aph':           ("Parliament House, Canberra", "Mitchell/Giurgola & Thorp", "1988", "Canberra"),
   'canberra':      ("Canberra", "Walter Burley Griffin & Marion Mahony Griffin", "1913", "Australia · planned capital city"),
   'islamabad':     ("Islamabad", "Constantinos Doxiadis", "1960s", "Pakistan · planned capital city"),
+  # --- added for variety ---
+  'petronas':    ("Petronas Towers", "César Pelli", "1998", "Kuala Lumpur · world's tallest 1998–2004"),
+  'pennstation': ("Penn Station", "McKim, Mead & White", "1910", "New York · demolished 1963"),
+  'imperial':    ("Imperial Hotel, Tokyo", "Frank Lloyd Wright", "1923", "Tokyo · demolished 1968"),
+  'pruittigoe':  ("Pruitt-Igoe", "Minoru Yamasaki", "1954", "St Louis · demolished 1972"),
+  'e1027':       ("E-1027", "Eileen Gray", "1929", "Roquebrune-Cap-Martin, France"),
+  'vitrafire':   ("Vitra Fire Station", "Zaha Hadid", "1993", "Weil am Rhein, Germany"),
+  'munich':      ("Munich Olympic Stadium", "Günter Behnisch & Frei Otto", "1972", "Munich · 1972 Olympics"),
+  'montrealoly': ("Montreal Olympic Stadium", "Roger Taillibert", "1976", "Montreal · 1976 Olympics"),
+  'palazzetto':  ("Palazzetto dello Sport", "Pier Luigi Nervi", "1957", "Rome · 1960 Olympics"),
+  'viipuri':     ("Viipuri Library", "Alvar Aalto", "1935", "Vyborg, now Russia"),
+  'stockholmlib':("Stockholm Public Library", "Gunnar Asplund", "1928", "Stockholm"),
+  'hollyhock':   ("Hollyhock House", "Frank Lloyd Wright", "1921", "Los Angeles"),
 }
 
 C = lambda id, level, name, members, also=(), key=None, gloss=None, memory=False: dict(
@@ -137,12 +150,12 @@ C = lambda id, level, name, members, also=(), key=None, gloss=None, memory=False
 
 CATEGORIES = [
   # who designed it — the famous five are yellow, the rest green
-  C('wright', 0, "Frank Lloyd Wright", ['fallingwater','guggenheimny','robie','johnsonwax','unitytemple','taliesin']),
+  C('wright', 0, "Frank Lloyd Wright", ['fallingwater','guggenheimny','robie','johnsonwax','unitytemple','taliesin','hollyhock','imperial']),
   C('mies', 0, "Mies van der Rohe", ['barcelonapav','farnsworth','seagram','neuenational','tugendhat','crownhall','barcelonachair']),
   C('corbu', 0, "Le Corbusier", ['villasavoye','unite','ronchamp','latourette','lc4'], also=['chandigarh']),
   C('gaudi', 0, "Gaudí", ['casabatllo','casamila','parkguell','sagrada']),
   C('gehry', 0, "Frank Gehry", ['bilbao','dancinghouse','vitramuseum','gehryhouse']),
-  C('aalto', 1, "Alvar Aalto", ['paimio','mairea','finlandia','saynatsalo','paimiochair']),
+  C('aalto', 1, "Alvar Aalto", ['paimio','mairea','finlandia','saynatsalo','paimiochair','viipuri']),
   C('niemeyer', 1, "Oscar Niemeyer", ['brasiliacath','congress','niteroi','pampulha','copan'], also=['brasilia']),
   C('kahn', 1, "Louis Kahn", ['salk','kimbell','dhaka','exeter']),
   C('pei', 1, "I.M. Pei", ['louvrepyramid','bankofchina','eastwing','jfklibrary']),
@@ -155,13 +168,13 @@ CATEGORIES = [
 
   # where it is
   C('nyc', 0, "In New York", ['guggenheimny','seagram','chrysler','empirestate','rockefeller','flatiron','twa','lever','wtc',
-                              'panam','att','whitney','lipstick']),
+                              'panam','att','whitney','lipstick','pennstation']),
   C('chicago', 1, "In Chicago", ['robie','crownhall','sears','hancock','marinacity'], also=['unitytemple','farnsworth']),
   C('london', 1, "In London", ['lloyds','barbican','trellick','nationaltheatre','festivalhall'], also=['stansted']),
   C('paris', 1, "In Paris", ['pompidou','louvrepyramid','imarabe','grandearche'], also=['villasavoye']),
   C('berlin', 1, "In Berlin", ['neuenational','reichstag','tvtower','philharmonie'], also=['einstein']),
   C('barcelona', 1, "In Barcelona", ['casabatllo','casamila','parkguell','sagrada','barcelonapav'], also=['barcelonachair']),
-  C('japan', 1, "In Japan", ['yoyogi','nakagin','churchlight','churchwater','watertemple','azuma','hiroshima','kansai']),
+  C('japan', 1, "In Japan", ['yoyogi','nakagin','churchlight','churchwater','watertemple','azuma','hiroshima','kansai','imperial']),
   C('brazil', 1, "In Brazil", ['brasiliacath','congress','niteroi','pampulha','copan','masp'], also=['brasilia']),
   C('australia', 1, "In Australia", ['sydneyopera','roseseidler','ausquare','sydneytower','aph','canberra']),
 
@@ -203,6 +216,18 @@ CATEGORIES = [
   C('lookslike', 3, "Named for what it looks like", ['lipstick','egg','tulipchair','flatiron'],
     also=['dancinghouse','louvrepyramid','biosphere','atomium','gatewayarch','pentagon','marinacity','spaceneedle'],
     key={'lipstick':'Lipstick','egg':'Egg','tulipchair':'Tulip','flatiron':'Flatiron'}),
+  # --- added for variety ---
+  C('tallest', 2, "Once the world's tallest building", ['chrysler','empirestate','wtc','sears','petronas'], memory=True),
+  C('demolished', 2, "Demolished or destroyed", ['wtc','nakagin','pennstation','imperial','pruittigoe']),
+  C('women', 2, "Designed by a woman", ['e1027','vitrafire','masp','canberra'], also=['barcelonapav','barcelonachair','lc4']),
+  C('olympic', 1, "Olympic venues", ['yoyogi','munich','montrealoly','palazzetto']),
+  C('libraries', 1, "Libraries", ['exeter','jfklibrary','viipuri','stockholmlib']),
+  C('nordic', 1, "In the Nordics", ['finlandia','paimio','mairea','saynatsalo','bagsvaerd','stockholmlib'], also=['viipuri']),
+  C('california', 1, "In California", ['salk','eameshouse','gehryhouse','crystal','hollyhock']),
+  C('famous', 3, "Named after someone famous (who didn't live there)", ['einstein','jfklibrary','pompidou','rothko','salk'],
+    also=['guggenheimny','bilbao','whitney','kimbell','villasavoye','robie','farnsworth','schroder','tugendhat','roseseidler',
+          'muller','stoclet','casabatllo','casamila','mairea','gropiushouse','eameshouse','gehryhouse','barragan']),
+  C('nothome', 3, "A 'House' that isn't a home", ['lever','sydneyopera','aph','dancinghouse']),
 ]
 
 for c in CATEGORIES:
@@ -215,10 +240,12 @@ for c in CATEGORIES:
 def main():
     engine.CATEGORIES = CATEGORIES  # the generator reads its tables from the module
     engine.DECOY_OK = set()
-    engine.CAP_SMALL, engine.CAP_BIG = 6, 12
-    for seed in range(19290101, 19290101 + 50):
+    engine.CAP_SMALL, engine.CAP_BIG = 4, 6
+    engine.WINDOW, engine.REPEAT_GAP = 7, 10**6
+    engine.POOL_TRIES = 2
+    for seed in range(1, 6):
         try:
-            puzzles, cat_use, tile_use = engine.build(n=60, seed=seed)
+            puzzles, cat_use, tile_use = engine.build(n=50, seed=seed)
             break
         except RuntimeError:
             continue
