@@ -86,6 +86,8 @@ BOOKS = {
 CATEGORIES = [
   dict(id='cleeves', level=0, name="Ann Cleeves", memory=False,
        members=['tellingtales','crowtrap','killingstones','silentvoices']),
+  dict(id='crimequeens', level=1, name="Ann Cleeves or Val McDermid", memory=False,
+       members=['tellingtales','crowtrap','killingstones','silentvoices','insidious','deadspeak','reportmurder']),
   dict(id='moriarty', level=0, name="Written by a Moriarty", memory=False,
        members=['lastanniv','husbands','alice','needtoknow']),
   dict(id='murder', level=0, name="Murder or killing in the title", memory=False,
@@ -165,6 +167,8 @@ CATEGORIES = [
   dict(id='tims', level=2, name="Written by a Tim (Winton or Sullivan)", memory=False,
        members=['riders','exwife','tailor','hunter']),
 
+  dict(id='agent', level=3, name="Ends in -er or -or", memory=False,
+       members=['visitor','gambler','tailor','hunter','whistler','correspondent'], also=['riders','librarian','detective']),
   dict(id='alliteration', level=3, name="Alliteration: Love Lane, Telling Tales…", memory=False,
        members=['lovelane','farflung','tellingtales','insidious','buried'],
        also=['savelife']),
@@ -221,77 +225,130 @@ def valid(groups):
     return True
 
 # How often a category may appear: four-member (identical every time) and memory groups vs the rest.
-CAP_SMALL, CAP_BIG = 7, 18
+CAP_SMALL, CAP_BIG = 5, 12
+# Minimum days before a category can come back, and before an identical group of four can.
+WINDOW, REPEAT_GAP = 3, 20  # Books has only 64 books, so it can't be stricter
+POOL_TRIES, BRANCH, NODE_BUDGET, MAX_COMBOS = 6, 6, 20000, 6000  # search effort
+POOLSIZE = [0]
 
 # Broad categories that are allowed to overlap other groups when they aren't in play.
 DECOY_OK = {'mysteries'}
 
-def feasible_combos():
-    """Every set of four categories that can form a fair puzzle."""
+def feasible_combos(rng=None, limit=None):
+    """Sets of four categories that can form a fair puzzle. With many categories, samples
+    random sets instead of enumerating all of them."""
     from itertools import combinations
-    out = []
-    for combo in combinations(CATEGORIES, 4):
+    from math import comb
+    fit = {c['id']: set(c['members']) | set(c['also']) for c in CATEGORIES}
+
+    def check(combo):
         pick = sorted(combo, key=lambda c: c['level'])
         lv = [c['level'] for c in pick]
         # an easy on-ramp, at most one purple-style group, at most one memory group
-        if lv[0] > 1 or lv.count(3) > 1 or lv.count(0) > 2 or lv[3] < 2 or sum(c['memory'] for c in pick) > 1: continue
+        if lv[0] > 1 or lv.count(3) > 1 or lv.count(0) > 2 or lv[3] < 2 or sum(c['memory'] for c in pick) > 1: return None
         pools = []
         for c in pick:
-            pool = [b for b in c['members'] if not any(fits(b, o) for o in pick if o is not c)]
-            if len(pool) < 4: break
+            others = set().union(*[fit[o['id']] for o in pick if o is not c])
+            pool = [b for b in c['members'] if b not in others]
+            if len(pool) < 4: return None
             pools.append(pool)
-        else:
-            out.append((pick, pools))
+        return (pick, pools)
+
+    out = []
+    if limit and rng and comb(len(CATEGORIES), 4) > 4 * limit:
+        seen = set()
+        for _ in range(limit * 60):
+            combo = tuple(sorted(rng.sample(range(len(CATEGORIES)), 4)))
+            if combo in seen: continue
+            seen.add(combo)
+            r = check([CATEGORIES[k] for k in combo])
+            if r: out.append(r)
+            if len(out) >= limit: break
+        return out
+    for combo in combinations(CATEGORIES, 4):
+        r = check(combo)
+        if r: out.append(r)
     return out
 
 def build(n=56, seed=20261005):
+    """Builds the bank in day order.
+    1. Sample a pool of fair puzzles from every feasible set of four categories.
+    2. Search for a sequence of n of them where no category comes back within WINDOW days
+       (wrapping round, since the bank loops), no category exceeds its cap, and the same
+       group of four doesn't come back within REPEAT_GAP days."""
+    import sys
     rng = random.Random(seed)
-    combos = feasible_combos()
-    cat_use, tile_use, combo_use = Counter(), Counter(), Counter()
-    seen, out = set(), []
     cap = lambda c: CAP_SMALL if len(c['members']) == 4 or (c['memory'] and c['id'] != 'mysteries') else CAP_BIG
-    while len(out) < n:
-        # favour combos made of the least-used categories; mysteries were asked for, so nudge them up
-        scored = []
-        for ci, (pick, pools) in enumerate(combos):
-            if any(cat_use[c['id']] >= cap(c) for c in pick) or combo_use[ci] >= 1: continue
-            score = sum(cat_use[c['id']] for c in pick) + rng.random() * 3 - (8 if pick[0]['id'] == 'mysteries' else 0)
-            scored.append((score, ci))
-        if not scored: raise RuntimeError(f'stuck at {len(out)}')
-        scored.sort()
-        for _, ci in scored[:400]:
-            pick, pools = combos[ci]
-            groups = []
-            for c, pool in zip(pick, pools):
-                w = [1 / (1 + tile_use[b]) ** 2 for b in pool]
-                chosen = []
-                while len(chosen) < 4:
-                    b = rng.choices(pool, weights=w)[0]
-                    if b not in chosen: chosen.append(b)
-                groups.append((c, chosen))
+    capof = {c['id']: cap(c) for c in CATEGORIES}
+    size = {c['id']: len(c['members']) for c in CATEGORIES}
+    pool, seen = [], set()
+    combos = feasible_combos(rng, MAX_COMBOS)
+    if len(combos) > MAX_COMBOS: combos = rng.sample(combos, MAX_COMBOS)
+    for pick, pools in combos:
+        for _ in range(POOL_TRIES):
+            groups = [(c, rng.sample(pl, 4)) for c, pl in zip(pick, pools)]
             sig = frozenset(b for _, bs in groups for b in bs)
-            if valid(groups) and sig not in seen: break
-        else:
-            raise RuntimeError(f'stuck at {len(out)}')
-        seen.add(sig); combo_use[ci] += 1
-        for c, bs in groups:
-            cat_use[c['id']] += 1
-            for b in bs: tile_use[b] += 1
-        out.append({'cats': frozenset(c['id'] for c in pick), 'groups': [(c['id'], bs) for c, bs in groups]})
-    # order the bank so neighbouring days share as little as possible
-    ordered = [out.pop(0)]
-    while out:
-        prev = ordered[-1]['cats']
-        prev2 = ordered[-2]['cats'] if len(ordered) > 1 else frozenset()
-        out.sort(key=lambda p: (len(p['cats'] & prev) * 3 + len(p['cats'] & prev2), rng.random()))
-        ordered.append(out.pop(0))
-    return ordered, cat_use, tile_use
+            if sig in seen or not valid(groups): continue
+            seen.add(sig)
+            pool.append({'cats': frozenset(c['id'] for c in pick), 'sig': sig,
+                         'gkeys': [(c['id'], frozenset(bs)) for c, bs in groups],
+                         'groups': [(c['id'], bs) for c, bs in groups],
+                         'mystery': pick[0]['id'] == 'mysteries'})
+    if not pool: raise RuntimeError('stuck at 0')
+    POOLSIZE[0] = len(pool)
+    sys.setrecursionlimit(10000)
+    bit = {c['id']: 1 << k for k, c in enumerate(CATEGORIES)}
+    for k, p in enumerate(pool):
+        p['mask'] = sum(bit[c] for c in p['cats'])
+        p['k'] = k
+    seq, cat_use, last_group, budget, used = [], Counter(), {}, [NODE_BUDGET], set()
+    best = [0]
+
+    def ok(p, blocked, full):
+        if p['mask'] & (blocked | full) or p['k'] in used: return False
+        d = len(seq)
+        for g in p['gkeys']:
+            if g in last_group and size[g[0]] > 4 and d - last_group[g] <= REPEAT_GAP: return False
+        return True
+
+    def dfs():
+        best[0] = max(best[0], len(seq))
+        if len(seq) == n: return True
+        budget[0] -= 1
+        if budget[0] < 0: return False
+        d = len(seq)
+        blocked = 0
+        for back in range(1, WINDOW + 1):
+            if d - back >= 0: blocked |= seq[d - back]['mask']
+        for k in range(max(0, d + WINDOW - n + 1)):   # the last days also sit next to day one
+            blocked |= seq[k]['mask']
+        full = sum(bit[c] for c, v in cat_use.items() if v >= capof[c])
+        cands = [p for p in pool if ok(p, blocked, full)]
+        if not cands: return False
+        rng.shuffle(cands)
+        cands.sort(key=lambda p: sum(cat_use[c] for c in p['cats']) - (6 if p['mystery'] else 0) + rng.random() * 4)
+        for p in cands[:BRANCH]:
+            prev = {g: last_group.get(g) for g in p['gkeys']}
+            seq.append(p); used.add(p['k'])
+            for c in p['cats']: cat_use[c] += 1
+            for g in p['gkeys']: last_group[g] = len(seq) - 1
+            if dfs(): return True
+            seq.pop(); used.discard(p['k'])
+            for c in p['cats']: cat_use[c] -= 1
+            for g, v in prev.items():
+                if v is None: last_group.pop(g, None)
+                else: last_group[g] = v
+        return False
+
+    if not dfs(): raise RuntimeError(f'stuck at {best[0]}')
+    tile_use = Counter(b for p in seq for _, bs in p['groups'] for b in bs)
+    return [{'cats': p['cats'], 'groups': p['groups']} for p in seq], cat_use, tile_use
 
 def main():
     print(len(feasible_combos()), 'feasible category combos')
-    for seed in range(20261005, 20261005 + 50):
+    for seed in range(20261021, 20261021 + 10):
         try:
-            puzzles, cat_use, tile_use = build(seed=seed)
+            puzzles, cat_use, tile_use = build(n=32, seed=seed)
             break
         except RuntimeError:
             continue

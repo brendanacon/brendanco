@@ -358,7 +358,9 @@ const SPLITS = { correspondent: 'corre-spondent', resurrection: 'resur-rection',
   anthropic: 'an-thropic', minecraft: 'mine-craft', blackwell: 'black-well', instagram: 'insta-gram', stratechery: 'strate-chery',
   highlanders: 'high-landers', northampton: 'north-ampton', hurricanes: 'hurri-canes', springboks: 'spring-boks', murrayfield: 'murray-field',
   twickenham: 'twicken-ham', principality: 'princi-pality', crusaders: 'cru-saders', harlequins: 'harle-quins', barbarians: 'bar-barians',
-  wallabies: 'walla-bies', conversion: 'conver-sion', rabbitohs: 'rabbit-ohs', silvertails: 'silver-tails' };
+  wallabies: 'walla-bies', conversion: 'conver-sion', rabbitohs: 'rabbit-ohs', silvertails: 'silver-tails',
+  microsystems: 'micro-systems', campbelltown: 'campbell-town', palazzetto: 'palaz-zetto', mcgeechan: 'mc-geechan',
+  dynamics: 'dyna-mics', olympic: 'olym-pic' };
 const soft = t => esc(t).split(' ').map(w => {
   const sp = SPLITS[w.toLowerCase()]; if (!sp) return w;
   const at = sp.indexOf('-'); return w.slice(0, at) + '&shy;' + w.slice(at);
