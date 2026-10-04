@@ -1,6 +1,6 @@
 // Offline support: network first so new puzzles show immediately, cache as fallback.
-const CACHE = 'connections-v3';
-const ASSETS = ['./', 'index.html', 'puzzles.js', 'architecture.js', 'tech.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'connections-v4';
+const ASSETS = ['./', 'index.html', 'puzzles.js', 'architecture.js', 'tech.js', 'rugby.js', 'nrl.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

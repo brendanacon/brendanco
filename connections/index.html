@@ -55,9 +55,11 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
 main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 @media (max-width:360px){main{padding:10px 10px 32px}.board{gap:6px!important}.tile{padding:3px!important}.top-in{padding-left:10px}}
-.eds{display:flex;justify-content:center;margin:2px 0 14px}
-.eds div{display:inline-flex;border:1px solid var(--ink);border-radius:32px;padding:3px;gap:2px}
-.eds button{height:34px;padding:0 14px;border-radius:30px;font-size:14px;font-weight:600;color:var(--ink)}
+.eds{display:flex;justify-content:center;margin:2px 0 14px;overflow-x:auto;scrollbar-width:none}
+.eds::-webkit-scrollbar{display:none}
+.eds div{display:inline-flex;border:1px solid var(--ink);border-radius:32px;padding:3px;gap:0;flex:none}
+.eds button{height:34px;padding:0 12px;border-radius:30px;font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap}
+@media (max-width:380px){.eds button{padding:0 9px;font-size:13px}}
 .eds button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .meta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--soft);margin:4px 0 0}
 .meta b{color:var(--ink);font-weight:700}
@@ -171,9 +173,11 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 
 <main>
   <div class="eds"><div role="tablist" aria-label="Edition">
-    <button role="tab" data-ed="books" aria-selected="true">Bookshelf</button>
+    <button role="tab" data-ed="books" aria-selected="true">Books</button>
     <button role="tab" data-ed="arch" aria-selected="false">Architecture</button>
     <button role="tab" data-ed="tech" aria-selected="false">Tech</button>
+    <button role="tab" data-ed="rugby" aria-selected="false">Rugby</button>
+    <button role="tab" data-ed="nrl" aria-selected="false">NRL</button>
   </div></div>
   <div class="meta"><div id="meta"></div><button id="bToday" class="hidden">Back to today</button></div>
   <p class="prompt" id="prompt">Create four groups of four!</p>
@@ -203,6 +207,8 @@ main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
 <script src="puzzles.js"></script>
 <script src="architecture.js"></script>
 <script src="tech.js"></script>
+<script src="rugby.js"></script>
+<script src="nrl.js"></script>
 <script>
 (() => {
 // Two editions share one game; each keeps its own progress and stats under its own storage prefix.
@@ -258,6 +264,40 @@ const EDITIONS = {
       <li><b>Business models</b>: ads vs subscriptions, and Ben Thompson’s original aggregators.</li>
       <li>Purple is wordplay or deep cuts: Tolkien names, Apple chip names, names that came from places.</li>
       <li><b>Show clues</b> adds a one-line description to every tile, and <b>Hint</b> goes one small step at a time.</li>
+    </ul>`
+  },
+  rugby: {
+    data: window.RUGBY, prefix: 'rugby:', label: 'Rugby union edition', share: 'Connections: Rugby',
+    show: 'Show clues', hide: 'Hide clues', recap: 'In this puzzle',
+    line: b => [esc(b.a), b.m, b.n && esc(b.n)].filter(Boolean).join(' · '),
+    lost: 'Knocked on. The details are below.',
+    keepGoing: 'play to the whistle',
+    intro: 'Every tile is from world rugby union: teams, players, coaches, grounds, trophies and the game itself.',
+    things: 'tiles',
+    example: ['Pre-match war dances', ['Haka', 'Siva Tau', 'Sipi Tau', 'Cibi']],
+    tips: `<h3>What the groups are about</h3>
+    <ul>
+      <li><b>Teams</b> (Six Nations, Rugby Championship, Super Rugby, Irish provinces, French and English clubs), <b>players by country</b>, and the game itself (positions, set pieces, ways to score).</li>
+      <li>Harder: World Cup-winning captains and coaches, final venues, who coached the Wallabies, players who also played league.</li>
+      <li>Purple is wordplay: animals, colours, plants, historical figures, things named after a person.</li>
+      <li><b>Show clues</b> adds a one-liner to every tile, and <b>Hint</b> goes one small step at a time.</li>
+    </ul>`
+  },
+  nrl: {
+    data: window.NRL, prefix: 'nrl:', label: 'NRL edition', share: 'Connections: NRL',
+    show: 'Show clues', hide: 'Hide clues', recap: 'In this puzzle',
+    line: b => [esc(b.a), b.m, b.n && esc(b.n)].filter(Boolean).join(' · '),
+    lost: 'Bunkered. The details are below.',
+    keepGoing: 'six again',
+    intro: 'Every tile is from the modern NRL: clubs, players, coaches, rules and the bits in between.',
+    things: 'tiles',
+    example: ['Queensland clubs', ['Broncos', 'Cowboys', 'Titans', 'Dolphins']],
+    tips: `<h3>What the groups are about</h3>
+    <ul>
+      <li><b>Clubs</b> by where they’re from or what they’re named after, <b>players</b> by position or team era (the Storm’s Big Three, Penrith’s four-peat), and the rules and fixtures.</li>
+      <li>Harder: premiership coaches since 2010, Wayne Bennett’s clubs, 2010s premiers, Origin coaches.</li>
+      <li>Purple: fan nicknames and player nicknames.</li>
+      <li><b>Show clues</b> adds a one-liner to every tile, and <b>Hint</b> goes one small step at a time.</li>
     </ul>`
   }
 };
@@ -315,7 +355,10 @@ const SPLITS = { correspondent: 'corre-spondent', resurrection: 'resur-rection',
   residence: 'resi-dence', australia: 'aus-tralia', 'canberra,': 'can-berra,',
   zuckerberg: 'zucker-berg', superintelligence: 'super-intelligence', activision: 'acti-vision', doubleclick: 'double-click',
   duckduckgo: 'duckduck-go', neuralink: 'neura-link', instacart: 'insta-cart', pinterest: 'pin-terest', perplexity: 'per-plexity',
-  anthropic: 'an-thropic', minecraft: 'mine-craft', blackwell: 'black-well', instagram: 'insta-gram', stratechery: 'strate-chery' };
+  anthropic: 'an-thropic', minecraft: 'mine-craft', blackwell: 'black-well', instagram: 'insta-gram', stratechery: 'strate-chery',
+  highlanders: 'high-landers', northampton: 'north-ampton', hurricanes: 'hurri-canes', springboks: 'spring-boks', murrayfield: 'murray-field',
+  twickenham: 'twicken-ham', principality: 'princi-pality', crusaders: 'cru-saders', harlequins: 'harle-quins', barbarians: 'bar-barians',
+  wallabies: 'walla-bies', conversion: 'conver-sion', rabbitohs: 'rabbit-ohs', silvertails: 'silver-tails' };
 const soft = t => esc(t).split(' ').map(w => {
   const sp = SPLITS[w.toLowerCase()]; if (!sp) return w;
   const at = sp.indexOf('-'); return w.slice(0, at) + '&shy;' + w.slice(at);
@@ -646,7 +689,7 @@ function help() {
     <div class="ex">${E.example[1].map(t => `<span>${esc(t)}</span>`).join('')}</div>
     <div class="ex solved c0"><b>${esc(E.example[0])}</b>${E.example[1].map(esc).join(', ')}</div>
     ${E.tips}
-    <p>Switch between the <b>Bookshelf</b>, <b>Architecture</b> and <b>Tech</b> editions with the toggle at the top. Each keeps its own progress.</p>
+    <p>Switch editions (Books, Architecture, Tech, Rugby, NRL) with the toggle at the top. Each keeps its own progress.</p>
     <h3>Colours</h3>
     <p>Groups go from <span style="background:var(--g0);color:#000;padding:0 4px;border-radius:3px">yellow</span> (most straightforward) to <span style="background:var(--g3);color:#000;padding:0 4px;border-radius:3px">purple</span> (trickiest, often wordplay).</p>
     <h3>A new one every day</h3>
