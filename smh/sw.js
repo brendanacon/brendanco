@@ -1,7 +1,7 @@
 // Offline shell: network first so updates show immediately, cache as fallback.
 // Only same-origin app files are cached; feed/article data lives in localStorage.
-const CACHE = 'smh-v1';
-const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'smh-v2';
+const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon-32.png', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
