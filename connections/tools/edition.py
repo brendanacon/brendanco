@@ -8,7 +8,7 @@ def C(id, level, name, members, also=(), key=None, gloss=None, memory=False):
     return dict(id=id, level=level, name=name, members=list(members), also=list(also),
                 key=key or {}, gloss=gloss or {}, memory=memory)
 
-def run(items, categories, out, var, seed, n, caps=(6, 12)):
+def run(items, categories, out, var, seed, n, caps=(3, 6), window=8, repeat_gap=10**6, seeds=5):
     for c in categories:
         for b in c['members'] + c['also'] + list(c['key']) + list(c['gloss']):
             assert b in items, (c['id'], b)
@@ -19,7 +19,8 @@ def run(items, categories, out, var, seed, n, caps=(6, 12)):
     engine.CATEGORIES = categories
     engine.DECOY_OK = set()
     engine.CAP_SMALL, engine.CAP_BIG = caps
-    for s in range(seed, seed + 50):
+    engine.WINDOW, engine.REPEAT_GAP, engine.POOL_TRIES = window, repeat_gap, 2
+    for s in range(seed, seed + seeds):
         try:
             puzzles, cat_use, tile_use = engine.build(n=n, seed=s)
             break
