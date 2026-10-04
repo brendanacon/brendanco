@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SMH Reader</title>
+<meta name="description" content="A clean reader for The Sydney Morning Herald.">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a1633" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a1633" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SMH">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --ink: #0a1633;
+  --ink-2: #555b66;
+  --ink-3: #767676;
+  --rule: #dde1e7;
+  --nav: #0a1633;
+  --live: #d61f2b;
+  --accent: #096dd2;
+  --accent-soft: #e7f0fb;
+  --read: #8a8a8a;
+  --shadow: 0 1px 2px rgba(20, 24, 32, .06), 0 4px 16px rgba(20, 24, 32, .05);
+  --serif: 'Source Serif 4', 'PT Serif', Georgia, serif;   /* headlines (SMH uses Abril Titling) */
+  --text: 'PT Serif', Georgia, 'Times New Roman', serif;  /* intros and body copy */
+  --sans: 'PT Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --reader-size: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121417;
+    --surface: #1a1d22;
+    --ink: #ebe8e1;
+    --ink-2: #b7b9be;
+    --ink-3: #868a93;
+    --rule: #2a2e35;
+    --accent: #5ea8ff;
+    --accent-soft: #1d2638;
+    --read: #6b6f78;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121417;
+  --surface: #1a1d22;
+  --ink: #ebe8e1;
+  --ink-2: #b7b9be;
+  --ink-3: #868a93;
+  --rule: #2a2e35;
+  --accent: #5ea8ff;
+  --accent-soft: #1d2638;
+  --read: #6b6f78;
+  --shadow: none;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; }
+
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+/* --- Top bar --- */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+  padding-top: env(safe-area-inset-top);
+  box-shadow: inset 0 calc(env(safe-area-inset-top) + 1px) 0 var(--nav);
+}
+.topbar-row { display: flex; align-items: center; gap: 6px; height: 56px; background: var(--nav); color: #fff;
+  box-shadow: 0 0 0 100vmax var(--nav); clip-path: inset(0 -100vmax); }
+.brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; min-width: 0; }
+.masthead { height: 20px; width: auto; display: block; color: #fff; }
+.brand-sub { font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.spacer { flex: 1; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.icon-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tabs {
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  padding: 0 16px; margin: 0 -16px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: none; padding: 12px 10px 10px; font-size: 14px; font-weight: 600; color: var(--ink-2);
+  border-bottom: 3px solid transparent;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tab { font-family: var(--sans); font-size: 15px; font-weight: 700; }
+
+/* --- Feed --- */
+.feed-head { display: flex; align-items: center; gap: 10px; padding: 14px 0 6px; }
+.search {
+  flex: 1; min-width: 0; height: 40px; border-radius: 4px;
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+  padding: 0 12px; font: inherit; font-size: 15px;
+}
+.search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.status { font-size: 13px; color: var(--ink-3); padding: 4px 0 10px; min-height: 24px; }
+.status.err { color: #c0392b; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 12px; }
+.chip {
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--rule); color: var(--ink-2); background: var(--surface);
+}
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.meta { font-size: 13px; color: var(--ink-3); margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-family: var(--sans); }
+.kicker { font-size: 14px; font-weight: 500; color: var(--accent); margin-bottom: 8px; }
+.ready-slot:empty { display: none; }
+.dot-ready { width: 6px; height: 6px; border-radius: 50%; background: #2e9d6a; display: inline-block; }
+
+/* Story cards, modelled on smh.com.au's mobile homepage */
+.c { display: block; padding: 20px 0; border-top: 1px solid var(--rule); text-decoration: none; cursor: pointer; }
+.mod-body > .c:first-child, .mod-first > .c:first-child, #list > .c:first-child { border-top: 0; }
+.kick { font-size: 15px; line-height: 1.3; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 0 10px; align-items: center; }
+.kick .lbl.live { color: var(--live); display: inline-flex; align-items: center; gap: 6px; }
+.kick .lbl.live::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 14%, transparent); }
+.kick .lbl { font-weight: 700; color: var(--ink); }
+.kick .tag { font-weight: 400; color: var(--accent); }
+.c h3 { font-family: var(--serif); font-weight: 700; letter-spacing: -0.012em; line-height: 1.16; color: var(--ink); text-wrap: pretty; }
+.s28 h3 { font-size: 30px; line-height: 1.1; }
+.s24 h3 { font-size: 24px; }
+.s20 h3 { font-size: 20px; line-height: 1.2; }
+.s16 h3 { font-size: 16px; line-height: 1.28; }
+.c .intro { font-family: var(--text); font-size: 17px; line-height: 1.45; color: var(--ink-2); margin-top: 10px; }
+.c .by { font-size: 15px; color: var(--accent); margin-top: 10px; }
+.c img { display: block; object-fit: cover; background: var(--rule); }
+.c .row { display: grid; grid-template-columns: 1fr 80px; gap: 16px; align-items: start; }
+.c .row img { width: 80px; height: 80px; }
+.c.wide .row { grid-template-columns: 1fr 160px; }
+.c.wide .row img { width: 160px; height: 107px; }
+.c .img-above { width: 100%; aspect-ratio: 3 / 2; margin-bottom: 14px; }
+.c .img-below { width: 100%; aspect-ratio: 16 / 9; margin-top: 14px; }
+.c.compact { padding: 14px 0; }
+.is-read h3 { color: var(--read); }
+.c:hover h3 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+/* Homepage modules */
+.mod { margin-top: 8px; }
+
+/* AI briefing + article summary */
+.ai { border: 1px solid var(--rule); border-top: 4px solid var(--nav); padding: 16px 16px 14px; margin: 14px 0 6px; background: var(--surface); }
+.ai-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ai-head svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
+.ai-head .spacer { flex: 1; }
+.ai-head button { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--accent); padding: 4px 2px; }
+.ai-take { font-family: var(--serif); font-size: 19px; line-height: 1.32; font-weight: 700; margin: 12px 0 2px; }
+.ai ul { list-style: none; margin: 10px 0 0; padding: 0; }
+.ai li { position: relative; padding: 0 0 0 16px; margin: 0 0 12px; font-family: var(--text); font-size: 17px; line-height: 1.45; color: var(--ink); }
+.ai li::before { content: ''; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; background: var(--accent); }
+.ai li b { font-weight: 700; }
+.ai .refs { display: block; margin-top: 4px; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+.ai .refs a { color: var(--accent); text-decoration: none; }
+.ai .refs a + a::before { content: ' · '; color: var(--ink-3); }
+.ai-watch { font-size: 14px; line-height: 1.45; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 10px; margin-top: 4px; }
+.ai-watch b { color: var(--ink); }
+.ai-foot { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+.ai-msg { font-size: 15px; line-height: 1.45; color: var(--ink-2); margin-top: 10px; }
+.ai-msg button { color: var(--accent); font-weight: 600; }
+.ai .skl { height: 14px; background: var(--rule); margin: 12px 0; animation: pulse 1.2s ease-in-out infinite; }
+.ai .skl:nth-child(odd) { width: 86%; }
+@keyframes pulse { 50% { opacity: .45; } }
+.ai.collapsed ul, .ai.collapsed .ai-take, .ai.collapsed .ai-watch, .ai.collapsed .ai-foot { display: none; }
+.story .ai { margin: 18px 0 24px; }
+.sum-toggle { display: flex; width: 100%; align-items: center; gap: 8px; text-align: left; color: inherit; }
+.sum-toggle .state { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+.sum-toggle .state.ready { color: var(--accent); }
+.sum-toggle .chev { width: 18px; height: 18px; color: var(--ink-2); transition: transform .2s; }
+.ai.sum.open .chev { transform: rotate(180deg); }
+.ai.sum:not(.open) .sum-body { display: none; }
+.ai.sum:not(.open) { padding-bottom: 16px; }
+.sum-modes { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 2px; margin: 12px 0 2px; }
+.sum-modes button { font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px; color: var(--ink-2); }
+.sum-modes button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.spin-dot { width: 10px; height: 10px; border: 2px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: -1px; margin-right: 4px; }
+/* swipe between stories */
+#reader { touch-action: pan-y; }
+#reader.slide-l { animation: slideL .22s ease-out; }
+#reader.slide-r { animation: slideR .22s ease-out; }
+@keyframes slideL { from { transform: translateX(40px); opacity: .3; } }
+@keyframes slideR { from { transform: translateX(-40px); opacity: .3; } }
+.swipe-hint { font-size: 12px; color: var(--ink-3); text-align: center; margin-top: 18px; }
+
+/* Settings sheet */
+dialog#settings, dialog#linkDlg { border: 0; padding: 0; margin: auto; width: min(460px, calc(100% - 24px)); background: var(--bg); color: var(--ink); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog#settings::backdrop, dialog#linkDlg::backdrop { background: rgba(0,0,0,.45); }
+.sheet { padding: 20px; display: grid; gap: 12px; }
+.sheet h2 { font-family: var(--serif); font-size: 22px; }
+.fld { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.fld input { height: 42px; border: 1px solid var(--rule); border-radius: 6px; padding: 0 12px; font: inherit; font-size: 16px; font-weight: 400; background: var(--surface); color: var(--ink); }
+.chk { display: flex; gap: 10px; align-items: center; font-size: 15px; }
+.chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+.hint { font-size: 13px; line-height: 1.45; color: var(--ink-3); margin-top: -4px; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.row-btns .spacer { flex: 1; }
+.recent { margin-top: 6px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.recent h3 { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+.recent a { display: block; padding: 9px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.recent a b { display: block; font-family: var(--serif); font-weight: 700; font-size: 16px; line-height: 1.25; }
+.recent a span { font-size: 12px; color: var(--ink-3); }
+#linkErr { color: #c0392b; }
+body.on-home .feed-head { display: none; }
+body.on-home .status { padding-top: 12px; }
+.mh { border-top: 2px solid var(--ink); margin-top: 32px; padding: 14px 0 2px; font-family: var(--sans); font-size: 22px; font-weight: 400; letter-spacing: 0; color: var(--ink-2); }
+.mod-sep { border-top: 1px solid var(--rule); }
+.hgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 16px; padding: 22px 0; border-top: 1px solid var(--rule); }
+.hgrid .c { border: 0; padding: 0; }
+.hgrid .img-above { aspect-ratio: 16 / 9; margin-bottom: 12px; }
+
+/* Day dividers in the chronological tabs */
+.day { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink);
+  padding: 14px 0 2px; margin-top: 28px; border-top: 2px solid var(--ink); }
+.day + .c { border-top: 0; }
+#list > .day:first-child { margin-top: 4px; }
+.empty { padding: 60px 0; text-align: center; color: var(--ink-3); font-size: 15px; }
+.skel { height: 110px; border-top: 1px solid var(--rule); position: relative; overflow: hidden; }
+.skel::after { content: ''; position: absolute; inset: 18px 130px 18px 0; border-radius: 6px;
+  background: linear-gradient(90deg, var(--rule), color-mix(in srgb, var(--rule) 40%, transparent), var(--rule));
+  background-size: 200% 100%; animation: sh 1.2s infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+
+/* --- Reader --- */
+#reader { display: none; }
+body.reading #reader { display: block; }
+body.reading #feed { display: none; }
+body.reading .tabs { display: none; }
+
+.progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 30; transition: width .1s linear; }
+article.story { padding: 28px 0 80px; }
+.story .kicker { margin-bottom: 12px; }
+.story-kick { margin-bottom: 14px; font-size: 16px; }
+/* live blog posts */
+.body .post { border-top: 1px solid var(--rule); padding-top: 18px; margin-top: 26px; }
+.body .post-time { font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--live); margin: 0 0 4px; display: flex; gap: 10px; }
+.body .post-time span { color: var(--ink-3); font-weight: 400; }
+.body .post h3 { font-family: var(--serif); font-weight: 700; font-size: 1.15em; line-height: 1.25; margin: 0 0 .5em; }
+.body .live-note { font-family: var(--sans); font-size: 14px; color: var(--ink-2); background: var(--accent-soft); padding: 10px 12px; }
+.body cite { display: block; font-family: var(--sans); font-style: normal; font-size: 14px; font-weight: 400; color: var(--ink-3); margin-top: 6px; }
+.story h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(30px, 6vw, 42px); line-height: 1.1; letter-spacing: -0.015em; text-wrap: balance; }
+.story .standfirst { font-family: var(--text); font-size: 21px; line-height: 1.4; color: var(--ink-2); margin-top: 14px; }
+.byline { display: flex; align-items: center; gap: 12px; margin: 22px 0; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.byline img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--rule); }
+.byline .who { font-size: 14px; font-weight: 600; }
+.byline .when { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.story figure { margin: 26px 0; }
+.story figure img { width: 100%; height: auto; aspect-ratio: var(--ar, 3 / 2); object-fit: cover; border-radius: 0; display: block; background: var(--rule); }
+.story figcaption { font-size: 13px; line-height: 1.45; color: var(--ink-3); margin-top: 8px; }
+.story figcaption .credit { opacity: .8; }
+.story .hero { margin: 0 0 8px; }
+
+.body { font-family: var(--text); font-size: var(--reader-size); line-height: 1.62; color: var(--ink); }
+.body p { margin: 0 0 1.05em; }
+.body h2 { font-family: var(--sans); font-size: .9em; font-weight: 700; letter-spacing: -0.005em; margin: 1.8em 0 .6em; }
+.body a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.body blockquote { border-left: 3px solid var(--accent); padding: 4px 0 4px 18px; margin: 1.6em 0; font-size: 1.12em; font-weight: 600; color: var(--ink); }
+.body blockquote p { margin: 0; }
+.body .embed { margin: 1.6em 0; border-radius: 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--rule); }
+.body .embed iframe { width: 100%; height: 480px; border: 0; display: block; background: #fff; }
+
+.story-foot { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface);
+  text-decoration: none; color: var(--ink-2);
+}
+.pill:hover { color: var(--ink); border-color: var(--ink-3); }
+.pill.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.nextup { margin-top: 36px; }
+.nextup .label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+
+.fail { padding: 40px 0; }
+.fail h2 { font-family: var(--serif); font-weight: 500; font-size: 24px; margin-bottom: 10px; }
+.fail p { color: var(--ink-2); line-height: 1.5; margin-bottom: 18px; font-size: 15px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--bg); font-size: 14px; padding: 10px 16px; border-radius: 10px;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100% - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 520px) {
+  .brand-sub { display: none; }
+  .story .standfirst { font-size: 19px; }
+  .body .embed iframe { height: 380px; }
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="topbar-row">
+      <button class="icon-btn" id="backBtn" aria-label="Back to feed" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <a class="brand" href="#t/home" id="brand"><svg class="masthead" viewBox="0 0 295 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Sydney Morning Herald" fill="currentColor"><g fill-rule="evenodd"><path d="m78.207 9.819-2.637 1.696.93.763-.003 10.035c-.004.894-.759 1.516-1.823 1.514-.005 0-.273.009-.454-.03l-.005-12.522-2.294-1.465-2.899 1.854.152.253s.518-.329.622-.397c0 0 1.03.927 1.033 1.81v10.476c-1.17.334-2.364 1.25-2.37 3.347-.001.979.854 2.238 2.437 2.443.84.126 3.242-.216 3.31-.228.33-.05.753-.113 1.956-.16 1.015-.042 1.667.372 1.995.72.074.078.159.153.259.251l.024-.022c.31-.306.581-.98.581-1.442 0-1.008-.434-1.736-1.21-2.16-.54-.296-1.232-.407-2.133-.407-.05 0-.296.01-.636.051-.418.05-.99.1-1.482.147-.744.072-1.508.167-2.013.228-.336.042-.557.073-.65.073-.395.003-.67-.13-.892-.341a.91.91 0 0 1-.29-.609c.082-.902 1.236-1.288 1.59-1.31.034-.001.318-.008.372.004.674.151 2.2.388 3.848.395.526 0 1.071-.116 1.622-.337a5.514 5.514 0 0 0 1.449-.872 3.69 3.69 0 0 0 .918-1.086c.26-.448.393-.912.392-1.45-.003-1.456-.002-8.76 0-10.131l-1.699-1.091m1.525 1.203.917-.577m22.855 11.757-.592.387-.497-.415V11.05l-1.963-1.282-3.575 2.301-.098-.21c-.467-1.254-1.215-1.692-1.545-1.992l-.02-.018-3.391 2.189.142.224s.39-.23.56-.348c.342.346.935 1.313.933 1.697v8.383l-.92.75 2.625 1.705 2.624-1.672-.915-.766-.006-9.273.888-.567s1.273 1.378 1.281 1.389l.002 8.633c-.004 1.027.849 1.754 1.44 2.244.002.001 3.176-2.038 3.176-2.038l-.149-.197m-1.278-11.018.917-.576M34.075 22.843l.918-.575m6.021.09s-.83.49-.955.573c0 0-1.86-1.313-1.884-1.326v-4.11l4.625-3.012-2.635-4.758-5.501 3.555v9.174c1.033.726 3.346 2.042 3.346 2.042l3.153-1.972-.149-.166zm-2.839-10.455 2.155 3.587-2.16 1.41.005-4.997zm65.972 11.022.914-.578m71.286-12.156s-2.367 1.536-2.775 1.78c-.106-.162-.446-1.328-1.698-2.197-.386.252-3.22 2.082-3.22 2.082l.128.198s.407-.256.48-.305l.224.153c.399.364.551.628.551.816v8.914l-.966.777 2.685 2.028s2.858-1.943 2.77-1.91l-1.04-.882V12.76l.592-.367 1.328 1.653s-.137.194-.211.289c-.214.279-.544.7-.538 1.279.002.217.259.73.657.73h.07c.264-.013.348-.057.557-.132l.108-.038-.112-.026a1.102 1.102 0 0 1-.437-.203c-.003-.003-.034-.02-.042-.03-.144-.13-.299-.364-.299-.54 0-.314.2-.707.59-1.167.652-.734 2.19-1.822 2.19-1.822l-1.592-2.195m116.867 1.808.917-.578m-10.146 11.385.917-.576"/><path d="M65.866 21.575c-1.752-1.215-3.778-2.107-5.675-2.617l-.052-.017 2.09-3.014c2.663.56 4.48 1.982 4.48 3.447 0 .653-.309 1.526-.818 2.169l-.025.032zm-4.857-9.851a42.487 42.487 0 0 1-1.829-.307c-.956-.191-5.72-1.556-5.72-3.596 0-2.316 3.08-2.316 4.559-2.316.326 0 3.795.293 5.431 2.474a702.17 702.17 0 0 1-2.44 3.745zm10.455-3.139.047-.038c.235-.218.453-.664.453-.931 0-.31-.118-.594-.33-.801-.206-.226-.526-.354-.948-.384a12.78 12.78 0 0 0-.256-.012c-1.036.01-2.152.64-3.33 1.745-1.035.97-1.425 1.69-2.078 2.686-.53.81-.784 1.193-.926 1.413-.2-.024-1.4-.208-2.476-.434.347-.544 1.369-2.279 2.528-3.901.843-1.179 1.863-2.246 2.374-2.854a.82.82 0 0 1 .25-.2c.07-.039.173-.089.208-.127.004-.045-.136-.179-.16-.197a.498.498 0 0 0-.167.052c-.08.037-.185.087-.332.087-.187 0-.38-.154-.73-.434-.879-.704-2.516-2.009-5.393-2.013-4.929-.008-7.838 4.053-7.802 6.74.023 1.676.354 3.515 1.218 4.29.882.788 2.367 1.365 4.963 1.96l.175.045-.417.447c-.683.563-1.174 1.103-2.455 1.134-.81 0-1.187-.268-1.477-.52l-.06.025c.067.132.243.426.471.697.292.343.56.522.8.534.04.01.379.094.927-.071.709-.214 1.474-.728 2.212-1.531l.285-.309.286-.308 1.854.32c.212.047.42.07.604.122l-.764 1.123c-.963 1.405-1.332 1.844-1.332 1.844s-.642-.09-.812-.122c-.528-.102-1.36-.153-2.51-.144-2.25-.02-5.36.785-7.235 2.59a5.44 5.44 0 0 0-.948 1.2 4.577 4.577 0 0 0-.66 2.383c0 1.094.745 2.371 2.848 2.371 2.816 0 5.264-2.57 6.557-3.952l.207-.222c.384-.408.56-.694.7-.84 1.49.4 3.908 1.375 6.025 2.718.43-.424 1.693-1.878 2.878-3.58.65-.935 2.147-3.107 2.2-4.773.053-1.596-1.492-3.513-4.348-4.082.092-.184.262-.466.69-1.106 1.174-1.758 2.234-3.587 4.466-3.587.4 0 1.23.088 1.68.896.014.019.022.03.04.051zm-16.716 16.02c-.543.448-1.09.827-1.625 1.127a7.09 7.09 0 0 1-1.666.653 4.97 4.97 0 0 1-1.16.152 3.9 3.9 0 0 1-.34-.017c-1.141-.108-1.852-.763-1.852-1.712 0-2.513 4.361-3.295 5.95-3.295l.335-.002c.728-.005 1.237.045 2.664.323l.3.077a18.956 18.956 0 0 1-2.076 2.222c-.18.164-.348.323-.53.472zM21.87 18.38l-.05-.008c-1.987 2.384-3.777 3.137-4.072 3.25L17.75 9.13h-.016c2.302-.099 3.888-1.376 3.888-3.466a2.961 2.961 0 0 0-.175-.927c-.647.791-1.754 1.024-2.426 1.024-1.656 0-3.437-.49-5.322-1.01-1.98-.546-4.028-1.11-6.023-1.11-2.906 0-6.299 1.316-6.299 5.024 0 1.337.948 3.832 3.23 4.979l.098.051s-.547 1.166-.547 2.188c0 3.576 2.31 9.04 8.816 9.04 1.565 0 3.006-.345 4.286-1.021a9.195 9.195 0 0 0 2.742-2.24c1.352-1.611 1.874-3.243 1.879-3.258l-.01-.024zm-10.702 3.024c.13-.077.266-.17.266-.17 2.164-1.378 3.214-2.658 3.214-3.916V8.79s1.082.286 2.586.328l.018 12.69c-2.365.795-4.983.234-6.084-.403zm.145-2.083c-.032.53-.21 1.107-.647 1.81l-.163-.1c-2.212-1.383-3.3-4.107-3.442-7.007-.103-2.113 1.033-4.848 2.687-6.596.19.055 1.105.28 1.555.477l.01 5.306v6.11zM9.241 7.291c-3.334 3.244-4.41 6.09-4.41 6.09l-.14-.065c-.96-.472-1.414-1.65-1.463-2.661-.115-2.442 1.68-3.534 4.079-3.548.744-.005 1.609.09 1.934.183zM193.43 9.683l-3.19 2.118.133.26s.438-.276.513-.326l.207.134c.4.365.53.606.53.794v10.038l1.71 1.729 3.262-1.715-.246-.337-.471.23-.807-.825s-.002-10.4 0-10.728a260.864 260.864 0 0 1-1.641-1.372m-1.867-3.555-.015-.011.015-.01 2.084-1.579 1.828 1.736-2.102 1.48-.009.006-1.801-1.622m-69.607 3.618-2.637 1.697.93.76-.001 10.038c-.005.893-.761 1.517-1.824 1.513-.004 0-.275.01-.455-.028l-.005-12.524-2.294-1.465-2.91 1.86.152.254s.529-.336.634-.405c0 0 1.03.93 1.032 1.81l.003 10.534c-1.169.332-2.367 1.193-2.371 3.29-.003.978.853 2.237 2.435 2.443.839.126 3.242-.217 3.31-.227.328-.05.754-.113 1.956-.161 1.015-.04 1.667.372 1.996.72.073.079.157.154.258.251l.025-.02c.31-.309.58-.982.58-1.443 0-1.009-.434-1.736-1.21-2.16-.54-.297-1.232-.408-2.133-.408-.05 0-.297.01-.635.051-.418.05-.99.098-1.483.147-.743.072-1.508.167-2.013.229-.336.04-.556.072-.65.073-.395.003-.724-.123-.948-.332a1.04 1.04 0 0 1-.304-.659c.08-.9 1.195-1.285 1.55-1.306.034-.002.447.014.503.024.72.129 2.18.404 3.827.41a4.283 4.283 0 0 0 1.621-.337 5.493 5.493 0 0 0 1.449-.87c.434-.363.67-.655.92-1.085a2.79 2.79 0 0 0 .391-1.454c-.002-1.452-.002-8.758 0-10.129-.115-.075-1.7-1.091-1.7-1.091m109.177 6.313c.181-.004.59.025.72.076a.547.547 0 0 1 .324.295c.033.084.046 3.204.046 3.204 0 .606-.08.852-.225 1.099 1.216-.592 2.625-1.798 3.035-2.566.5-.966.46-2.888.419-4.923-.048-2.318-.103-4.944.618-6.883-.89.56-1.442 1.03-2.118 1.708-.703.708-1.211 1.329-1.372 1.722-.481 1.163-.357 2.935-.36 3.31-3.725.387-4.417 2.045-4.354 3.466.003.066.05.302.09.492l.044.205c.756-.962 1.793-1.175 3.133-1.205m-3.145-10.002c.146 0 .788.138 2.22.453.783.171 1.752.385 1.874.394h.751c.804 0 2.48-.962 4.485-2.574l.35-.274c-.488.202-1.008.407-1.604.407-.842 0-1.846-.315-2.91-.648-1.13-.354-2.3-.72-3.326-.72-2.25 0-3.759 1.328-3.759 3.306 0 .46.189.984.508 1.4a1.705 1.705 0 0 1-.127-.55c0-.749.576-1.194 1.538-1.194m16.987-3.897c.502.226 1.182.647 1.564 1.389-1.114.787-2.565 1.813-3.018 2.111-.813-.969-1.962-2.21-2.798-2.263 0 0-.578-.01-.738.088-.226.137-.255.345-.25.517l.002 7.306 3.208-1.973 2.538 2.48v8.178c0 2.32-1.673 4.826-5 6.98 1.075.321 2.91.557 5.088.113-1.225 1.781-2.62 2.67-4.148 2.642-.21-.013-.608-.05-.94-.172-1.787-.653-3.032-.254-3.058-.274 1.531-1.23 2.645-2.417 3.405-3.628.77-1.228 1.16-2.724 1.194-4.018l-.003-8.061-2.288-1.609-.015.786c.01.06.017.053.016.148-.008 2.061.023 3.93-.477 4.896-.41.768-1.82 1.974-3.036 2.565.146-.246.226-.494.226-1.098l.004-10.404c0-.17.052-1.112.073-1.25.2-1.369.5-2.78 2.685-4.256 1.639-1.106 2.989-1.598 4.004-1.598.541 0 1.2.152 1.762.404M33.51 22.899l-.007.05c-.208.146-1.79 1.19-2.274 1.567-.6.406-1.094.903-1.47 1.473a3.366 3.366 0 0 0-.53 1.655.739.739 0 0 0 .217.573c.323.33.916.417 1.216.417.086 0 .254 0 .408-.009.215-.013.33-.028.485-.066l-.011.054c-.055.22-.25.432-.556.592a1.94 1.94 0 0 1-.85.225c-1.126 0-1.535-.95-1.535-1.588 0-.937 1.208-2.623 2.013-3.329 0 0-1.438-1.128-1.442-2.044v-8.97l-1.29-1.396-.877.56v9.332c.053.059.92.76.92.76L25.3 24.43l-2.636-1.698.93-.756-.003-14.548.003-.8c-.014-.77-.082-1.859-.338-2.137-.158-.17-.367-.29-.632-.452.233-.708.664-1 1.361-1 .165 0 .705.083 1.037.245.238-.527.787-1.372 1.85-1.372.198 0 .596.13.83.29-.764.807-.694 2.648-.694 3.712v6.138l3.557-2.29 2.058 1.306v10.064c0 .844.47 1.335.885 1.768m249.608-.704.135.205-3.22 2.027-2.538-1.696.836-.753V6.523l.005-.261c-.014-.77-.081-1.859-.34-2.138-.156-.169-.364-.289-.63-.451.233-.71.664-1 1.36-1 .167 0 .631.065.962.226.466-.387.865-1.096 1.926-1.096.198 0 .597.128.83.291-.467.492-.623 1.278-.672 2.056-.053 4.317-.032 17.868-.032 17.868l.704.614.674-.436M32.437 11.181l.917-.577m57.22 1.324.915-.576M81.32 22.719l.917-.578m41.266-11.208.916-.577m42.713 1.403.917-.578m-10.155 11.762.916-.577m36.064-11.23.917-.578m-4.854 12.559.917-.577m26.695-10.688.917-.576m55.468.114.918-.577m8.784-6.99c-.018.463-.004 3.493.004 4.243.672.612 2.218 2.022 2.9 2.636-.686.584-1.982 1.269-2.982 1.524-.035.006.123.297.123.63v9.52l2.957 2.147c2.79-1.75 4.777-2.19 5.742-2.376l.028-10.272-8.772-8.052zm3.684 7.569 1.75 1.616.001 9.462-2.036-1.384v-9.481l.285-.213zM165.145 9.67c-1.242.796-4.74 2.279-6.661 2.66-.035.007.123.298.123.632v9.52l2.956 2.146c2.792-1.749 4.777-2.19 5.742-2.375l.029-10.618-2.189-1.964zm-2.944 2.042 1.795 1.916v8.885l-2.035-1.384v-9.31l.24-.107zM81.966 3.767c-.017.463-.004 3.494.004 4.243.672.612 2.22 2.022 2.901 2.637-.687.583-1.982 1.268-2.981 1.521-.035.007.123.299.123.632v9.52l2.956 2.146c2.79-1.749 4.777-2.19 5.742-2.375l.029-10.272-8.774-8.052zm3.685 7.568 1.75 1.617v9.462l-2.034-1.385v-9.48l.284-.214zm189.754 11.32.917-.576m-101.962.401.68-.48m100.367.34c-.189-.235-.336-.564-.303-.798V11.283a544.925 544.925 0 0 0-1.723-1.567l-2.673 2.044-1.99-1.893-2.603 2 1.796 1.94c-.277.388-1.04 1.835-.157 2.997.184.24.244.336.244.336l-.252.097c-1.654.498-2.849 2.286-2.887 3.58 0 1.066.538 2.894 2.054 3.674l4.631-2.799.025.333c.053.752.511 1.57 1.292 2.513l2.76-1.902-.214-.296zm-3.91-1.324-2.194 1.326a3.173 3.173 0 0 1-1.46-1.43 4.353 4.353 0 0 1-.453-1.818s-.015-.687.293-1.06c.145-.175.329-.3.418-.354.139-.085.32-.1.433-.017.814.605 1.786.69 2.917.723l.045 2.63zm-.757-8.714.743.744-.005 4.718c-1.212.034-2.178-.215-2.654-.62-1.987-1.686-.254-3.942 1.916-4.842zm-80.93 9.92-.591.388s-.487-.407-.5-.416V11.069l-1.96-1.28-3.576 2.3-.098-.212c-.467-1.252-1.215-1.69-1.545-1.99l-.02-.018-3.392 2.188.143.225s.389-.23.559-.349c.343.348.935 1.313.933 1.697v8.384l-.92.75 2.625 1.704 2.625-1.671-.915-.767-.006-9.272.887-.566 1.282 1.387.002 8.634c-.005 1.027.849 1.755 1.44 2.244.003.002 3.175-2.037 3.175-2.037l-.148-.198m-1.295-11.012.916-.577m18.987 11.589-.592.388s-.484-.407-.498-.416V11.069l-1.961-1.28-3.576 2.3-.098-.212c-.468-1.252-1.216-1.69-1.545-1.99l-.019-.018-3.393 2.188.143.225s.39-.23.559-.349c.343.348.937 1.313.934 1.697v8.384l-.92.75 2.625 1.704 2.624-1.671-.915-.767-.006-9.272.887-.566 1.282 1.387.002 8.634c-.004 1.027.85 1.755 1.44 2.244.002.002 3.176-2.037 3.176-2.037l-.149-.198m-1.278-11.03.917-.576"/><path d="m111.218 22.351-.957.575s-1.852-1.308-1.877-1.321v-4.11l4.626-3.012-2.636-4.758-5.502 3.555v9.174c1.034.726 3.349 2.042 3.349 2.042l3.152-1.972-.155-.173zm-2.834-10.448 2.154 3.587-2.158 1.41.004-4.997zm138.332 11.02.918-.577m6.154.03-.955.575s-1.854-1.307-1.878-1.32v-4.11l4.625-3.013-2.635-4.758-5.502 3.555v9.175c1.035.725 3.348 2.042 3.348 2.042l3.152-1.974-.155-.172zm-2.833-10.448 2.154 3.588-2.159 1.41.005-4.998zm12.585-1.738s-2.368 1.535-2.775 1.78c-.107-.163-.447-1.329-1.697-2.198-.388.252-3.222 2.082-3.222 2.082l.13.2s.405-.257.48-.307l.222.153c.4.365.552.628.552.816v8.915l-.965.778 2.684 2.026s2.857-1.942 2.77-1.909l-1.04-.883v-8.884l.592-.368 1.328 1.654s-.137.193-.21.289c-.215.278-.545.7-.539 1.279.002.217.259.73.656.73l.071-.003c.264-.012.347-.054.557-.129l.109-.038-.113-.026c-.17-.04-.323-.11-.438-.203-.003-.003-.032-.02-.042-.03-.144-.13-.298-.365-.298-.54 0-.315.198-.707.59-1.168.652-.733 2.188-1.82 2.188-1.82l-1.59-2.196m-2.003 12.288.679-.478m-49.165-10.159 2.336 2.077v7.65l-.724.585-.059-.023c-.856-.318-1.909-1.741-1.909-2.537l-.002-7.582.358-.17zm5.675 8.883v-8.98s-1.689-1.48-2.363-2.122c-.565.415-3.985 1.93-7.249 2.864.107.115.323.362.323.362l-.026 5.579c-.02.93.009 2.09.35 3.098.376 1.105 1.065 1.94 2.11 2.555l.259.157-5.347 4.377c.045.033.073.575.086.575.11 0 .259-.068.45-.155a4.526 4.526 0 0 1 2.069-.464c1.457 0 3 .923 3.741 1.367.13.077.265.157.331.19.448-.102 2.161-1.367 3.674-2.704.862-.761 1.59-1.484 2.107-2.09.617-.724.93-1.276.93-1.638 0-.482-.333-.906-.686-1.354-.337-.428-.759-.964-.759-1.617zm-2.477 6.98-.424-.234c-1.07-.587-2.08-1.121-3.234-1.125-.064.008-.168 0-.304.014-.365.04-.963.125-1.489.237l-.198-.393s4.157-3.405 4.535-3.7c.546.405 1.235 1.259 1.546 1.752.328.516.436 1.04.436 1.616 0 .65-.16 1.056-.868 1.834zm18.611-7.063c-3.718.119-6.731 3.423-6.683 6.692.019 1.325.498 3.297 2.46 3.297.832 0 1.464-.356 1.464-1.454 0-.194-.034-.55-.167-.744-.133.355-.798 1.228-1.463 1.228-1.43-.032-1.83-1.164-1.83-2.1 0-2.004 1.53-4.332 4.024-4.332 1.397 0 2.761.581 4.124 2.069 0 0 2.944-2.106 2.923-2.131-1.686-2.076-2.679-2.593-4.852-2.525m-92.468-1.045c-.136.539-1.068 2.338-2.097 2.365-.873.022-1.22.02-1.964-.17a7.965 7.965 0 0 0-1.442-.256 8.479 8.479 0 0 0-.632-.03c-2.569 0-3.354 2.2-3.36 3.547-.008 2.36 1.131 4.88 4.225 4.848.931 0 2.959-.516 2.959-2.36 0-.064-.2-1.13-.732-1.13h-.397c.064.322.297.84.297 1.002 0 1.195-1.695 1.841-2.428 1.841-1.661 0-3.225-.969-3.225-2.973 0-1.1.565-2.252 1.896-2.252 1.163 0 2.578.696 3.71.678 2.58-.043 3.147-1.704 3.19-5.11m-7.233-11.099.05-.045c-.49-.386-.702-.86-.702-1.163 0-.84.73-1.728 2.08-1.728.248 0 .963.147 1.872.34.388.082.828.177.91.18 1.116.028 2.882-1.128 3.946-2.26l.054-.058h-.047c-.948.002-1.687-.284-2.401-.561-.734-.284-1.493-.58-2.457-.58-2.174 0-4.607 1.607-4.607 3.754 0 .38.448 1.7 1.302 2.121"/><path d="M157.38 22.004s-.336.266-.508.238a1.281 1.281 0 0 1-.344-.133c-.48-.298-.965-.92-.965-1.861V6.978c0-.811.338-1.3.518-1.562l-.007-.046c-.349-.27-.748-.6-1.193-.97-.8-.663-1.878-1.472-2.47-1.926 0 0-3.114 2.457-3.333 2.627l-1.439-1.125c-.585-.478-1.47-1.198-1.745-1.374-.454.243-6.933 5.612-6.933 5.612v4.47l-.174.023c-3.616.475-3.897 3.176-3.897 3.993 0 .101.11.523.204.854l.024.084.042-.078a3.224 3.224 0 0 1 2.412-1.71c1.163-.158 1.262-.07 1.322-.019l.067.059-.007 4.79c-.018.48-.096.706-.23.931 1.26-.61 2.718-1.86 3.144-2.656.519-1.001.485-.993.485-3.128v-.236h3.016v5.563l-1.05 1.06 3.572 2.312 3.331-2.39-.484-.257s-.132.094-.18.133a.547.547 0 0 1-.322.131c-.355 0-1.377-.868-1.463-1.09l-.012-5.477 3.277.001v5.226c-.006.37-.017.985.415 1.907.089.168 1.127 1.473 1.903 1.862.354-.18 3.37-2.362 3.37-2.362l-.346-.206zm-12.011-9.48h-3.016V6.476l1.264-1.031c.011.01 1.736 1.432 1.752 1.441v5.636zm6.764 0h-3.372V6.395l1.206-.935 2.166 1.985v5.077z"/></g></svg></a>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="sizeDown" aria-label="Smaller text" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18l5-12 5 12M6 14h6M17 12h5"/></svg>
+      </button>
+      <button class="icon-btn" id="sizeUp" aria-label="Larger text" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18l5-12 5 12M6 14h6M19.5 9.5v5M17 12h5"/></svg>
+      </button>
+      <button class="icon-btn" id="refreshBtn" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="icon-btn" id="linkBtn" aria-label="Open an SMH link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="feed">
+    <div class="feed-head">
+      <input class="search" id="search" type="search" placeholder="Filter headlines" autocomplete="off">
+    </div>
+    <div class="status" id="status"></div>
+    <div id="brief"></div>
+    <div class="chips" id="chips"></div>
+    <div id="list"></div>
+  </section>
+  <section id="reader"></section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<dialog id="linkDlg">
+  <form method="dialog" class="sheet" id="linkForm">
+    <h2>Open an SMH article</h2>
+    <label class="fld">Paste any smh.com.au link — old or new
+      <input type="text" id="linkInput" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://www.smh.com.au/…">
+    </label>
+    <p class="hint" id="linkErr" hidden></p>
+    <div class="row-btns">
+      <button type="button" class="pill" id="pasteBtn">Paste</button>
+      <span class="spacer"></span>
+      <button type="button" class="pill" id="linkCancel">Cancel</button>
+      <button type="submit" class="pill primary" id="linkOpen">Open</button>
+    </div>
+    <div id="recentLinks"></div>
+  </form>
+</dialog>
+
+<dialog id="settings">
+  <form method="dialog" class="sheet" id="settingsForm">
+    <h2>Settings</h2>
+    <label class="fld">OpenAI API key
+      <input type="password" id="keyInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-…">
+    </label>
+    <p class="hint" id="keyHint">Stored only on this device (in this browser’s local storage) and sent only to api.openai.com. Nothing is saved in the site’s code or on any server.</p>
+    <label class="fld">Model
+      <input type="text" id="modelInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gpt-5.5">
+    </label>
+    <label class="chk"><input type="checkbox" id="autoBrief"> Write the briefing automatically when a tab opens</label>
+    <label class="chk"><input type="checkbox" id="autoSum"> Summarise articles automatically when opened</label>
+    <label class="chk"><input type="checkbox" id="darkMode"> Dark mode</label>
+    <div class="row-btns">
+      <button type="button" class="pill" id="forgetKey">Remove key</button>
+      <button type="button" class="pill" id="clearAi">Clear saved summaries</button>
+      <span class="spacer"></span>
+      <button type="submit" class="pill primary" id="saveSettings">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---------- Config ----------
+  const SITE = 'https://www.smh.com.au';
+  const FEEDS = [
+    { id: 'home',        name: 'Home',        url: SITE + '/', home: true },
+    { id: 'latest',      name: 'Latest',      url: SITE + '/rss/feed.xml' },
+    { id: 'nsw',         name: 'NSW',         url: SITE + '/rss/national/nsw.xml' },
+    { id: 'politics',    name: 'Politics',    url: SITE + '/rss/politics/federal.xml' },
+    { id: 'opinion',     name: 'Opinion',     url: SITE + '/opinion', tagPage: true },
+    { id: 'national',    name: 'National',    url: SITE + '/rss/national.xml' },
+    { id: 'business',    name: 'Business',    url: SITE + '/rss/business.xml' },
+    { id: 'world',       name: 'World',       url: SITE + '/rss/world.xml' },
+    { id: 'sport',       name: 'Sport',       url: SITE + '/rss/sport.xml' },
+    { id: 'culture',     name: 'Culture',     url: SITE + '/rss/culture.xml' },
+    { id: 'lifestyle',   name: 'Lifestyle',   url: SITE + '/rss/lifestyle.xml' },
+    { id: 'property',    name: 'Property',    url: SITE + '/rss/property.xml' },
+    { id: 'technology',  name: 'Technology',  url: SITE + '/rss/technology.xml' },
+    { id: 'environment', name: 'Environment', url: SITE + '/rss/environment.xml' },
+    { id: 'traveller',   name: 'Traveller',   url: SITE + '/rss/traveller.xml' },
+    { id: 'goodfood',    name: 'Good Food',   url: SITE + '/rss/goodfood.xml' },
+  ];
+  const PROXIES = [
+    { name: 'cf-worker', url: u => 'https://rss-proxy.brendanaconnaughton.workers.dev/?url=' + encodeURIComponent(u) },
+    { name: 'corsproxy', url: u => 'https://corsproxy.io/?' + encodeURIComponent(u) },
+    { name: 'allorigins', url: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u) },
+  ];
+  const TIMEOUT_MS = 15000;
+  const PREFETCH_COUNT = 12;       // warm the cache for the top N stories in the current tab
+  const PREFETCH_CONCURRENCY = 3;
+  const MAX_CACHED_ARTICLES = 100;
+  const ARCHIVE_MAX = 250;         // stories kept per tab
+  const ARCHIVE_DAYS = 14;
+  const STORE = {
+    feed: id => 'smh-feed-' + id,
+    articles: 'smh-articles-v1',
+    read: 'smh-read',
+    tab: 'smh-tab',
+    size: 'smh-size',
+    theme: 'smh-theme',
+    opened: 'smh-opened',
+    key: 'smh-openai-key',
+    model: 'smh-openai-model',
+    aiPrefs: 'smh-ai-prefs',
+    sums: 'smh-ai-summaries',
+    brief: id => 'smh-ai-brief-' + id,
+  };
+  const DEFAULT_MODEL = 'gpt-5.5';
+  const img = (id, w) => 'https://static.ffx.io/images/$width_' + (w || 800) + '/t_resize_width/q_86%2Cf_auto/' + id;
+
+  // ---------- Storage helpers (never throw) ----------
+  const store = {
+    get(k, fallback) { try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+
+  // ---------- State ----------
+  let currentTab = tabFromHash() || 'home';
+  let homeModules = [];           // homepage layout: [{ heading, kind, showHeading, ids }]
+  let items = [];                 // items in the current tab
+  let categoryFilter = null;
+  const memArticles = new Map();  // id -> parsed article (session)
+  const inflight = new Map();     // id -> promise
+  let readSet = new Set(store.get(STORE.read, []));
+  let workingProxy = 0;
+
+  const $ = id => document.getElementById(id);
+  const listEl = $('list'), statusEl = $('status'), chipsEl = $('chips'), readerEl = $('reader');
+
+  // ---------- Networking ----------
+  async function fetchWithTimeout(url) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.text();
+    } catch (e) {
+      throw new Error(e.name === 'AbortError' ? 'timed out' : e.message);
+    } finally { clearTimeout(t); }
+  }
+
+  // Try the last proxy that worked first, then the rest.
+  async function fetchText(url, validate) {
+    const order = PROXIES.map((_, i) => (workingProxy + i) % PROXIES.length);
+    const errors = [];
+    for (const i of order) {
+      try {
+        const text = await fetchWithTimeout(PROXIES[i].url(url));
+        if (validate && !validate(text)) throw new Error('unexpected response');
+        workingProxy = i;
+        return text;
+      } catch (e) { errors.push(PROXIES[i].name + ': ' + e.message); }
+    }
+    throw new Error(errors.join(' · '));
+  }
+
+  function cleanLink(link) {
+    try { const u = new URL(link); u.search = ''; u.hash = ''; return u.toString(); } catch (e) { return link; }
+  }
+  function idFromLink(link) {
+    const m = /-(p[0-9a-z]{5,6})(?:\.html)?(?:[/?#]|$)/i.exec(link);
+    return m ? m[1] : null;
+  }
+
+  // ---------- Feed ----------
+  function parseFeed(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    return Array.from(doc.querySelectorAll('item')).map(it => {
+      const txt = sel => { const n = it.getElementsByTagName(sel)[0]; return n ? n.textContent.trim() : ''; };
+      const link = cleanLink(txt('link'));
+      const enc = it.getElementsByTagName('enclosure')[0];
+      return {
+        id: idFromLink(link) || txt('guid') || link,
+        link,
+        title: txt('title'),
+        desc: txt('description'),
+        category: txt('category'),
+        author: txt('dc:creator') || txt('creator'),
+        image: enc ? enc.getAttribute('url') : '',
+        date: txt('pubDate'),
+      };
+    }).filter(i => i.title && i.link);
+  }
+
+  // SMH's feeds only carry their newest 20 items and can't be paged, so each tab keeps
+  // an on-device archive: every refresh merges into it instead of replacing it.
+  function mergeItems(oldItems, fresh) {
+    const byId = new Map();
+    (oldItems || []).forEach(i => byId.set(i.id, i));
+    fresh.forEach(i => byId.set(i.id, i));
+    const cutoff = Date.now() - ARCHIVE_DAYS * 864e5;
+    return Array.from(byId.values())
+      .map(i => ({ i, t: (parseDate(i.date) || new Date(0)).getTime() }))
+      .filter(x => x.t >= cutoff)
+      .sort((a, b) => b.t - a.t)
+      .slice(0, ARCHIVE_MAX)
+      .map(x => x.i);
+  }
+
+  function saveArchive(id, list, extra) {
+    const entry = Object.assign({ at: Date.now(), items: list }, extra || {});
+    if (!store.set(STORE.feed(id), entry)) {
+      // Storage full: give the space back from the article cache first, then retry smaller.
+      store.set(STORE.articles, {});
+      entry.items = list.slice(0, Math.floor(ARCHIVE_MAX / 2));
+      store.set(STORE.feed(id), entry);
+    }
+  }
+
+  // smh.com.au ships every index page (home, sections, Opinion) as
+  // window.INITIAL_STATE = JSON.parse("…"): a JSON string holding the page's JSON.
+  function pageState(html) {
+    const marker = 'window.INITIAL_STATE = JSON.parse(';
+    const start = html.indexOf(marker);
+    if (start === -1) throw new Error('page data not found');
+    const q = start + marker.length;
+    if (html[q] !== '"') throw new Error('page data in an unexpected format');
+    let i = q + 1;
+    for (; i < html.length; i++) { const ch = html[i]; if (ch === '\\') i++; else if (ch === '"') break; }
+    const state = JSON.parse(JSON.parse(html.slice(q, i + 1)));
+    const pages = state.page || {};
+    const pg = pages[Object.keys(pages).find(k => pages[k] && pages[k].index) || ''];
+    if (!pg || !pg.index) throw new Error('page layout not found');
+    return pg.index.contentUnitGroups || [];
+  }
+
+  // Opinion: one long list of the latest columns.
+  function parseTagPage(html, feed) {
+    const seen = new Set(), out = [];
+    pageState(html).forEach(g => (g.contentUnits || []).forEach(cu => (cu.assets || []).forEach(a => {
+      if (!a || !STORY_TYPES.has(a.assetType) || seen.has(a.id)) return;
+      seen.add(a.id);
+      const st = homeStory(a);
+      if (st.title) out.push(st);
+    })));
+    return out;
+  }
+
+  async function fetchFeedItems(feed) {
+    if (feed.tagPage) {
+      const list = parseTagPage(await fetchText(feed.url, t => t.indexOf('INITIAL_STATE') !== -1), feed);
+      if (!list.length) throw new Error(feed.name + ' had no stories');
+      return list;
+    }
+    const xml = await fetchText(feed.url, t => /<item[\s>]/.test(t));
+    const list = parseFeed(xml);
+    if (!list.length) throw new Error(feed.name + ' feed was empty');
+    return list;
+  }
+
+  const STORY_TYPES = new Set(['article', 'featureArticle', 'liveArticle']);
+
+  // ---------- Homepage ----------
+  function cropOf(fi, key) {
+    const d = fi && fi[key] && fi[key].data;
+    return d && d.id ? [d.id, +(+d.zoom || 1).toFixed(6), d.cropWidth || 0, d.offsetX || 0, d.offsetY || 0, d.aspect || 1] : null;
+  }
+  function cropUrl(c, w) {
+    if (!c) return '';
+    if (!c[2]) return img(c[0], w);
+    return 'https://static.ffx.io/images/$zoom_' + c[1] + '%2C$multiply_' + (w / c[2]).toFixed(4) + '%2C$ratio_' + c[5] +
+      '%2C$width_' + c[2] + '%2C$x_' + c[3] + '%2C$y_' + c[4] + '/t_crop_custom/q_86%2Cf_auto/' + c[0];
+  }
+
+  function homeStory(a) {
+    const fi = a.featuredImages || {};
+    const path = a.urls && ((a.urls.canonical && a.urls.canonical.path) || (a.urls.published && a.urls.published.smh && a.urls.published.smh.path));
+    const tag = a.tags && a.tags.primary ? a.tags.primary.displayName : ((a.category && a.category.name) || '');
+    const authors = ((a.participants && a.participants.authors) || []).map(x => x.name).filter(Boolean);
+    const sq = cropOf(fi, 'square1x1'), l32 = cropOf(fi, 'landscape3x2'), l169 = cropOf(fi, 'landscape16x9');
+    const id = a.shortId || a.id;
+    return {
+      id,
+      link: path ? SITE + path : SITE + '/link/follow-20180101-' + id,
+      title: (a.asset && a.asset.headlines && a.asset.headlines.headline) || (a.headlines && a.headlines.headline) || '',
+      desc: (a.asset && a.asset.about) || a.about || '',
+      tag, label: a.label || (a.assetType === 'liveArticle' ? 'Live' : ''),
+      category: (a.category && a.category.name) || tag,
+      author: (a.asset && a.asset.byline) || authors.join(', '),
+      date: (a.dates && (a.dates.published || a.dates.firstPublished)) || '',
+      sq, l32, l169,
+      image: cropUrl(l169 || l32 || sq, 640),
+    };
+  }
+
+  // Modules in the order smh.com.au stacks them on a phone: the news wells ("story sets")
+  // first, then Just in / Editor's Picks, then the section blocks.
+  function parseHome(html) {
+    const groups = pageState(html);
+    const modules = [], byId = new Map();
+    groups.forEach(g => (g.contentUnits || []).forEach(cu => {
+      const cfg = cu.config || {};
+      const layout = ((cfg.displayConfiguration || {}).layout || {}).name || '';
+      const stories = (cu.assets || []).filter(a => a && STORY_TYPES.has(a.assetType) && a.id).map(homeStory).filter(x => x.title);
+      if (!stories.length || cu.typeName !== 'assetlist' && cu.typeName !== 'tags-or-categories-with-exclusions') return;
+      const heading = cfg.heading || '';
+      let kind;
+      if (cu.typeName === 'tags-or-categories-with-exclusions') kind = 'column';
+      else if (/^StorySet/.test(layout) && !heading) kind = 'storyset';
+      else kind = 'section';
+      const over = {};
+      stories.forEach(st => {
+        const first = byId.get(st.id);
+        if (!first) byId.set(st.id, st);
+        else if (first.title !== st.title || first.desc !== st.desc) over[st.id] = [st.title, st.desc];
+      });
+      const mod = { heading, kind, showHeading: !!heading, ids: stories.map(x => x.id) };
+      if (kind === 'storyset' && !modules.some(m => m.kind === 'storyset')) mod.lead = true;
+      if (Object.keys(over).length) mod.over = over;
+      modules.push(mod);
+    }));
+    if (!modules.length) throw new Error('homepage had no stories');
+    return { modules, items: Array.from(byId.values()) };
+  }
+
+  async function loadHome(force) {
+    const cached = store.get(STORE.feed('home'), null);
+    if (cached && cached.items && cached.modules) {
+      items = cached.items; homeModules = cached.modules;
+      renderList();
+      setStatus('Front page · updated ' + timeAgo(cached.at));
+    } else {
+      items = []; homeModules = [];
+      renderSkeleton();
+      setStatus('Loading the front page…');
+    }
+    if (!force && cached && Date.now() - cached.at < 3 * 60 * 1000) { prefetchTop(); return; }
+    spin(true);
+    try {
+      const html = await fetchText(SITE + '/', t => t.indexOf('INITIAL_STATE') !== -1);
+      const home = parseHome(html);
+      if (!store.set(STORE.feed('home'), { at: Date.now(), items: home.items, modules: home.modules })) {
+        store.set(STORE.articles, {});
+        store.set(STORE.feed('home'), { at: Date.now(), items: home.items, modules: home.modules });
+      }
+      if (currentTab !== 'home') return;
+      items = home.items; homeModules = home.modules;
+      renderList();
+      setStatus('Front page · updated just now');
+      prefetchTop();
+    } catch (e) {
+      if (currentTab !== 'home') return;
+      if (items.length) setStatus('Offline copy — refresh failed (' + e.message + ')', true);
+      else { listEl.innerHTML = '<div class="empty">Couldn’t load the front page.<br><small>' + esc(e.message) + '</small></div>'; setStatus('', true); }
+    } finally { spin(false); }
+  }
+
+  async function loadFeed(force) {
+    if (currentTab === 'home') return loadHome(force);
+    const feed = FEEDS.find(f => f.id === currentTab);
+    const cached = store.get(STORE.feed(feed.id), null);
+    if (cached && cached.items && cached.items.length) {
+      items = cached.items;
+      renderList();
+      setStatus(items.length + ' stories · updated ' + timeAgo(cached.at));
+    } else {
+      items = [];
+      renderSkeleton();
+      setStatus('Loading ' + feed.name + '…');
+    }
+    if (!force && cached && Date.now() - cached.at < 3 * 60 * 1000) { prefetchTop(); return; }
+
+    spin(true);
+    try {
+      // Latest = the front-page feed plus every section feed, which catches far more
+      // of the day's stories than the single 20-item feed.
+      const sources = feed.id === 'latest' ? FEEDS.filter(f => !f.home && !f.tagPage) : [feed];
+      const results = await Promise.allSettled(sources.map(fetchFeedItems));
+      const ok = results.filter(r => r.status === 'fulfilled');
+      if (!ok.length) throw new Error(results[0].reason.message);
+      let fresh = [];
+      results.forEach((r, k) => {
+        if (r.status !== 'fulfilled') return;
+        fresh = fresh.concat(r.value);
+        const src = sources[k];
+        if (src.id !== feed.id) {
+          const prev = store.get(STORE.feed(src.id), null);
+          saveArchive(src.id, mergeItems(prev && prev.items, r.value), prev && prev.at ? { at: prev.at } : null);
+        }
+      });
+
+      const prevItems = (store.get(STORE.feed(feed.id), null) || {}).items || [];
+      const known = new Set(prevItems.map(i => i.id));
+      const merged = mergeItems(prevItems, fresh);
+      const added = prevItems.length ? merged.filter(i => !known.has(i.id)).length : 0;
+      saveArchive(feed.id, merged);
+      if (feed.id !== currentTab) return; // user switched tabs mid-request
+      items = merged;
+      renderList();
+      const failed = results.length - ok.length;
+      setStatus(merged.length + ' stories' + (added ? ' · ' + added + ' new' : '') + ' · updated just now' +
+        (failed ? ' · ' + failed + ' section' + (failed > 1 ? 's' : '') + ' unavailable' : ''));
+      prefetchTop();
+    } catch (e) {
+      if (feed.id !== currentTab) return;
+      if (items.length) setStatus('Offline copy — refresh failed (' + e.message + ')', true);
+      else { listEl.innerHTML = '<div class="empty">Couldn’t load the feed.<br><small>' + esc(e.message) + '</small></div>'; setStatus('', true); }
+    } finally { spin(false); }
+  }
+
+  // ---------- Article extraction ----------
+  // SMH article pages carry the story as GraphQL cache data in window.APOLLO_STATE = {…};
+  // the body is a list of typed blocks (markup, images, quotes, embeds…).
+  function extractArticle(html) {
+    const marker = 'window.APOLLO_STATE = ';
+    const start = html.indexOf(marker);
+    if (start !== -1) {
+      try {
+        const s = start + marker.length;
+        const o = JSON.parse(html.slice(s, html.indexOf(';<\/script>', s)));
+        const a = fromApollo(o);
+        if (a) return a;
+      } catch (e) { /* fall through to JSON-LD */ }
+    }
+    return extractFromLdJson(html);
+  }
+
+  const RATIO = { LANDSCAPE_16_9: 16 / 9, LANDSCAPE_3_2: 1.5, PORTRAIT_2_3: 2 / 3, SQUARE_1_1: 1 };
+  function fromApollo(o) {
+    const deref = r => (r && r.__ref ? o[r.__ref] : r) || null;
+    const root = o.ROOT_QUERY || {};
+    let A = null;
+    for (const k in root) { if (/^assetByPublicId/.test(k)) { A = deref(root[k] && root[k].asset); if (A && A.headlines) break; } }
+    if (!A || !A.headlines) A = Object.keys(o).map(k => o[k]).find(x => x && /Asset$/.test(x.__typename || '') && x.headlines && (x.body || x.__typename === 'LiveArticleAsset')) || null;
+    if (!A) return null;
+
+    const ph = {};
+    let n = 0;
+    const blocksHtml = blocks => (blocks || []).map(b => blockHtml(b, ph, () => 'b' + (n++))).join('');
+    const isLive = A.__typename === 'LiveArticleAsset' || A.type === 'LIVE_ARTICLE';
+    let body = A.body && A.body.blocks ? blocksHtml(A.body.blocks) : '';
+    if (isLive) {
+      const posts = Object.keys(o).map(k => o[k]).filter(x => x && x.__typename === 'Post' && x.body)
+        .sort((x, y) => new Date((y.dates || {}).published || 0) - new Date((x.dates || {}).published || 0));
+      body += '<p class="live-note">Live blog · the latest ' + posts.length + ' update' + (posts.length === 1 ? '' : 's') + '. Open it on smh.com.au for the full blog.</p>';
+      body += posts.map(p => {
+        const when = (p.dates && (p.dates.published || p.dates.firstPublished)) || '';
+        const who = (p.byline || []).map(b => b.name || (deref(b.author) || {}).name).filter(Boolean).join(', ');
+        return '<div class="post"><p class="post-time">' + esc(postTime(when)) + (who ? '<span>' + esc(who) + '</span>' : '') + '</p>' +
+          (p.headlines && p.headlines.headline ? '<h3>' + esc(p.headlines.headline) + '</h3>' : '') + blocksHtml(p.body.blocks) + '</div>';
+      }).join('');
+    }
+
+    const authors = (A.byline || []).map(b => {
+      if (b.name) return { name: b.name, avatar: '' };
+      const au = deref(b.author) || {};
+      return { name: au.name || '', avatar: (au.profile && au.profile.avatar) || '' };
+    }).filter(x => x.name);
+    const imgs = A.images || {};
+    const heroR = imgs.landscape3x2 || imgs.landscape16x9 || null;
+    const cat = deref(A.category);
+    const tagP = A.tags && deref(A.tags.primary);
+    const ov = A.overview || {};
+    const path = A.urls && A.urls.canonical && A.urls.canonical.path;
+    return {
+      id: A.publicId || '',
+      headline: A.headlines.headline || '',
+      about: ov.about || ov.intro || '',
+      body,
+      placeholders: ph,
+      byline: authors.map(x => x.name).join(', '),
+      authors,
+      wordCount: (A.extensions && A.extensions.wordCount) || 0,
+      label: ov.label || (isLive ? 'Live' : ''),
+      categories: [cat && cat.name, tagP && tagP.displayName].filter(Boolean),
+      published: (A.dates && (A.dates.firstPublished || A.dates.published)) || '',
+      modified: (A.dates && A.dates.modified) || '',
+      hero: heroR && heroR.mediaId ? { id: heroR.mediaId, caption: heroR.caption || '', credit: heroR.credit || '', aspect: heroR === imgs.landscape3x2 ? 1.5 : 16 / 9 } : null,
+      heroIds: Object.keys(imgs).map(k => imgs[k] && imgs[k].mediaId).filter(Boolean),
+      url: path ? SITE + path : '',
+    };
+  }
+
+  function postTime(s) {
+    const d = parseDate(s);
+    if (!d) return '';
+    return d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', timeZone: 'Australia/Sydney' }).replace(/\s/g, '').toLowerCase();
+  }
+
+  // One body block -> HTML, with <x-placeholder> tokens for anything buildBody() expands.
+  function blockHtml(b, ph, nextId) {
+    const put = p => { const id = nextId(); ph[id] = p; return '<x-placeholder id="' + id + '"></x-placeholder>'; };
+    switch (b.type) {
+      case 'MARKUP':
+        (b.placeholders || []).forEach(p => {
+          if (p.type === 'LINK_ASSET') ph[p.key] = { type: 'linkArticle', data: { id: p.assetId, text: p.text } };
+          else if (p.type === 'LINK_EXTERNAL') ph[p.key] = { type: 'linkExternal', data: { url: p.url, text: p.text } };
+          else if (p.text) ph[p.key] = { type: 'text', data: { text: p.text } };
+        });
+        return b.markup || '';
+      case 'IMAGE': {
+        const im = b.image || {};
+        return im.mediaId ? put({ type: 'image', data: { id: im.mediaId, caption: im.caption, credit: im.credit, aspect: RATIO[im.type] || 1.5 } }) : '';
+      }
+      case 'QUOTE':
+        return put({ type: 'quote', data: { markup: (b.markup || '') + (b.byline ? '<cite>— ' + esc(b.byline) + '</cite>' : '') } });
+      case 'YOU_TUBE': {
+        const m = /(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/.exec(b.url || '');
+        return m ? put({ type: 'iframe', data: { url: 'https://www.youtube-nocookie.com/embed/' + m[1] } }) : '';
+      }
+      case 'IFRAME': case 'INSTAGRAM': case 'TWITTER': case 'TIKTOK': case 'FACEBOOK': {
+        const u = b.url || '';
+        // Social posts refuse to load in frames; link to them instead.
+        if (b.type !== 'IFRAME' || /(tiktok|instagram|twitter|x)\.com\/|facebook\.com\//.test(u)) {
+          return /^https:\/\//.test(u) ? '<p><a href="' + escAttr(u) + '">View the post on ' + esc(u.replace(/^https:\/\/(www\.)?/, '').split('/')[0]) + ' ↗</a></p>' : '';
+        }
+        if (/video-loop|autoplay-video/.test(u)) return ''; // decorative looping clips; blank outside smh.com.au
+        return put({ type: 'iframe', data: { url: u } });
+      }
+      default:
+        return ''; // related-story cards, Brightcove video, property listings, ads
+    }
+  }
+
+  function extractFromLdJson(html) {
+    const re = /<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g;
+    let m;
+    while ((m = re.exec(html))) {
+      try {
+        const arr = [].concat(JSON.parse(m[1]));
+        for (const d of arr) {
+          if (d && d.articleBody) {
+            return {
+              headline: d.headline || '', about: d.description || '',
+              body: d.articleBody.split(/\n+/).map(p => '<p>' + esc(p) + '</p>').join(''),
+              placeholders: {}, byline: [].concat(d.author || []).map(x => x.name).join(', '),
+              authors: [], wordCount: 0, categories: [], label: '',
+              published: d.datePublished || '', hero: null, url: '',
+            };
+          }
+        }
+      } catch (e) { /* keep looking */ }
+    }
+    return null;
+  }
+
+  function getCachedArticle(id) {
+    if (memArticles.has(id)) return memArticles.get(id);
+    const all = store.get(STORE.articles, {});
+    return all[id] ? all[id].a : null;
+  }
+
+  function cacheArticle(id, a) {
+    memArticles.set(id, a);
+    const all = store.get(STORE.articles, {});
+    all[id] = { at: Date.now(), a };
+    const keys = Object.keys(all);
+    if (keys.length > MAX_CACHED_ARTICLES) {
+      keys.sort((x, y) => all[x].at - all[y].at).slice(0, keys.length - MAX_CACHED_ARTICLES).forEach(k => delete all[k]);
+    }
+    if (!store.set(STORE.articles, all)) {
+      // Quota hit: keep only the newest third and try again.
+      const keep = Object.keys(all).sort((x, y) => all[y].at - all[x].at).slice(0, Math.floor(MAX_CACHED_ARTICLES / 3));
+      const trimmed = {}; keep.forEach(k => trimmed[k] = all[k]);
+      store.set(STORE.articles, trimmed);
+    }
+  }
+
+  function getArticle(id, link) {
+    const cached = getCachedArticle(id);
+    if (cached) return Promise.resolve(cached);
+    if (inflight.has(id)) return inflight.get(id);
+    const p = fetchText(link, t => t.length > 2000)
+      .then(html => {
+        const a = extractArticle(html);
+        if (!a || !a.body) throw new Error('no article text found on the page');
+        cacheArticle(id, a);
+        markReady(id);
+        return a;
+      })
+      .finally(() => inflight.delete(id));
+    inflight.set(id, p);
+    return p;
+  }
+
+  async function prefetchTop() {
+    const queue = items.slice(0, PREFETCH_COUNT).filter(i => !getCachedArticle(i.id));
+    const worker = async () => {
+      while (queue.length) {
+        const it = queue.shift();
+        try { await getArticle(it.id, it.link); } catch (e) { /* opened on demand later */ }
+      }
+    };
+    await Promise.all(Array.from({ length: PREFETCH_CONCURRENCY }, worker));
+  }
+
+  function markReady(id) {
+    const el = listEl.querySelector('[data-id="' + cssEsc(id) + '"] .ready-slot');
+    if (el && !el.firstChild) el.innerHTML = '<span class="dot-ready" title="Ready to read offline"></span>';
+  }
+
+  // ---------- Rendering: feed ----------
+  function renderTabs() {
+    $('tabs').innerHTML = FEEDS.map(f =>
+      '<button class="tab" role="tab" data-tab="' + f.id + '" aria-selected="' + (f.id === currentTab) + '">' + f.name + '</button>'
+    ).join('');
+  }
+
+  function renderSkeleton() {
+    chipsEl.innerHTML = '';
+    listEl.innerHTML = Array.from({ length: 6 }, () => '<div class="skel"></div>').join('');
+  }
+
+  // One story card. v = [headline size, image placement, show intro, hide kicker, show byline]
+  function card(i, v, extraClass) {
+    const size = v[0], place = v[1], intro = v[2], noKick = v[3], by = v[4];
+    const read = readSet.has(i.id) ? ' is-read' : '';
+    const tag = i.tag != null ? i.tag : tagFromCategory(i.category);
+    const kick = !noKick && (i.label || tag) ? '<div class="kick">' + (i.label ? '<span class="lbl' + (i.label === 'Live' ? ' live' : '') + '">' + esc(i.label) + '</span>' : '') +
+      (tag && tag !== i.label ? '<span class="tag">' + esc(tag) + '</span>' : '') + '</div>' : '';
+    const h = '<h3>' + esc(i.title) + '</h3>';
+    const p = (intro && i.desc ? '<p class="intro">' + esc(i.desc) + '</p>' : '') + (by && i.author && !i.rss ? '<div class="by">' + esc(i.author) + '</div>' : '');
+    const meta = i.rss ? '<div class="meta"><span class="ready-slot">' + (getCachedArticle(i.id) ? '<span class="dot-ready" title="Ready to read offline"></span>' : '') + '</span>' +
+      (i.author ? '<span>' + esc(i.author) + '</span>' : '') + '<span>' + esc(timeAgo(i.date)) + '</span></div>' : '';
+    let body;
+    if (place === 'side' || place === 'wide') {
+      const u = place === 'side' ? (i.sq ? cropUrl(i.sq, 160) : (i.image && smallImage(i.image))) : (i.l32 ? cropUrl(i.l32, 320) : (i.image && smallImage(i.image)));
+      body = kick + (u ? '<div class="row"><div>' + h + '</div><img src="' + escAttr(u) + '" alt="" loading="lazy"></div>' : h) + p + meta;
+    } else if (place === 'above' || place === 'below') {
+      const crop = place === 'above' && !extraClass ? (i.l32 || i.l169) : (i.l169 || i.l32);
+      const u = crop ? cropUrl(crop, 720) : i.image;
+      const im = u ? '<img class="img-' + place + '" src="' + escAttr(u) + '" alt="" loading="lazy">' : '';
+      body = place === 'above' ? im + kick + h + p + meta : kick + h + im + p + meta;
+    } else body = kick + h + p + meta;
+    const cls = 'c s' + size + (place === 'wide' ? ' wide' : '') + (size === 16 && place === 'none' ? ' compact' : '') + read + (extraClass ? ' ' + extraClass : '');
+    return '<a class="' + cls + '" data-id="' + escAttr(i.id) + '" href="#a/' + encodeURIComponent(i.id) + '">' + body + '</a>';
+  }
+
+  // Which card each slot gets, matching how smh.com.au lays its homepage out on a phone.
+  function slot(mod, pos, n) {
+    switch (mod.kind) {
+      // A news well: lead story big with its photo under the headline, related stories below it.
+      case 'storyset': return pos === 0 ? [mod.lead ? 28 : 24, 'below', 1, 0, 1] : [20, 'side', 1, 0, 1];
+      case 'column': return [16, 'none', 0, 1];
+      default:
+        if (/opinion/i.test(mod.heading)) return [pos < 2 ? 24 : 20, pos < 3 ? 'side' : 'none', 1];
+        if (/life|culture|travel|good food/i.test(mod.heading)) return pos === 0 ? [24, 'above', 1] : [20, 'wide', 1];
+        if (pos === 0) return n >= 4 ? [24, 'below', 1] : [20, 'side', 1];
+        return pos < 3 ? [20, 'side', 1] : [20, 'none', 1];
+    }
+  }
+
+  function renderHome() {
+    const byId = new Map(items.map(i => [i.id, i]));
+    listEl.innerHTML = homeModules.map((mod, mi) => {
+      const stories = mod.ids.map(id => {
+        const st = byId.get(id), o = mod.over && mod.over[id];
+        return st && o ? Object.assign({}, st, { title: o[0], desc: o[1] }) : st;
+      }).filter(Boolean);
+      if (!stories.length) return '';
+      const head = mod.showHeading && mod.heading ? '<div class="mh">' + esc(mod.heading) + '</div>' : (mi > 0 ? '<div class="mod-sep"></div>' : '');
+      if (mod.kind === 'grid') return head + '<div class="hgrid">' + stories.map(st => card(st, [16, 'above', 0], 'g')).join('') + '</div>';
+      return '<section class="mod">' + head + '<div class="mod-body">' + stories.map((st, pos) => card(st, slot(mod, pos, stories.length))).join('') + '</div></section>';
+    }).join('');
+  }
+
+  function renderList() {
+    const q = $('search').value.trim().toLowerCase();
+    const isHome = currentTab === 'home';
+    document.body.classList.toggle('on-home', isHome);
+    renderBrief('auto');
+    if (isHome && !q) { chipsEl.innerHTML = ''; renderHome(); return; }
+
+    const cats = {};
+    if (!isHome) items.forEach(i => { const c = topCategory(i.category); if (c) cats[c] = (cats[c] || 0) + 1; });
+    const catNames = Object.keys(cats).sort((a, b) => cats[b] - cats[a]);
+    if (categoryFilter && !cats[categoryFilter]) categoryFilter = null;
+    chipsEl.innerHTML = catNames.length > 1 ? catNames.map(c =>
+      '<button class="chip" data-cat="' + escAttr(c) + '" aria-pressed="' + (c === categoryFilter) + '">' + esc(c) + ' <span style="opacity:.6">' + cats[c] + '</span></button>'
+    ).join('') : '';
+
+    const shown = items.filter(i =>
+      (!categoryFilter || topCategory(i.category) === categoryFilter) &&
+      (!q || (i.title + ' ' + i.desc + ' ' + i.author + ' ' + i.category + ' ' + (i.tag || '')).toLowerCase().includes(q))
+    );
+    if (!shown.length) { listEl.innerHTML = '<div class="empty">No stories match.</div>'; return; }
+
+    let lastDay = null;
+    listEl.innerHTML = shown.map((i, idx) => {
+      const it = isHome ? i : Object.assign({ rss: true }, i);
+      if (isHome) return card(it, [20, 'side', 1]);
+      const day = dayLabel(i.date);
+      const header = day !== lastDay ? '<div class="day">' + esc(day) + '</div>' : '';
+      lastDay = day;
+      const lead = idx === 0 && !q && !categoryFilter;
+      return header + card(it, lead ? [24, 'below', 1] : [20, 'side', 1]);
+    }).join('');
+  }
+
+  function tagFromCategory(c) { const parts = (c || '').split('/'); return parts[parts.length - 1].trim(); }
+  function topCategory(c) { return (c || '').split('/')[0].trim(); }
+  // In ffx crop URLs $width_ is the width of the crop window in the original photo, not the
+  // output size; the output is set by $multiply. Rescale that instead of shrinking the crop.
+  function smallImage(u, w) {
+    const m = /\$width_(\d+)/.exec(u || '');
+    if (!m || !/\$multiply_/.test(u)) return u;
+    return u.replace(/\$multiply_[\d.]+/, '$multiply_' + ((w || 320) / +m[1]).toFixed(4));
+  }
+
+  // ---------- Rendering: article ----------
+  function findItem(id) {
+    for (const f of FEEDS) {
+      const c = f.id === currentTab ? { items } : store.get(STORE.feed(f.id), null);
+      const hit = c && c.items && c.items.find(i => i.id === id);
+      if (hit) return hit;
+    }
+    const o = store.get(STORE.opened, []).find(x => x.id === id);
+    return o ? Object.assign({ desc: '', category: '' }, o) : null;
+  }
+
+  // ---------- Open any SMH link (back catalogue) ----------
+  function parseAfrLink(text) {
+    const m = /https?:\/\/(?:www\.|m\.|amp\.)?smh\.com\.au\/[^\s"'<>]+/i.exec(text || '');
+    if (!m) return null;
+    let url;
+    try { const u = new URL(m[0]); u.search = ''; u.hash = ''; u.hostname = 'www.smh.com.au'; url = u.toString().replace(/\/+$/, ''); } catch (e) { return null; }
+    const id = (/-(p[0-9a-z]{5,6})(?:\.html)?$/i.exec(url) || [])[1] || (/\/link\/follow-\d+-([0-9a-z]+)$/i.exec(url) || [])[1];
+    if (id) return { id: id.toLowerCase(), link: url };
+    // Older URL styles without a p-id: key them by their last path segment.
+    const seg = url.split('/').pop();
+    if (!seg || url === SITE) return null;
+    return { id: 'u-' + seg.slice(-40), link: url };
+  }
+  function rememberOpened(entry) {
+    const list = store.get(STORE.opened, []).filter(x => x.id !== entry.id);
+    list.unshift(Object.assign({ at: Date.now() }, entry));
+    store.set(STORE.opened, list.slice(0, 30));
+  }
+  function openLink(text) {
+    const hit = parseAfrLink(text);
+    if (!hit) return false;
+    const prev = store.get(STORE.opened, []).find(x => x.id === hit.id) || {};
+    rememberOpened(Object.assign({}, prev, hit));
+    if (currentRoute() === hit.id) route(); else location.hash = 'a/' + encodeURIComponent(hit.id);
+    return true;
+  }
+
+  // Neighbours in the tab you came from, as in the SMH app: swipe left = next, right = previous.
+  function neighbour(id, step) {
+    const i = items.findIndex(x => x.id === id);
+    return i === -1 ? null : items[i + step] || null;
+  }
+  function goArticle(id, dir) {
+    // Replace rather than push, so Back still returns to the list rather than walking every story.
+    history.replaceState(null, '', '#a/' + encodeURIComponent(id));
+    readerEl.classList.remove('slide-l', 'slide-r'); void readerEl.offsetWidth;
+    readerEl.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
+    route();
+  }
+  (function swipe() {
+    let x0 = 0, y0 = 0, t0 = 0, tracking = false;
+    readerEl.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      const t = e.touches[0];
+      // Leave the screen edges to iOS's own back/forward gesture, and let wide tables/embeds scroll.
+      tracking = t.clientX > 24 && t.clientX < window.innerWidth - 24 && !e.target.closest('iframe, table, .embed');
+      x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
+    }, { passive: true });
+    readerEl.addEventListener('touchend', e => {
+      if (!tracking) return; tracking = false;
+      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - t0 > 700) return;
+      if (window.getSelection && String(window.getSelection())) return;
+      const id = currentRoute(); if (!id) return;
+      const n = neighbour(id, dx < 0 ? 1 : -1);
+      if (n) goArticle(n.id, dx < 0 ? 1 : -1);
+      else if (items.some(x => x.id === id)) toast(dx < 0 ? 'Last story in this tab' : 'First story in this tab');
+    }, { passive: true });
+  })();
+
+  async function openArticle(id) {
+    sumOpen = false;
+    // Warm the neighbours so a swipe opens instantly.
+    [1, -1].forEach(step => { const n = neighbour(id, step); if (n) getArticle(n.id, n.link).catch(() => {}); });
+    document.body.classList.add('reading');
+    $('backBtn').hidden = false; $('sizeUp').hidden = false; $('sizeDown').hidden = false; $('settingsBtn').hidden = true;
+    window.scrollTo(0, 0);
+
+    const item = findItem(id) || { id, link: SITE + '/link/follow-20180101-' + id, title: '', desc: '' };
+    const cached = getCachedArticle(id);
+    if (cached) renderArticle(item, cached);
+    else {
+      readerEl.innerHTML = '<article class="story">' +
+        ((item.tag || item.category) ? '<div class="kicker">' + esc(item.tag || tagFromCategory(item.category)) + '</div>' : '') +
+        '<h1>' + esc(item.title || 'Loading…') + '</h1>' +
+        (item.desc ? '<p class="standfirst">' + esc(item.desc) + '</p>' : '') +
+        '<div class="status" style="margin-top:24px">Extracting full text…</div>' +
+        '<div class="skel"></div><div class="skel"></div><div class="skel"></div></article>';
+      try {
+        const a = await getArticle(id, item.link);
+        if (currentRoute() !== id) return;
+        renderArticle(item, a);
+      } catch (e) {
+        if (currentRoute() !== id) return;
+        renderFailure(item, e);
+      }
+    }
+    readSet.add(id);
+    store.set(STORE.read, Array.from(readSet).slice(-500));
+  }
+
+  function renderArticle(item, a) {
+    const op = store.get(STORE.opened, []);
+    const oi = op.findIndex(x => x.id === item.id);
+    if (oi !== -1 && !op[oi].title) {
+      Object.assign(op[oi], { title: a.headline || '', desc: a.about || '', author: a.byline || '', date: a.published || '', tag: (a.categories || []).slice(-1)[0] || '' });
+      if (a.url) op[oi].link = a.url;
+      store.set(STORE.opened, op);
+      Object.assign(item, op[oi]);
+    }
+    const url = a.url || item.link;
+    const lbl = a.label || item.label || '';
+    const topic = item.tag || (a.categories.length ? a.categories[a.categories.length - 1] : tagFromCategory(item.category));
+    const kicker = (lbl ? '<span class="lbl' + (lbl === 'Live' ? ' live' : '') + '">' + esc(lbl) + '</span>' : '') + (topic && topic !== lbl ? '<span class="tag">' + esc(topic) + '</span>' : '');
+    const mins = a.wordCount ? Math.max(1, Math.round(a.wordCount / 230)) + ' min read' : '';
+    const author = a.authors[0];
+    const when = a.published ? fmtDate(a.published) : (item.date ? fmtDate(item.date) : '');
+
+    let html = '<article class="story">';
+    if (kicker) html += '<div class="kick story-kick">' + kicker + '</div>';
+    html += '<h1>' + esc(a.headline || item.title) + '</h1>';
+    if (a.about || item.desc) html += '<p class="standfirst">' + esc(a.about || item.desc) + '</p>';
+    html += '<div class="byline">' +
+      (author && author.avatar ? '<img src="' + escAttr(img(author.avatar, 120)) + '" alt="">' : '') +
+      '<div><div class="who">' + esc(a.byline || item.author || 'The Sydney Morning Herald') + '</div>' +
+      '<div class="when">' + esc([when, mins].filter(Boolean).join(' · ')) + '</div></div></div>';
+    html += '<section class="ai" id="aiSum"></section>';
+    if (a.hero) html += figure(a.hero.id, a.hero.caption, a.hero.credit, 'hero', a.hero.aspect);
+    html += '<div class="body" id="storyBody"></div>';
+    html += '<div class="story-foot">' +
+      '<a class="pill" href="' + escAttr(url) + '" target="_blank" rel="noopener">Open on smh.com.au ↗</a>' +
+      '<button class="pill" id="shareBtn">Share</button>' +
+      '<a class="pill" href="' + escAttr(removePaywallUrl(url)) + '" target="_blank" rel="noopener">removepaywall ↗</a>' +
+      '</div>';
+    html += nextUpHtml(item.id);
+    if (neighbour(item.id, 1) || neighbour(item.id, -1)) html += '<p class="swipe-hint">Swipe left or right for the next or previous story</p>';
+    html += '</article>';
+    readerEl.innerHTML = html;
+    $('storyBody').appendChild(buildBody(a.body, a.placeholders, a.hero ? new Set((a.heroIds || []).concat(a.hero.id)) : null, a.hero && a.hero.caption));
+    renderSummary(item, a, false);
+    $('shareBtn').onclick = () => share(a.headline || item.title, url);
+    updateProgress();
+  }
+
+  function renderFailure(item, e) {
+    const url = item.link;
+    readerEl.innerHTML = '<article class="story fail">' +
+      '<h2>' + esc(item.title || 'Couldn’t extract this story') + '</h2>' +
+      '<p>The full text couldn’t be pulled from the Herald (' + esc(e.message) + '). Try again, or use one of the fallbacks.</p>' +
+      '<div class="story-foot" style="border:0;margin:0;padding:0">' +
+      '<button class="pill primary" id="retryBtn">Try again</button>' +
+      '<a class="pill" href="' + escAttr(removePaywallUrl(url)) + '" target="_blank" rel="noopener">removepaywall ↗</a>' +
+      '<a class="pill" href="https://archive.ph/newest/' + escAttr(url) + '" target="_blank" rel="noopener">archive.ph ↗</a>' +
+      '<a class="pill" href="' + escAttr(url) + '" target="_blank" rel="noopener">smh.com.au ↗</a>' +
+      '</div></article>';
+    $('retryBtn').onclick = () => openArticle(item.id);
+  }
+
+  function nextUpHtml(id) {
+    const idx = items.findIndex(i => i.id === id);
+    const next = items.slice(idx + 1).find(i => !readSet.has(i.id)) || items[idx + 1];
+    if (!next || idx === -1) return '';
+    return '<div class="nextup"><div class="label">Next up</div>' + card(next, [20, 'side', 1]) + '</div>';
+  }
+
+  function figure(id, caption, credit, cls, aspect) {
+    const ar = aspect > 0.2 && aspect < 5 ? ' style="--ar:' + (+aspect).toFixed(4) + '"' : '';
+    return '<figure' + (cls ? ' class="' + cls + '"' : '') + ar + '>' +
+      '<img src="' + escAttr(img(id, 1200)) + '" srcset="' + escAttr(img(id, 640)) + ' 640w, ' + escAttr(img(id, 1200)) + ' 1200w" sizes="(max-width: 760px) 100vw, 728px" alt="' + escAttr(caption || '') + '" loading="' + (cls === 'hero' ? 'eager' : 'lazy') + '">' +
+      ((caption || credit) ? '<figcaption>' + esc(caption || '') + (credit ? ' <span class="credit">' + esc(credit) + '</span>' : '') + '</figcaption>' : '') +
+      '</figure>';
+  }
+
+  // Parse the story HTML inertly, swap the <x-placeholder> tokens for real elements,
+  // and keep only a small allowlist of tags/attributes.
+  const ALLOWED = new Set(['P', 'H2', 'H3', 'H4', 'EM', 'I', 'STRONG', 'B', 'BR', 'UL', 'OL', 'LI', 'A', 'BLOCKQUOTE', 'SUP', 'SUB', 'FIGURE', 'FIGCAPTION', 'IMG', 'DIV', 'SPAN', 'IFRAME', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
+  function buildBody(bodyHtml, placeholders, heroIds, heroCaption) {
+    const doc = new DOMParser().parseFromString('<div id="r">' + bodyHtml + '</div>', 'text/html');
+    const root = doc.getElementById('r');
+
+    root.querySelectorAll('x-placeholder').forEach(ph => {
+      const p = placeholders[ph.getAttribute('id')];
+      const cap = (heroCaption || '').trim();
+      const dupHero = p && p.type === 'image' && heroIds && (heroIds.has(p.data && p.data.id) || heroIds.has(p.data && p.data.fileName) ||
+        (cap.length > 20 && (p.data && p.data.caption || '').trim() === cap)); // same photo re-uploaded under another id
+      const replacement = p && !dupHero ? placeholderNode(doc, p) : null;
+      if (replacement) ph.replaceWith(replacement); else ph.remove();
+    });
+    // Figures/embeds can't live inside <p>; lift them out.
+    root.querySelectorAll('p > figure, p > .embed, p > blockquote').forEach(n => n.parentNode.after(n));
+    root.querySelectorAll('p').forEach(p => { if (!p.textContent.trim() && !p.querySelector('img,iframe')) p.remove(); });
+
+    sanitize(root);
+    const frag = document.createDocumentFragment();
+    Array.from(root.childNodes).forEach(n => frag.appendChild(document.importNode(n, true)));
+    return frag;
+  }
+
+  function placeholderNode(doc, p) {
+    const d = p.data || {};
+    const tpl = doc.createElement('template');
+    switch (p.type) {
+      case 'image':
+        tpl.innerHTML = figure(d.id || d.fileName, d.caption, d.credit, '', d.aspect);
+        return tpl.content.firstChild;
+      case 'linkExternal': {
+        const a = doc.createElement('a');
+        a.href = d.url; a.textContent = d.text || d.url;
+        return a;
+      }
+      case 'linkArticle': {
+        const a = doc.createElement('a');
+        a.href = '#a/' + encodeURIComponent(d.id);
+        a.textContent = d.text || '';
+        return a;
+      }
+      case 'quote': {
+        const q = doc.createElement('blockquote');
+        if (d.markup) q.innerHTML = d.markup; else q.textContent = d.quote || '';
+        return q;
+      }
+      case 'iframe': {
+        if (!/^https:\/\//.test(d.url || '')) return null;
+        const w = doc.createElement('div'); w.className = 'embed';
+        const f = doc.createElement('iframe');
+        f.src = d.url; f.loading = 'lazy'; f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
+        w.appendChild(f);
+        return w;
+      }
+      case 'text':
+        return doc.createTextNode(d.text || '');
+      default:
+        return null; // relatedStory, ads, etc.
+    }
+  }
+
+  function sanitize(node) {
+    Array.from(node.children).forEach(el => {
+      if (!ALLOWED.has(el.tagName)) {
+        if (/^(SCRIPT|STYLE|NOSCRIPT|OBJECT|EMBED|FORM|INPUT|BUTTON|LINK|META)$/.test(el.tagName)) { el.remove(); return; }
+        const span = el.ownerDocument.createElement('span');
+        while (el.firstChild) span.appendChild(el.firstChild);
+        el.replaceWith(span); sanitize(span); return;
+      }
+      Array.from(el.attributes).forEach(at => {
+        const n = at.name.toLowerCase();
+        const keep = ['href', 'src', 'srcset', 'sizes', 'alt', 'loading', 'class', 'sandbox'].includes(n) ||
+          (n === 'style' && el.tagName === 'FIGURE' && /^--ar:[\d.]+$/.test(at.value));
+        if (!keep || /^\s*javascript:/i.test(at.value)) el.removeAttribute(at.name);
+      });
+      if (el.tagName === 'A' && !/^#a\//.test(el.getAttribute('href') || '')) {
+        el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener');
+      }
+      sanitize(el);
+    });
+  }
+
+  function removePaywallUrl(u) { return 'https://www.removepaywall.com/search?url=' + encodeURIComponent(u); }
+
+  // ---------- Routing ----------
+  function currentRoute() {
+    const m = /^#a\/(.+)$/.exec(location.hash);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  // Tabs live in the URL (#t/latest) so the back button and swipe-back move between them.
+  function tabFromHash() {
+    const m = /^#t\/([\w-]+)$/.exec(location.hash);
+    return m && FEEDS.some(f => f.id === m[1]) ? m[1] : null;
+  }
+  function switchTab(id) {
+    if (id === currentTab) return false;
+    feedScrolls[currentTab] = window.scrollY;
+    currentTab = id; store.set(STORE.tab, id);
+    categoryFilter = null; $('search').value = '';
+    renderTabs();
+    const sel = $('tabs').querySelector('[aria-selected="true"]');
+    if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
+    loadFeed(false);
+    return true;
+  }
+  const feedScrolls = {};
+  let feedScroll = 0;
+  let cameFromFeed = false;
+  function route() {
+    const id = currentRoute();
+    if (id) {
+      if (!document.body.classList.contains('reading')) { feedScroll = window.scrollY; cameFromFeed = booted; }
+      openArticle(id);
+    } else {
+      const wasReading = document.body.classList.contains('reading');
+      cameFromFeed = false;
+      document.body.classList.remove('reading');
+      $('backBtn').hidden = true; $('sizeUp').hidden = true; $('sizeDown').hidden = true; $('settingsBtn').hidden = false;
+      readerEl.innerHTML = '';
+      $('progress').style.width = '0';
+      const changed = switchTab(tabFromHash() || 'home');
+      if (!changed) renderList();
+      const y = wasReading ? feedScroll : (changed ? (feedScrolls[currentTab] || 0) : window.scrollY);
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  }
+
+  // ---------- UI helpers ----------
+  function setStatus(msg, isErr) { statusEl.textContent = msg; statusEl.classList.toggle('err', !!isErr); }
+  function spin(on) { $('refreshBtn').classList.toggle('spin', on); }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  async function share(title, url) {
+    try {
+      if (navigator.share) { await navigator.share({ title, url }); return; }
+      await navigator.clipboard.writeText(url); toast('Link copied');
+    } catch (e) { /* cancelled */ }
+  }
+  function updateProgress() {
+    if (!document.body.classList.contains('reading')) return;
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    $('progress').style.width = (h > 0 ? Math.min(100, (window.scrollY / h) * 100) : 0) + '%';
+  }
+  function applySize(px) {
+    px = Math.max(15, Math.min(28, px));
+    document.documentElement.style.setProperty('--reader-size', px + 'px');
+    store.set(STORE.size, px);
+    return px;
+  }
+  function applyTheme(t) {
+    if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
+  }
+
+  function parseDate(s) {
+    if (!s) return null;
+    let d = new Date(s);
+    if (isNaN(d)) d = new Date(String(s).replace(/ ([+-]\d{2})(\d{2})$/, ' GMT$1$2'));
+    return isNaN(d) ? null : d;
+  }
+  function timeAgo(s) {
+    const d = typeof s === 'number' ? new Date(s) : parseDate(s);
+    if (!d) return '';
+    const mins = Math.round((Date.now() - d) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  }
+  function dayLabel(s) {
+    const d = parseDate(s);
+    if (!d) return '';
+    const key = x => x.toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney' });
+    if (key(d) === key(new Date())) return 'Today';
+    if (key(d) === key(new Date(Date.now() - 864e5))) return 'Yesterday';
+    return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Australia/Sydney' });
+  }
+  function fmtDate(s) {
+    const d = parseDate(s);
+    if (!d) return '';
+    // Back-catalogue stories: show the year when it isn't this year.
+    const yr = x => x.toLocaleDateString('en-AU', { year: 'numeric', timeZone: 'Australia/Sydney' });
+    return yr(d) !== yr(new Date())
+      ? d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' })
+      : d.toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Australia/Sydney' });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function escAttr(s) { return esc(s); }
+  function cssEsc(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'); }
+
+  // ---------- AI (OpenAI, key kept on this device only) ----------
+  const SPARK = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>';
+  function aiKey() {
+    // Fall back to the key already saved for Ask Ben on this device, if there is one.
+    let k = store.get(STORE.key, null);
+    if (!k) k = store.get('afr-openai-key', null);
+    if (!k) { try { k = localStorage.getItem('ben-chat-openai-key'); } catch (e) { k = null; } }
+    return k || '';
+  }
+  function aiModel() { const m = store.get(STORE.model, ''); return m && m !== 'gpt-5.2' ? m : DEFAULT_MODEL; }
+  function aiPrefs() { return Object.assign({ autoBrief: true, autoSum: true }, store.get(STORE.aiPrefs, {})); }
+
+  async function openaiJSON(system, user, maxTokens, effort) {
+    const key = aiKey();
+    if (!key) throw Object.assign(new Error('No OpenAI key'), { code: 'nokey' });
+    const body = {
+      model: aiModel(),
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      response_format: { type: 'json_object' },
+      max_completion_tokens: maxTokens || 3000,
+      reasoning_effort: effort || 'low',
+    };
+    const call = b => fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(b),
+    });
+    let r = await call(body);
+    if (r.status === 400) {
+      const t = await r.clone().text();
+      if (/reasoning_effort/.test(t)) { delete body.reasoning_effort; r = await call(body); }
+    }
+    if (!r.ok) {
+      let msg = 'HTTP ' + r.status;
+      try { const j = await r.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e) {}
+      if (r.status === 401) msg = 'OpenAI rejected the key — check it in Settings.';
+      if (r.status === 429) msg = 'OpenAI rate limit or quota reached — try again shortly. (' + msg + ')';
+      throw new Error(msg);
+    }
+    const j = await r.json();
+    const text = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+    if (!text) throw new Error('Empty response from OpenAI');
+    return JSON.parse(text);
+  }
+
+  function bulletsHtml(bullets, withRefs) {
+    return '<ul>' + (bullets || []).slice(0, 8).map(b => {
+      let refs = '';
+      if (withRefs && Array.isArray(b.ids)) {
+        const links = b.ids.map(id => findItem(String(id))).filter(Boolean).slice(0, 3)
+          .map(it => '<a href="#a/' + encodeURIComponent(it.id) + '">' + esc(shorten(it.title, 58)) + '</a>');
+        if (links.length) refs = '<span class="refs">' + links.join('') + '</span>';
+      }
+      return '<li><b>' + esc(String(b.lead || '').replace(/[:.\s]+$/, '')) + '.</b> ' + esc(b.text || '') + refs + '</li>';
+    }).join('') + '</ul>';
+  }
+  function shorten(t, n) { t = String(t || ''); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t; }
+  function aiNoKey(label) {
+    return '<p class="ai-msg">Add your OpenAI key in <button type="button" data-open-settings>Settings</button> to get ' + label + '.</p>';
+  }
+  function skeleton(n) { let h = ''; for (let i = 0; i < n; i++) h += '<div class="skl"></div>'; return h; }
+  function articleText(a) {
+    const doc = new DOMParser().parseFromString('<div>' + (a.body || '') + '</div>', 'text/html');
+    doc.querySelectorAll('x-placeholder, script, style').forEach(n => n.remove());
+    return Array.from(doc.querySelectorAll('p, h2, h3, li')).map(n => n.textContent.trim()).filter(Boolean).join('\n\n');
+  }
+
+  // --- Article summary: five bullets, bold lead-ins, analysis not just recap ---
+  const SUM_SYSTEM = [
+    'You are a sharp senior journalist briefing a busy, well-informed Sydney reader on a Sydney Morning Herald article.',
+    'Write exactly 5 bullets. Each has a bold lead-in ("lead": 2–5 words that make the point itself, never a label like "Key point") and "text": ONE sentence of at most 22 words. Be terse and specific: numbers and names over adjectives.',
+    'Go well beyond a recap. Across the five bullets cover: (1) the core news with the specifics that matter — who, what, figures, dates; (2) the context: what is really driving it and why it matters now; (3) the consequences — who is affected and how (Sydney, NSW, Australians, a government, an industry, a team), who gains and who loses; (4) a genuine counterpoint, tension or open question — what critics or the other side would say, or what the story leaves unsaid; (5) what happens next and when.',
+    'For opinion pieces, name the writer\'s argument and its strongest objection. For sport, lifestyle or culture stories, adapt the angles sensibly rather than forcing politics or economics in.',
+    'Signal your own inference in a word or two ("likely", "the risk:") — never long disclaimers. Never invent facts, numbers or quotes. Do not repeat the headline. Australian English. No filler.',
+    'Return JSON only: {"bullets":[{"lead":"…","text":"…"}]}',
+  ].join('\n');
+
+  const SIMPLE_SYSTEM = [
+    'You explain Sydney Morning Herald articles to a smart reader aged about 15, or an adult who doesn\'t follow politics, economics or the news closely. Not childish, not "explain like I’m 5" — just clear.',
+    'Write exactly 5 bullets. Each has a bold lead-in ("lead": 2–5 plain words that make the point) and "text": 1–2 short sentences, max 30 words in total.',
+    'Cover: (1) what actually happened, in plain words; (2) why it is happening, with the background a newcomer needs; (3) who it affects and how, in everyday terms where it fits — rent and house prices, bills, jobs, schools, transport, health, the places and people readers know; (4) the other side, or what could go wrong; (5) what happens next.',
+    'The first time you use any jargon (political, legal, economic or technical) or name an institution most people wouldn\'t know, explain it in a few plain words in brackets, e.g. "the Reserve Bank (which sets interest rates)". Use a quick everyday comparison where it genuinely helps. Keep the key numbers but say what they mean.',
+    'Never invent facts, numbers or quotes. Australian English. Return JSON only: {"bullets":[{"lead":"…","text":"…"}]}',
+  ].join('\n');
+  // Which version of the summary to show: 'pro' (analyst) or 'simple' (plain English). Remembered.
+  let sumMode = store.get('smh-sum-mode', 'pro') === 'simple' ? 'simple' : 'pro';
+  const sumKey = (id, mode) => mode === 'simple' ? id + '|simple' : id;
+
+  const sumInflight = new Map();
+  // The summary starts folded so you can read the story first; it keeps generating in the
+  // background and the header says when it's ready. Tap the header to open it.
+  let sumOpen = false;
+  const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  function paintSummary(state, stateHtml, bodyHtml) {
+    const el = $('aiSum'); if (!el) return;
+    el.className = 'ai sum' + (sumOpen ? ' open' : '');
+    el.innerHTML = '<button type="button" class="sum-toggle ai-head" data-sumtoggle aria-expanded="' + sumOpen + '">' + SPARK +
+      '<span>AI summary</span><span class="spacer"></span><span class="state' + (state === 'ready' ? ' ready' : '') + '">' + stateHtml + '</span>' + CHEV + '</button>' +
+      '<div class="sum-body"><div class="sum-modes" role="group" aria-label="Summary style">' +
+      '<button type="button" data-summode="pro" aria-pressed="' + (sumMode === 'pro') + '">Analyst</button>' +
+      '<button type="button" data-summode="simple" aria-pressed="' + (sumMode === 'simple') + '">Plain English</button></div>' + bodyHtml + '</div>';
+  }
+
+  async function renderSummary(item, a, force) {
+    if (!$('aiSum')) return;
+    const id = item.id, mode = sumMode, key = sumKey(id, mode);
+    const cache = store.get(STORE.sums, {});
+    const hit = !force && cache[key];
+    if (hit) {
+      paintSummary('ready', 'Ready', bulletsHtml(hit.bullets) +
+        '<div class="ai-foot">' + esc(hit.model || '') + ' · ' + esc(timeAgo(hit.at)) + ' · <button type="button" data-resum style="color:var(--accent);font-weight:600">Regenerate</button></div>');
+      return;
+    }
+    if (!aiKey()) { paintSummary('', 'Add key', aiNoKey('a five-point summary of every article')); return; }
+    if (!force && !aiPrefs().autoSum) { paintSummary('', 'Off', '<p class="ai-msg"><button type="button" data-resum>Summarise this article</button></p>'); return; }
+    paintSummary('', '<span class="spin-dot"></span>Writing…', '<p class="ai-msg">Reading the article…</p>' + skeleton(5));
+    try {
+      let p = sumInflight.get(key);
+      if (!p) {
+        const user = 'Headline: ' + (a.headline || item.title) + '\nStandfirst: ' + (a.about || item.desc || '') +
+          '\nBy: ' + (a.byline || item.author || '') + '\nPublished: ' + (a.published || item.date || '') +
+          '\nSection: ' + [a.label, (a.categories || []).join(' / ')].filter(Boolean).join(' · ') +
+          '\n\nARTICLE:\n' + articleText(a).slice(0, 24000);
+        // No extended reasoning for single-article summaries: much faster, and the prompt carries the structure.
+        p = openaiJSON(mode === 'simple' ? SIMPLE_SYSTEM : SUM_SYSTEM, user, 1500, 'none').finally(() => sumInflight.delete(key));
+        sumInflight.set(key, p);
+      }
+      const out = await p;
+      if (!Array.isArray(out.bullets) || !out.bullets.length) throw new Error('Unexpected response shape');
+      const all = store.get(STORE.sums, {});
+      all[key] = { at: Date.now(), model: aiModel(), bullets: out.bullets.slice(0, 5) };
+      const keys = Object.keys(all);
+      if (keys.length > 200) keys.sort((x, y) => all[x].at - all[y].at).slice(0, keys.length - 200).forEach(k => delete all[k]);
+      store.set(STORE.sums, all);
+      if (currentRoute() === id && sumMode === mode) renderSummary(item, a, false);
+    } catch (e) {
+      if (currentRoute() !== id || sumMode !== mode) return;
+      paintSummary('', 'Failed', '<p class="ai-msg">Couldn’t summarise: ' + esc(e.message) + ' <button type="button" data-resum>Try again</button></p>');
+    }
+  }
+
+  // --- Tab briefing: a coffee-length read on everything in the tab ---
+  function briefSystem(tabName) {
+    return [
+      'You are the editor of a premium morning briefing read over coffee by a busy, well-informed Sydneysider before their day starts.',
+      'You are given the current stories from The Sydney Morning Herald' + (tabName === 'Home' ? ' front page (in the editors’ running order)' : ' "' + tabName + '" section') + ', some with article excerpts.',
+      'It must be skimmable in under a minute. Write: "take" — ONE sentence (max 25 words) on the day’s dominant theme; then "bullets" — exactly 5 items ordered by how much they matter to a Sydney reader (not list order) — lead with the news that changes things, not the lightest or most-clicked.',
+      'Each bullet has a bold lead-in ("lead": 2–5 words that state the point) and "text": ONE sentence, max 28 words, that synthesises rather than lists — the key specific (a figure or name) plus why it matters or the angle others miss (who wins/loses, the tension, the risk). Signal your own inference in a word ("likely", "risk:"), never with long disclaimers. Never invent facts.',
+      'Each bullet also has "ids": the 1–3 story ids it draws on, copied exactly from the list.',
+      'Finish with "watch": what to watch today or this week, max 15 words.',
+      'Australian English. No filler, no "In today’s news". Return JSON only: {"take":"…","bullets":[{"lead":"…","text":"…","ids":["…"]}],"watch":"…"}',
+    ].join('\n');
+  }
+  function briefSignature(list) { return list.slice(0, 20).map(i => i.id).join(','); }
+  const briefInflight = new Map();
+
+  // mode: 'auto' when the list is drawn, 'force' from the Refresh button, 'show' after a new one lands.
+  function renderBrief(mode) {
+    mode = mode || 'auto';
+    const el = $('brief');
+    const tab = currentTab, feed = FEEDS.find(f => f.id === tab);
+    if (!items.length || $('search').value.trim()) { el.innerHTML = ''; return; }
+    const title = tab === 'home' ? 'Morning briefing' : feed.name + ' briefing';
+    const collapsed = store.get('smh-brief-collapsed', false);
+    const head = '<div class="ai-head">' + SPARK + '<span>' + esc(title) + '</span><span class="spacer"></span>';
+    const cached = mode === 'force' ? null : store.get(STORE.brief(tab), null);
+    const sig = briefSignature(items);
+    const fresh = cached && (Date.now() - cached.at < 6 * 3600e3) && (cached.sig === sig || Date.now() - cached.at < 90 * 60e3);
+    const canAuto = aiKey() && aiPrefs().autoBrief;
+    if (cached) {
+      const busy = briefInflight.has(tab);
+      el.innerHTML = '<section class="ai' + (collapsed ? ' collapsed' : '') + '">' + head +
+        '<button type="button" data-rebrief>' + (busy ? 'Updating…' : 'Refresh') + '</button><button type="button" data-collapse>' + (collapsed ? 'Show' : 'Hide') + '</button></div>' +
+        (cached.data.take ? '<p class="ai-take">' + esc(cached.data.take) + '</p>' : '') +
+        bulletsHtml(cached.data.bullets, true) +
+        (cached.data.watch ? '<p class="ai-watch"><b>Watch:</b> ' + esc(cached.data.watch) + '</p>' : '') +
+        '<div class="ai-foot">' + esc(cached.model || '') + ' · written ' + esc(timeAgo(cached.at)) + (cached.sig !== sig && !busy ? ' · new stories since' : '') + '</div></section>';
+      if (mode === 'auto' && !fresh && canAuto) generateBrief(tab, feed);
+      return;
+    }
+    if (!aiKey()) { el.innerHTML = '<section class="ai">' + head + '</div>' + aiNoKey('a morning briefing across these stories') + '</section>'; return; }
+    if (mode === 'auto' && !canAuto) {
+      el.innerHTML = '<section class="ai">' + head + '</div><p class="ai-msg"><button type="button" data-rebrief>Write the briefing</button></p></section>';
+      return;
+    }
+    el.innerHTML = '<section class="ai">' + head + '</div><p class="ai-msg">Reading today’s stories…</p>' + skeleton(6) + '</section>';
+    generateBrief(tab, feed);
+  }
+
+  async function generateBrief(tab, feed) {
+    if (briefInflight.has(tab)) return;
+    briefInflight.set(tab, true);
+    // Give the top stories a moment to download so the briefing can use their full text.
+    await Promise.race([prefetchTop(), new Promise(r => setTimeout(r, 20000))]);
+    if (currentTab !== tab) { briefInflight.delete(tab); return; }
+    const list = items.slice(0, 40), sig = briefSignature(items);
+    const lines = list.map((i, n) => {
+      const a = getCachedArticle(i.id);
+      let line = '[' + i.id + '] ' + (i.label ? i.label + ' · ' : '') + (i.tag || tagFromCategory(i.category) || '') + ' — ' + i.title + (i.desc ? ' — ' + i.desc : '');
+      if (a && n < 14) line += '\n   Excerpt: ' + articleText(a).slice(0, 1400).replace(/\s+/g, ' ');
+      return line;
+    }).join('\n');
+    const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' });
+    try {
+      const out = await openaiJSON(briefSystem(feed.name), 'Today is ' + today + '.\n\nSTORIES:\n' + lines, 4000);
+      if (!Array.isArray(out.bullets) || !out.bullets.length) throw new Error('Unexpected response shape');
+      store.set(STORE.brief(tab), { at: Date.now(), sig, model: aiModel(), data: out });
+      briefInflight.delete(tab);
+      if (currentTab === tab && !currentRoute()) renderBrief('show');
+    } catch (e) {
+      if (currentTab === tab && !currentRoute()) {
+        const el = $('brief');
+        const box = el.querySelector('.ai') || el;
+        const msg = document.createElement('p'); msg.className = 'ai-msg';
+        msg.innerHTML = 'Couldn’t write the briefing: ' + esc(e.message) + ' <button type="button" data-rebrief>Try again</button>';
+        box.querySelectorAll('.skl').forEach(n => n.remove());
+        const old = box.querySelector('.ai-msg'); if (old && !box.querySelector('ul')) old.remove();
+        box.appendChild(msg);
+      }
+    } finally { briefInflight.delete(tab); }
+  }
+
+  // --- Settings ---
+  function openSettings() {
+    const k = store.get(STORE.key, '');
+    $('keyInput').value = k || '';
+    let benKey = '', afrKey = store.get('afr-openai-key', ''); try { benKey = localStorage.getItem('ben-chat-openai-key') || ''; } catch (e) {}
+    $('keyInput').placeholder = !k && afrKey ? 'Using the key saved for AFR Reader' : !k && benKey ? 'Using the key saved for Ask Ben' : 'sk-…';
+    $('modelInput').value = store.get(STORE.model, '') || '';
+    $('modelInput').placeholder = DEFAULT_MODEL;
+    const pr = aiPrefs();
+    $('autoBrief').checked = pr.autoBrief; $('autoSum').checked = pr.autoSum;
+    $('darkMode').checked = isDark();
+    try { $('settings').showModal(); } catch (e) { $('settings').setAttribute('open', ''); }
+  }
+  $('settingsBtn').addEventListener('click', openSettings);
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-open-settings]')) { e.preventDefault(); openSettings(); }
+    else if (e.target.closest('[data-rebrief]')) { e.preventDefault(); if (!briefInflight.has(currentTab)) { store.set(STORE.brief(currentTab), null); renderBrief('force'); } }
+    else if (e.target.closest('[data-collapse]')) { e.preventDefault(); store.set('smh-brief-collapsed', !store.get('smh-brief-collapsed', false)); renderBrief('show'); }
+    else if (e.target.closest('[data-sumtoggle]')) {
+      e.preventDefault();
+      sumOpen = !sumOpen;
+      const el = $('aiSum'); el.classList.toggle('open', sumOpen);
+      el.querySelector('[data-sumtoggle]').setAttribute('aria-expanded', sumOpen);
+    }
+    else if (e.target.closest('[data-summode]')) {
+      e.preventDefault();
+      const m = e.target.closest('[data-summode]').dataset.summode;
+      if (m !== sumMode) {
+        sumMode = m; store.set('smh-sum-mode', m); sumOpen = true;
+        const id = currentRoute(), a = id && getCachedArticle(id);
+        if (a) renderSummary(findItem(id) || { id, title: a.headline, desc: a.about }, a, false);
+      }
+    }
+    else if (e.target.closest('[data-resum]')) {
+      e.preventDefault();
+      const id = currentRoute(), a = id && getCachedArticle(id);
+      if (a) { sumOpen = true; renderSummary(findItem(id) || { id, title: a.headline, desc: a.about }, a, true); }
+    }
+  });
+  $('settingsForm').addEventListener('submit', () => {
+    const k = $('keyInput').value.trim();
+    if (k) store.set(STORE.key, k);
+    const m = $('modelInput').value.trim();
+    store.set(STORE.model, m || '');
+    store.set(STORE.aiPrefs, { autoBrief: $('autoBrief').checked, autoSum: $('autoSum').checked });
+    const dark = $('darkMode').checked;
+    if (dark !== isDark()) { applyTheme(dark ? 'dark' : 'light'); store.set(STORE.theme, dark ? 'dark' : 'light'); }
+    toast(k ? 'Saved — key stored on this device' : 'Saved');
+    if (currentRoute()) { const id = currentRoute(), a = getCachedArticle(id); if (a) renderSummary(findItem(id) || { id }, a, false); }
+    else renderBrief('auto');
+  });
+  $('forgetKey').addEventListener('click', () => {
+    try { localStorage.removeItem(STORE.key); } catch (e) {}
+    $('keyInput').value = ''; toast('Key removed from this device');
+  });
+  $('clearAi').addEventListener('click', () => {
+    try { Object.keys(localStorage).filter(k => k.indexOf('smh-ai-summaries') === 0 || k.indexOf('smh-ai-brief') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    toast('Saved summaries cleared');
+  });
+
+  function renderRecent() {
+    const list = store.get(STORE.opened, []).filter(x => x.title).slice(0, 12);
+    $('recentLinks').innerHTML = list.length ? '<div class="recent"><h3>Recently opened</h3>' + list.map(x =>
+      '<a href="#a/' + encodeURIComponent(x.id) + '" data-close-link><b>' + esc(x.title) + '</b><span>' + esc([x.tag, x.date ? fmtDate(x.date) : ''].filter(Boolean).join(' · ')) + '</span></a>'
+    ).join('') + '</div>' : '';
+  }
+  function openLinkDialog() {
+    $('linkInput').value = ''; $('linkErr').hidden = true; renderRecent();
+    try { $('linkDlg').showModal(); } catch (e) { $('linkDlg').setAttribute('open', ''); }
+    setTimeout(() => $('linkInput').focus(), 50);
+  }
+  $('linkBtn').addEventListener('click', openLinkDialog);
+  $('linkCancel').addEventListener('click', () => $('linkDlg').close());
+  $('linkForm').addEventListener('submit', e => {
+    if (!openLink($('linkInput').value)) {
+      e.preventDefault();
+      $('linkErr').textContent = 'That doesn’t look like an smh.com.au article link.'; $('linkErr').hidden = false;
+    }
+  });
+  $('pasteBtn').addEventListener('click', async () => {
+    try { const t = await navigator.clipboard.readText(); $('linkInput').value = t.trim(); if (parseAfrLink(t)) { $('linkDlg').close(); openLink(t); } }
+    catch (e) { $('linkErr').textContent = 'Couldn’t read the clipboard — long-press the box and choose Paste.'; $('linkErr').hidden = false; }
+  });
+  $('recentLinks').addEventListener('click', e => { if (e.target.closest('[data-close-link]')) $('linkDlg').close(); });
+  // Pasting an SMH link into the filter box opens it too.
+  $('search').addEventListener('input', e => {
+    if (/smh\.com\.au\//i.test(e.target.value) && openLink(e.target.value)) { e.target.value = ''; }
+  });
+
+  // ---------- Events ----------
+  $('tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    if (b.dataset.tab === currentTab) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    feedScrolls[b.dataset.tab] = 0;
+    location.hash = 't/' + b.dataset.tab;
+  });
+  chipsEl.addEventListener('click', e => {
+    const c = e.target.closest('[data-cat]'); if (!c) return;
+    categoryFilter = categoryFilter === c.dataset.cat ? null : c.dataset.cat;
+    renderList();
+  });
+  $('search').addEventListener('input', renderList);
+  $('refreshBtn').addEventListener('click', () => {
+    const id = currentRoute();
+    if (id) {
+      memArticles.delete(id);
+      const all = store.get(STORE.articles, {}); delete all[id]; store.set(STORE.articles, all);
+      openArticle(id);
+    } else loadFeed(true);
+  });
+  // Go back through history when we arrived from the feed, so its scroll position survives.
+  $('backBtn').addEventListener('click', () => { if (cameFromFeed) history.back(); else location.hash = 't/' + currentTab; });
+  // The masthead always takes you to the front page, like smh.com.au.
+  $('brand').addEventListener('click', e => {
+    e.preventDefault();
+    if (currentTab === 'home' && !currentRoute()) window.scrollTo({ top: 0, behavior: 'smooth' });
+    else { feedScrolls.home = 0; location.hash = 't/home'; }
+  });
+  let size = store.get(STORE.size, 20);
+  applySize(size);
+  $('sizeUp').addEventListener('click', () => { size = applySize(size + 1); });
+  $('sizeDown').addEventListener('click', () => { size = applySize(size - 1); });
+  applyTheme(store.get(STORE.theme, null));
+  function isDark() { return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() === '#121417'; }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  window.addEventListener('hashchange', route);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && currentRoute() && !$('settings').open) $('backBtn').click();
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && currentRoute() && !$('settings').open) {
+      const n = neighbour(currentRoute(), e.key === 'ArrowRight' ? 1 : -1);
+      if (n) goArticle(n.id, e.key === 'ArrowRight' ? 1 : -1);
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !currentRoute()) loadFeed(false);
+  });
+
+  // ---------- Boot ----------
+  let booted = false;
+  renderTabs();
+  const deep = new URLSearchParams(location.search).get('url') || (/^#u\/(.+)$/.exec(location.hash) || [])[1];
+  const deepHit = deep && parseAfrLink(decodeURIComponent(deep));
+  if (deepHit) {
+    rememberOpened(deepHit);
+    history.replaceState(null, '', location.pathname + '#t/home');
+    history.pushState(null, '', '#a/' + encodeURIComponent(deepHit.id));
+  } else if (!currentRoute() && !tabFromHash()) history.replaceState(null, '', '#t/home');
+  loadFeed(false);
+  route();
+  booted = true;
+  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+})();
+</script>
+</body>
+</html>
