@@ -1,5 +1,5 @@
 // Offline support: network first so updates show immediately, cache as fallback.
-const CACHE = 'stronger-v1';
+const CACHE = 'stronger-v2';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png',
   'https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js'];
 self.addEventListener('install', e => {
