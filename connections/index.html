@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Connections">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Connections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&family=Libre+Baskerville:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff;--ink:#000000;--muted:#5a594e;--soft:#787c7e;--line:#dcdcdc;
+  --tile:#efefe6;--tile-ink:#000000;--sel:#5a594e;--sel-ink:#ffffff;
+  --btn-off:#7f7f7f;--sheet:#ffffff;--scrim:rgba(255,255,255,.85);--toast:#000;--toast-ink:#fff;
+  --g0:#f9df6d;--g1:#a0c35a;--g2:#b0c4ef;--g3:#ba81c5;--g-ink:#000;--nudge:#000;
+  --font:"Libre Franklin","Franklin Gothic Medium","Helvetica Neue",Arial,sans-serif;
+  --serif:"Libre Baskerville",Georgia,serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121212;--ink:#f8f8f8;--muted:#c9c9c2;--soft:#9a9a9a;--line:#3a3a3c;
+  --tile:#3b3a35;--tile-ink:#f8f8f8;--sel:#e6e6dc;--sel-ink:#121212;
+  --btn-off:#6a6a6a;--sheet:#1c1c1c;--scrim:rgba(18,18,18,.85);--toast:#f8f8f8;--toast-ink:#121212;--nudge:#f8f8f8;}}
+:root[data-theme="dark"]{
+  --bg:#121212;--ink:#f8f8f8;--muted:#c9c9c2;--soft:#9a9a9a;--line:#3a3a3c;
+  --tile:#3b3a35;--tile-ink:#f8f8f8;--sel:#e6e6dc;--sel-ink:#121212;
+  --btn-off:#6a6a6a;--sheet:#1c1c1c;--scrim:rgba(18,18,18,.85);--toast:#f8f8f8;--toast-ink:#121212;--nudge:#f8f8f8;}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  -webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.hidden{display:none!important}
+
+/* top bar */
+.top{border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+.top-in{max-width:624px;margin:0 auto;height:56px;padding:0 12px 0 16px;display:flex;align-items:center;gap:8px}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.brand svg{flex:none}
+.brand div{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;row-gap:0;min-width:0}
+.brand h1{font-family:var(--serif);font-size:22px;margin:0;letter-spacing:-.01em;white-space:nowrap;line-height:1.1}
+.brand span{font-size:11px;color:var(--soft);font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.ic{width:40px;height:40px;display:grid;place-items:center;border-radius:50%}
+.ic:hover{background:var(--tile)}
+.ic svg{width:22px;height:22px}
+
+main{max-width:624px;margin:0 auto;padding:12px 16px 40px}
+@media (max-width:360px){main{padding:10px 10px 32px}.board{gap:6px!important}.tile{padding:3px!important}.top-in{padding-left:10px}}
+.meta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--soft);margin:4px 0 0}
+.meta b{color:var(--ink);font-weight:700}
+.meta button{font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-size:14px;white-space:nowrap}
+.prompt{text-align:center;font-size:16px;margin:22px 0 18px;font-weight:400}
+
+.hintbar{border:1px dashed var(--soft);border-radius:8px;padding:10px 12px;margin:0 0 12px;font-size:14px;line-height:1.4}
+.hintbar div+div{margin-top:4px}
+.hintbar b{text-transform:uppercase;letter-spacing:.02em}
+
+/* board */
+.board{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;user-select:none;-webkit-user-select:none}
+.tile{position:relative;height:clamp(78px,21vw,84px);border-radius:6px;background:var(--tile);color:var(--tile-ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px 5px;
+  font-weight:700;text-transform:uppercase;line-height:1.08;transition:background-color .15s,color .15s;touch-action:manipulation;overflow:hidden}
+.tile .t{display:block;width:100%;overflow-wrap:normal;word-break:normal;-webkit-hyphens:manual;hyphens:manual}
+.tile .a{display:block;width:100%;margin-top:4px;font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;line-height:1.1}
+.tile:active{transform:scale(.97)}
+.tile.sel{background:var(--sel);color:var(--sel-ink)}
+.tile.sel:active{transform:none}
+.tile.nudge::after{content:"";position:absolute;inset:3px;border:2px dashed var(--nudge);border-radius:4px;pointer-events:none;opacity:.55}
+.tile.jump{animation:jump .3s ease}
+@keyframes jump{0%,100%{transform:translateY(0)}45%{transform:translateY(-7px)}}
+.board.shake .tile.sel{animation:shake .45s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.group{grid-column:span 4;height:clamp(78px,21vw,84px);border-radius:6px;color:var(--g-ink);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:4px 10px;animation:pop .35s ease}
+.group .n{font-weight:700;text-transform:uppercase;font-size:clamp(14px,3.9vw,20px);line-height:1.15}
+.group .m{font-size:clamp(12px,3.4vw,17px);text-transform:uppercase;line-height:1.25;margin-top:2px}
+.group .m u{text-decoration-thickness:2px;text-underline-offset:2px}
+.group .m i{font-style:normal;text-transform:none;opacity:.8}
+.c0{background:var(--g0)}.c1{background:var(--g1)}.c2{background:var(--g2)}.c3{background:var(--g3)}
+@keyframes pop{0%{transform:scale(.92);opacity:.4}60%{transform:scale(1.03);opacity:1}100%{transform:scale(1)}}
+
+.toast{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);background:var(--toast);color:var(--toast-ink);
+  font-weight:600;font-size:15px;padding:12px 16px;border-radius:6px;white-space:nowrap;z-index:4;pointer-events:none;
+  animation:fade 1.8s ease forwards}
+@keyframes fade{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0}}
+
+.mist{display:flex;justify-content:center;align-items:center;gap:10px;margin:22px 0 4px;font-size:16px}
+.dots{display:flex;gap:10px}
+.dot{width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .3s,opacity .3s}
+.dot.gone{transform:scale(0);opacity:0}
+
+.row{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+.pill{border:1px solid var(--ink);border-radius:32px;padding:0 18px;height:48px;font-size:16px;font-weight:600;min-width:96px;background:var(--bg)}
+.pill:disabled{border-color:var(--btn-off);color:var(--btn-off);cursor:default}
+.pill.solid{background:var(--ink);color:var(--bg)}
+.pill.solid:disabled{background:var(--bg);color:var(--btn-off)}
+.helpers{display:flex;justify-content:center;gap:22px;margin-top:20px}
+.link{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:4px;color:var(--ink);display:inline-flex;gap:6px;align-items:center}
+.link svg{width:17px;height:17px}
+.link[aria-pressed="true"]{text-decoration-thickness:2px}
+.link:disabled{color:var(--btn-off);cursor:default}
+.after{margin-top:22px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-start;justify-content:center;
+  overflow-y:auto;padding:max(24px,env(safe-area-inset-top)) 12px 24px;animation:in .2s ease}
+@keyframes in{from{opacity:0}to{opacity:1}}
+.sheet{background:var(--sheet);width:100%;max-width:520px;border-radius:10px;box-shadow:0 4px 30px rgba(0,0,0,.18);
+  padding:40px 24px 28px;position:relative;animation:up .25s ease;margin:auto 0}
+@keyframes up{from{transform:translateY(20px)}to{transform:none}}
+.x{position:absolute;right:10px;top:10px}
+.sheet h2{font-family:var(--serif);font-size:28px;margin:0 0 6px;text-align:center}
+.sheet h3{font-size:16px;margin:24px 0 8px}
+.sheet p,.sheet li{font-size:16px;line-height:1.5}
+.sheet ul{padding-left:20px;margin:8px 0}
+.center{text-align:center}
+.sub{color:var(--soft);font-size:15px;text-align:center;margin:0 0 16px}
+.emoji{display:grid;gap:4px;justify-content:center;margin:18px 0}
+.emoji div{display:flex;gap:4px}
+.emoji span{width:36px;height:36px;border-radius:5px}
+.emoji .hint{font-size:14px;color:var(--soft);text-align:center;margin-top:4px}
+.stats{display:flex;justify-content:center;gap:18px;margin:18px 0 6px}
+.stat{text-align:center;min-width:62px}
+.stat b{display:block;font-size:30px;font-weight:600}
+.stat span{font-size:12px;color:var(--soft)}
+.shelf{list-style:none;padding:0;margin:8px 0 0}
+.shelf li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font-size:15px;line-height:1.35}
+.shelf .sw{flex:none;width:10px;height:36px;border-radius:2px;margin-top:2px}
+.shelf .bt{font-weight:700}
+.shelf .ba{color:var(--soft);font-size:14px}
+.archive{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:16px}
+.arch{height:64px;border-radius:6px;background:var(--tile);font-weight:700;font-size:17px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;color:var(--tile-ink)}
+.arch small{font-size:11px;font-weight:600;opacity:.75}
+.arch.won{background:var(--g1);color:#000}
+.arch.lost{background:var(--g3);color:#000}
+.arch.cur{outline:2px solid var(--ink);outline-offset:2px}
+.legend{display:flex;gap:14px;justify-content:center;font-size:13px;color:var(--soft);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ex{display:flex;gap:6px;margin:10px 0}
+.ex span{flex:1;background:var(--tile);border-radius:5px;padding:10px 4px;font-weight:700;text-transform:uppercase;font-size:12px;text-align:center}
+.ex.solved{display:block;border-radius:5px;padding:10px;text-align:center;font-size:13px}
+.ex.solved b{display:block;text-transform:uppercase}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="#f9df6d"/><rect x="17" y="1" width="14" height="14" rx="3" fill="#a0c35a"/><rect x="1" y="17" width="14" height="14" rx="3" fill="#b0c4ef"/><rect x="17" y="17" width="14" height="14" rx="3" fill="#ba81c5"/></svg>
+      <div><h1>Connections</h1><span>Bookshelf edition</span></div>
+    </div>
+    <button class="ic" id="bHelp" aria-label="How to play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.6-3 4.5"/><circle cx="12" cy="17.6" r=".6" fill="currentColor"/></svg></button>
+    <button class="ic" id="bStats" aria-label="Statistics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M12 20V5M19 20v-9"/></svg></button>
+    <button class="ic" id="bArchive" aria-label="All puzzles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <div class="meta"><div id="meta"></div><button id="bToday" class="hidden">Back to today</button></div>
+  <p class="prompt" id="prompt">Create four groups of four!</p>
+  <div class="hintbar hidden" id="hintbar"></div>
+  <div class="board" id="board"></div>
+
+  <div id="controls">
+    <div class="mist"><span id="mistLabel">Mistakes Remaining:</span><div class="dots" id="dots"></div></div>
+    <div class="row">
+      <button class="pill" id="bShuffle">Shuffle</button>
+      <button class="pill" id="bDeselect" disabled>Deselect All</button>
+      <button class="pill solid" id="bSubmit" disabled>Submit</button>
+    </div>
+    <div class="helpers">
+      <button class="link" id="bAuthors" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg><span>Show authors</span></button>
+      <button class="link" id="bHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg><span>Hint</span></button>
+    </div>
+  </div>
+  <div class="after hidden" id="after">
+    <button class="pill" id="bResults">View Results</button>
+    <button class="pill solid" id="bNext2">Next Puzzle</button>
+  </div>
+</main>
+
+<div id="modal"></div>
+
+<script src="puzzles.js"></script>
+<script>
+(() => {
+const D = window.BOOKSHELF, P = D.puzzles, N = P.length;
+const EMOJI = ['🟨','🟩','🟦','🟪'];
+const LAUNCH = new Date(2026, 9, 4); // puzzle #1 is 4 Oct 2026, then one a day, looping the bank
+const $ = id => document.getElementById(id);
+const board = $('board');
+
+// ---------- storage (best effort; game still works without it) ----------
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('bc:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('bc:' + k, JSON.stringify(v)); } catch {} }
+};
+
+// ---------- dates ----------
+const dayNum = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - LAUNCH) / 864e5);
+const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+const todayIdx = () => ((dayNum(new Date()) % N) + N) % N;
+
+// ---------- game state ----------
+let idx, puzzle, st, sel = [], busy = false;
+let showAuthors = store.get('authors', false);
+
+function fresh(i) {
+  const tiles = P[i].flatMap(g => g.b);
+  return { order: shuffle(tiles.slice()), solved: [], guesses: [], mistakes: 0, hints: [], nudges: [],
+           relaxed: false, done: false, won: false, revealed: false };
+}
+function load(i) {
+  idx = i; puzzle = P[i]; sel = [];
+  st = store.get('p' + i, null) || fresh(i);
+  render(); renderHints(); renderMeta();
+  window.scrollTo({ top: 0 });
+}
+const save = () => store.set('p' + idx, st);
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const groupOf = b => puzzle.findIndex(g => g.b.includes(b));
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// Soft hyphens so long words can break on small phones instead of shrinking to nothing.
+const SPLITS = { correspondent: 'corre-spondent', resurrection: 'resur-rection', anniversary: 'anni-versary', labyrinth: 'laby-rinth',
+  fierceland: 'fierce-land', housemaid: 'house-maid', flashlight: 'flash-light', underworld: 'under-world', afterlife: 'after-life',
+  fellowship: 'fellow-ship', librarian: 'libra-rian', detective: 'detec-tive', insidious: 'insid-ious', blackout: 'black-out',
+  edenhope: 'eden-hope', playford: 'play-ford', "husband's": "hus-band's", whistler: 'whis-tler', memorial: 'memo-rial' };
+const soft = t => esc(t).split(' ').map(w => {
+  const sp = SPLITS[w.toLowerCase()]; if (!sp) return w;
+  const at = sp.indexOf('-'); return w.slice(0, at) + '&shy;' + w.slice(at);
+}).join(' ');
+
+// ---------- rendering ----------
+const tileEls = new Map();
+function tileEl(b) {
+  let el = tileEls.get(b);
+  if (!el) {
+    el = document.createElement('button');
+    el.className = 'tile'; el.dataset.b = b;
+    el.addEventListener('click', () => toggle(b));
+    tileEls.set(b, el);
+  }
+  const bk = D.books[b];
+  if (el.dataset.authors !== String(showAuthors)) {
+    el.dataset.authors = showAuthors;
+    el.innerHTML = `<span class="t">${soft(bk.t)}</span>` + (showAuthors ? `<span class="a">${esc(bk.a)}</span>` : '');
+    if (el.isConnected) fit(el);
+  }
+  el.classList.toggle('sel', sel.includes(b));
+  el.classList.toggle('nudge', st.nudges.includes(b) && !st.done);
+  el.setAttribute('aria-pressed', sel.includes(b));
+  el.setAttribute('aria-label', bk.t + (showAuthors ? ' by ' + bk.a : ''));
+  return el;
+}
+function groupEl(gi) {
+  const g = puzzle[gi], c = D.categories[g.c];
+  const el = document.createElement('div');
+  el.className = 'group c' + gi;
+  const names = g.b.map(b => {
+    let t = esc(D.books[b].t);
+    const k = c.key[b];
+    if (k) { const at = D.books[b].t.toLowerCase().indexOf(k.toLowerCase()); if (at >= 0) t = esc(D.books[b].t.slice(0, at)) + '<u>' + esc(D.books[b].t.slice(at, at + k.length)) + '</u>' + esc(D.books[b].t.slice(at + k.length)); }
+    if (c.gloss[b]) t += ` <i>(${esc(c.gloss[b])})</i>`;
+    return t;
+  });
+  el.innerHTML = `<div class="n">${esc(c.name)}</div><div class="m">${names.join(', ')}</div>`;
+  return el;
+}
+function render() {
+  board.querySelectorAll('.group,.toast').forEach(n => n.remove());
+  const frag = document.createDocumentFragment();
+  st.solved.forEach(gi => frag.appendChild(groupEl(gi)));
+  const solvedTiles = new Set(st.solved.flatMap(gi => puzzle[gi].b));
+  st.order.filter(b => !solvedTiles.has(b)).forEach(b => frag.appendChild(tileEl(b)));
+  [...board.children].forEach(n => n.remove());
+  board.appendChild(frag);
+  board.querySelectorAll('.group').forEach(g => g.style.animation = 'none');
+  fitAll(); renderControls();
+}
+function renderControls() {
+  const left = 4 - st.mistakes;
+  $('dots').innerHTML = st.relaxed ? '' : Array.from({ length: 4 }, (_, i) => `<span class="dot${i >= left ? ' gone' : ''}"></span>`).join('');
+  $('mistLabel').textContent = st.relaxed ? `Mistakes: ${st.mistakes} · no limit, take your time` : 'Mistakes Remaining:';
+  $('bSubmit').disabled = sel.length !== 4 || busy;
+  $('bDeselect').disabled = !sel.length || busy;
+  $('bShuffle').disabled = busy;
+  $('bAuthors').setAttribute('aria-pressed', showAuthors);
+  $('bAuthors').querySelector('span').textContent = showAuthors ? 'Hide authors' : 'Show authors';
+  $('bHint').disabled = st.done || busy || nextHint() == null;
+  $('controls').classList.toggle('hidden', st.done);
+  $('after').classList.toggle('hidden', !st.done);
+  $('prompt').textContent = st.done ? (st.won ? 'Nicely done.' : 'Here’s how they fit together.') : 'Create four groups of four!';
+}
+function renderMeta() {
+  const t = todayIdx(), d = new Date();
+  const label = idx === t
+    ? d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
+    : 'From the archive';
+  $('meta').innerHTML = `<b>Puzzle #${idx + 1}</b> · ${label}`;
+  $('bToday').classList.toggle('hidden', idx === t);
+}
+
+// Shrink each tile's text until it fits — long book titles are the whole challenge here.
+function fit(el) {
+  const t = el.querySelector('.t'), a = el.querySelector('.a');
+  if (!t) return;
+  const title = D.books[el.dataset.b].t;
+  // Prefer whole words; only let long words break at their soft hyphen if they'd otherwise drop below 11px.
+  const total = title.length;
+  let cap = 20;
+  if (total > 26) cap = 13; else if (total > 16) cap = 15;
+  if (showAuthors) cap = Math.min(cap, 15);
+  const set = s => { t.style.fontSize = s + 'px'; if (a) a.style.fontSize = Math.max(9, Math.min(12, s - 2)) + 'px'; };
+  const over = () => el.scrollHeight > el.clientHeight + 1 || t.scrollWidth > t.clientWidth;
+  t.style.overflowWrap = ''; t.style.hyphens = t.style.webkitHyphens = 'none';
+  let size = cap; set(size);
+  while (size > 11 && over()) set(--size);
+  if (over()) {
+    t.style.hyphens = t.style.webkitHyphens = 'manual';
+    size = Math.min(cap, 13); set(size);
+    while (size > 9 && over()) set(--size);
+  }
+  if (over()) t.style.overflowWrap = 'anywhere'; // only on the very narrowest phones
+}
+const fitAll = () => board.querySelectorAll('.tile').forEach(fit);
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(fitAll, 80); });
+
+// ---------- hints ----------
+// Each press goes one small step: name the easiest unsolved group, then point at one of its books, then the next group.
+function nextHint() {
+  for (let gi = 0; gi < 4; gi++) {
+    if (st.solved.includes(gi)) continue;
+    if (!st.hints.includes(gi)) return { type: 'name', gi };
+    const g = puzzle[gi];
+    if (!g.b.some(b => st.nudges.includes(b))) return { type: 'nudge', gi };
+  }
+  return null;
+}
+function hint() {
+  const h = nextHint(); if (!h) return;
+  if (h.type === 'name') st.hints.push(h.gi);
+  else st.nudges.push(puzzle[h.gi].b.find(b => !sel.includes(b)) || puzzle[h.gi].b[0]);
+  save(); renderHints(); render();
+}
+function renderHints() {
+  const open = st.hints.filter(gi => !st.solved.includes(gi));
+  const bar = $('hintbar');
+  if (!open.length || st.done) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  bar.innerHTML = open.map(gi => {
+    const nudged = puzzle[gi].b.some(b => st.nudges.includes(b));
+    return `<div>💡 One group is <b>${esc(D.categories[puzzle[gi].c].name)}</b>${nudged ? ' — one of them has a dashed outline.' : ''}</div>`;
+  }).join('');
+}
+
+// ---------- interaction ----------
+function toggle(b) {
+  if (busy || st.done) return;
+  if (sel.includes(b)) sel = sel.filter(x => x !== b);
+  else if (sel.length < 4) sel.push(b);
+  else return;
+  tileEl(b); renderControls();
+}
+function toast(msg) {
+  board.querySelectorAll('.toast').forEach(n => n.remove());
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  board.appendChild(t); setTimeout(() => t.remove(), 1900);
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+async function submit() {
+  if (sel.length !== 4 || busy) return;
+  const key = sel.slice().sort().join();
+  if (st.guesses.some(g => g.slice().sort().join() === key)) { toast('Already guessed!'); return; }
+  busy = true; renderControls();
+  // jump in board order, like the real thing
+  const inOrder = [...board.querySelectorAll('.tile')].filter(el => sel.includes(el.dataset.b));
+  inOrder.forEach((el, i) => setTimeout(() => { el.classList.remove('jump'); void el.offsetWidth; el.classList.add('jump'); }, i * 110));
+  await wait(inOrder.length * 110 + 320);
+  inOrder.forEach(el => el.classList.remove('jump'));
+  st.guesses.push(sel.slice());
+  const counts = [0, 0, 0, 0]; sel.forEach(b => counts[groupOf(b)]++);
+  const hit = counts.indexOf(4);
+  if (hit >= 0) {
+    await solveGroup(hit);
+    sel = [];
+    if (st.solved.length === 4) { st.done = true; st.won = true; finish(); }
+  } else {
+    if (Math.max(...counts) === 3) toast('One away...');
+    board.classList.add('shake'); await wait(480); board.classList.remove('shake');
+    st.mistakes++;
+    if (st.mistakes >= 4 && !st.relaxed) { save(); busy = false; renderControls(); outOfMistakes(); return; }
+  }
+  save(); busy = false; renderControls(); renderHints();
+}
+
+// Move the group's tiles to the first free row (FLIP), then swap them for the coloured bar.
+async function solveGroup(gi) {
+  const g = puzzle[gi];
+  const solvedTiles = new Set(st.solved.flatMap(x => puzzle[x].b));
+  const rest = st.order.filter(b => !solvedTiles.has(b) && !g.b.includes(b));
+  const rowFirst = [...g.b].sort((a, b) => st.order.indexOf(a) - st.order.indexOf(b));
+  const before = new Map([...tileEls].map(([b, el]) => [b, el.getBoundingClientRect()]));
+  st.order = [...st.order.filter(b => solvedTiles.has(b)), ...rowFirst, ...rest];
+  render();
+  const moves = [];
+  board.querySelectorAll('.tile').forEach(el => {
+    const a = before.get(el.dataset.b), b = el.getBoundingClientRect();
+    if (!a) return;
+    const dx = a.left - b.left, dy = a.top - b.top;
+    if (dx || dy) { el.style.transition = 'none'; el.style.transform = `translate(${dx}px,${dy}px)`; moves.push(el); }
+  });
+  rowFirst.forEach(b => tileEls.get(b).classList.add('sel'));
+  if (moves.length) {
+    void board.offsetWidth;
+    moves.forEach(el => { el.style.transition = 'transform .45s cubic-bezier(.3,.7,.3,1)'; el.style.transform = ''; });
+    await wait(500);
+    moves.forEach(el => el.style.transition = '');
+  }
+  st.solved.push(gi);
+  sel = sel.filter(b => !g.b.includes(b));
+  render();
+  const bars = board.querySelectorAll('.group');
+  const bar = bars[bars.length - 1]; bar.style.animation = '';
+  await wait(380);
+}
+
+function outOfMistakes() {
+  modal(`
+    <h2>Out of mistakes</h2>
+    <p class="sub">That’s four. You can call it here, or keep going with no limit — it’s your bookshelf.</p>
+    <div class="row">
+      <button class="pill" data-act="reveal">Show me the answers</button>
+      <button class="pill solid" data-act="relax">Keep going</button>
+    </div>`, { reveal: () => { closeModal(); revealAll(); }, relax: () => { st.relaxed = true; save(); closeModal(); renderControls(); } }, true);
+}
+async function revealAll() {
+  busy = true; sel = []; render();
+  st.revealed = true;
+  for (let gi = 0; gi < 4; gi++) {
+    if (st.solved.includes(gi)) continue;
+    await wait(450);
+    await solveGroup(gi);
+  }
+  st.done = true; st.won = false;
+  busy = false; finish();
+}
+function finish() {
+  sel = []; save(); recordStats(); render(); renderHints();
+  setTimeout(results, 900);
+}
+
+// ---------- stats ----------
+function recordStats() {
+  const s = store.get('stats', { played: {}, daily: {} });
+  s.played[idx] = { won: st.won, mistakes: st.mistakes, hints: st.hints.length };
+  if (idx === todayIdx()) s.daily[todayKey()] = st.won;
+  store.set('stats', s);
+}
+function statNums() {
+  const s = store.get('stats', { played: {}, daily: {} });
+  const games = Object.values(s.played);
+  const won = games.filter(g => g.won).length;
+  let streak = 0, best = 0, run = 0;
+  const d = new Date();
+  // current streak: today (if done) and every day before it with a win
+  const key = x => `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
+  const day = new Date(d); if (s.daily[key(day)] === undefined) day.setDate(day.getDate() - 1);
+  while (s.daily[key(day)] === true) { streak++; day.setDate(day.getDate() - 1); }
+  const keys = Object.keys(s.daily).map(k => { const [y, m, dd] = k.split('-').map(Number); return new Date(y, m - 1, dd); }).sort((a, b) => a - b);
+  let prev = null;
+  for (const k of keys) {
+    if (s.daily[key(k)] !== true) { run = 0; prev = k; continue; }
+    run = prev && (k - prev) / 864e5 === 1 && s.daily[key(prev)] === true ? run + 1 : 1;
+    best = Math.max(best, run); prev = k;
+  }
+  return { played: games.length, pct: games.length ? Math.round(won / games.length * 100) : 0, perfect: games.filter(g => g.won && !g.mistakes).length, streak, best: Math.max(best, streak) };
+}
+function statsHtml() {
+  const n = statNums();
+  return `<div class="stats">
+    <div class="stat"><b>${n.played}</b><span>Completed</span></div>
+    <div class="stat"><b>${n.pct}</b><span>Win %</span></div>
+    <div class="stat"><b>${n.streak}</b><span>Day streak</span></div>
+    <div class="stat"><b>${n.perfect}</b><span>Perfect</span></div></div>`;
+}
+
+// ---------- results ----------
+function grid() {
+  return st.guesses.map(g => g.map(b => EMOJI[groupOf(b)]).join(''));
+}
+function results() {
+  const title = !st.won ? 'Next Time!' : st.relaxed ? 'Got there!' : ['Perfect!', 'Great!', 'Solid!', 'Phew!'][st.mistakes];
+  const sub = !st.won ? 'These were tricky ones. Your bookshelf notes are below.'
+    : st.relaxed ? `Solved with ${st.mistakes} mistakes and no giving up.`
+    : `You completed Puzzle #${idx + 1}${st.hints.length ? ` with ${st.hints.length} hint${st.hints.length > 1 ? 's' : ''}` : ''}.`;
+  const rows = grid().map(r => `<div>${[...r].filter(c => c.trim()).map(e => `<span class="c${EMOJI.indexOf(e)}"></span>`).join('')}</div>`).join('');
+  const shelf = puzzle.map((g, gi) => g.b.map(b => {
+    const bk = D.books[b];
+    return `<li><span class="sw c${gi}"></span><div><div class="bt">${esc(bk.t)}</div><div class="ba">${esc(bk.a)} · read ${bk.m}${bk.n ? ' · ' + esc(bk.n) : ''}</div></div></li>`;
+  }).join('')).join('');
+  modal(`
+    <h2>${title}</h2>
+    <p class="sub">${sub}</p>
+    <div class="emoji">${rows}${st.hints.length ? `<div class="hint">💡 × ${st.hints.length}</div>` : ''}</div>
+    ${statsHtml()}
+    <div class="row">
+      <button class="pill" data-act="share">Share Results</button>
+      <button class="pill solid" data-act="next">Next Puzzle</button>
+    </div>
+    <h3>On this shelf</h3>
+    <ul class="shelf">${shelf}</ul>`, { share, next: () => { closeModal(); nextPuzzle(); } });
+}
+async function share() {
+  const text = `Connections: Bookshelf\nPuzzle #${idx + 1}\n` + grid().join('\n') + (st.hints.length ? `\n💡 × ${st.hints.length}` : '');
+  try {
+    if (navigator.share) { await navigator.share({ text }); return; }
+    await navigator.clipboard.writeText(text); toastModal('Copied to clipboard');
+  } catch {}
+}
+function toastModal(msg) {
+  const s = document.querySelector('.sheet'); if (!s) return;
+  const t = document.createElement('div'); t.className = 'toast'; t.style.top = '56px'; t.textContent = msg; s.appendChild(t);
+  setTimeout(() => t.remove(), 1900);
+}
+
+// Next puzzle: the next one you haven't finished, walking forward from here.
+function nextPuzzle() {
+  for (let k = 1; k <= N; k++) {
+    const i = (idx + k) % N, s = store.get('p' + i, null);
+    if (!s || !s.done) return load(i);
+  }
+  load((idx + 1) % N);
+}
+
+// ---------- sheets ----------
+function modal(html, acts = {}, sticky = false) {
+  const m = $('modal');
+  m.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${sticky ? '' : `<button class="ic x" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}${html}</div></div>`;
+  const scrim = m.firstChild;
+  scrim.addEventListener('click', e => {
+    const a = e.target.closest('[data-act]');
+    if (a) { const f = a.dataset.act === 'close' ? closeModal : acts[a.dataset.act]; f && f(a); return; }
+    if (e.target === scrim && !sticky) closeModal();
+  });
+}
+const closeModal = () => { $('modal').innerHTML = ''; };
+addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.x')) closeModal(); });
+
+function help() {
+  modal(`
+    <h2>How to play</h2>
+    <p class="sub">Every tile is a book you read this year.</p>
+    <p>Find groups of four books that share something. Pick four and tap <b>Submit</b>. You get four mistakes.</p>
+    <div class="ex"><span>Telling Tales</span><span>The Crow Trap</span><span>Silent Voices</span><span>The Killing Stones</span></div>
+    <div class="ex solved c0"><b>Ann Cleeves</b>Telling Tales, The Crow Trap, Silent Voices, The Killing Stones</div>
+    <h3>You don’t need a perfect memory</h3>
+    <ul>
+      <li>Most groups are about the <b>words in the title</b> (sea words, one-word titles, a hidden feeling) or <b>who wrote it</b>. No character names, no plot details.</li>
+      <li>Tap <b>Show authors</b> any time to see who wrote each one.</li>
+      <li><b>Hint</b> goes one small step at a time: first it names a group, then it points to one of its books.</li>
+      <li>Now and then a group is about <i>you</i>: books you loved, or ones you gave up on. Leave those till last and they sort themselves out.</li>
+      <li>Out of mistakes? You can keep going with no limit.</li>
+    </ul>
+    <h3>Colours</h3>
+    <p>Groups go from <span style="background:var(--g0);color:#000;padding:0 4px;border-radius:3px">yellow</span> (most straightforward) to <span style="background:var(--g3);color:#000;padding:0 4px;border-radius:3px">purple</span> (trickiest, often wordplay).</p>
+    <h3>A new one every day</h3>
+    <p>There are ${N} puzzles. Today’s is waiting each morning, and <b>Next Puzzle</b> takes you to the next one you haven’t done. The grid button at the top shows them all.</p>
+    <div class="row"><button class="pill solid" data-act="close">Let’s play</button></div>`);
+}
+function statsSheet() {
+  modal(`<h2>Your statistics</h2>${statsHtml()}<p class="sub">Day streak counts the daily puzzle solved on consecutive days.</p>`);
+}
+function archive() {
+  const t = todayIdx();
+  const cells = P.map((_, i) => {
+    const s = store.get('p' + i, null);
+    const cls = s && s.done ? (s.won ? 'won' : 'lost') : '';
+    const lab = i === t ? 'today' : s && s.done ? (s.won ? (s.mistakes ? `${s.mistakes} miss${s.mistakes > 1 ? 'es' : ''}` : 'perfect') : 'revealed') : s && s.guesses.length ? 'started' : '';
+    return `<button class="arch ${cls}${i === idx ? ' cur' : ''}" data-act="go" data-i="${i}">${i + 1}<small>${lab}</small></button>`;
+  }).join('');
+  modal(`<h2>All puzzles</h2>
+    <div class="legend"><span><i style="background:var(--g1)"></i>Solved</span><span><i style="background:var(--g3)"></i>Answers shown</span><span><i style="background:var(--tile)"></i>Not finished</span></div>
+    <div class="archive">${cells}</div>`, { go: a => { closeModal(); load(+a.dataset.i); } });
+}
+
+// ---------- wire up ----------
+$('bSubmit').onclick = submit;
+$('bDeselect').onclick = () => { sel = []; render(); };
+$('bShuffle').onclick = () => {
+  const solvedTiles = new Set(st.solved.flatMap(gi => puzzle[gi].b));
+  st.order = [...st.order.filter(b => solvedTiles.has(b)), ...shuffle(st.order.filter(b => !solvedTiles.has(b)))];
+  save(); render();
+};
+$('bAuthors').onclick = () => { showAuthors = !showAuthors; store.set('authors', showAuthors); render(); };
+$('bHint').onclick = hint;
+$('bResults').onclick = results;
+$('bNext2').onclick = nextPuzzle;
+$('bHelp').onclick = help;
+$('bStats').onclick = statsSheet;
+$('bArchive').onclick = archive;
+$('bToday').onclick = () => load(todayIdx());
+
+const q = new URLSearchParams(location.search).get('p');
+load(q && +q >= 1 && +q <= N ? +q - 1 : todayIdx());
+if (!store.get('seenHelp', false)) { store.set('seenHelp', true); help(); }
+if (document.fonts) document.fonts.ready.then(fitAll);
+
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+})();
+</script>
+</body>
+</html>
