@@ -205,7 +205,26 @@ def valid(groups):
     for cat, bs in groups:
         for b in bs:
             if sum(fits(b, c) for c, _ in groups) != 1: return False
+    # No decoy answers: any other connection may cover at most three of the tiles,
+    # unless those four are exactly one of the real groups (e.g. Ann Cleeves inside "Written by an Ann").
+    chosen = {c['id'] for c, _ in groups}
+    real = [set(bs) for _, bs in groups]
+    for c in CATEGORIES:
+        if c['id'] in chosen: continue
+        hit = set(c['members']) & set(tiles)
+        if c['id'] in DECOY_OK:
+            # broad genres: fine as a red herring, but only a light one
+            inside = set().union(*[g for g in real if g <= hit])
+            if len(hit - inside) > (2 if inside else 3): return False
+            continue
+        if len(hit) > 4 or (len(hit) == 4 and hit not in real): return False
     return True
+
+# How often a category may appear: four-member (identical every time) and memory groups vs the rest.
+CAP_SMALL, CAP_BIG = 7, 18
+
+# Broad categories that are allowed to overlap other groups when they aren't in play.
+DECOY_OK = {'mysteries'}
 
 def feasible_combos():
     """Every set of four categories that can form a fair puzzle."""
@@ -230,7 +249,7 @@ def build(n=56, seed=20261005):
     combos = feasible_combos()
     cat_use, tile_use, combo_use = Counter(), Counter(), Counter()
     seen, out = set(), []
-    cap = lambda c: 6 if c['memory'] and c['id'] != 'mysteries' else 6 if len(c['members']) == 4 else 15
+    cap = lambda c: CAP_SMALL if len(c['members']) == 4 or (c['memory'] and c['id'] != 'mysteries') else CAP_BIG
     while len(out) < n:
         # favour combos made of the least-used categories; mysteries were asked for, so nudge them up
         scored = []
@@ -240,7 +259,7 @@ def build(n=56, seed=20261005):
             scored.append((score, ci))
         if not scored: raise RuntimeError(f'stuck at {len(out)}')
         scored.sort()
-        for _, ci in scored[:40]:
+        for _, ci in scored[:400]:
             pick, pools = combos[ci]
             groups = []
             for c, pool in zip(pick, pools):
