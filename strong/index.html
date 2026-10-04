@@ -12,6 +12,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Stronger</title>
+<meta name="robots" content="noindex, nofollow">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <style>
 :root{
@@ -44,7 +45,7 @@ h2{font-size:22px;margin:0}
 .row{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 2px;border-bottom:1px solid var(--line);min-height:72px}
 button.row:hover{background:var(--surface)}
 .thumb{flex:none;width:56px;height:56px;border-radius:14px;background:var(--art);overflow:hidden;display:grid;place-items:center;color:var(--accent)}
-.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
 .thumb svg.lucide{width:28px;height:28px}
 .rowtext{flex:1;min-width:0}
 .rowtext b{display:block;font-weight:600;font-size:18px}
@@ -91,9 +92,16 @@ button.row:hover{background:var(--surface)}
 .target{font-size:18px;font-weight:600;color:var(--accent);margin-bottom:12px}
 .stage{position:relative;background:var(--art);border-radius:18px;overflow:hidden;aspect-ratio:4/3;display:grid;place-items:center;color:var(--accent)}
 .stage:has(.ph){aspect-ratio:auto;padding:22px 0}
-.stage img{width:100%;height:100%;object-fit:contain;background:#fff}
+.stage img{width:100%;height:auto;max-height:380px;object-fit:contain;background:#fff}
+.stage:has(img){aspect-ratio:auto;background:#fff;border:1px solid var(--line)}
 .stage .ph{display:grid;justify-items:center;gap:8px;font-size:15px;color:var(--muted)}
 .stage .ph svg.lucide{width:72px;height:72px;color:var(--accent)}
+.tempo{display:flex;gap:8px;align-items:flex-start;font-size:15px;color:var(--muted);margin-top:10px}
+.tempo svg.lucide{flex:none;width:18px;height:18px;margin-top:2px;color:var(--accent)}
+.rpe{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:420px;margin:6px auto 0;width:100%}
+.rpe button{border:2px solid var(--line);border-radius:10px;padding:10px 0;font-weight:700;font-variant-numeric:tabular-nums;min-height:48px}
+.rpe button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.rpelbl{font-size:15px;color:var(--muted);min-height:1.4em;margin-top:6px}
 .cues{list-style:none;padding:0;margin:14px 0 0;font-size:18px;line-height:1.45}
 .cues li{padding:8px 0 8px 30px;position:relative;border-bottom:1px solid var(--line)}
 .cues li:last-child{border-bottom:0}
@@ -213,10 +221,13 @@ select{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px;b
       <li>Breathe out as you push or lift. Never hold your breath.</li>
       <li>Muscles working hard is good. Sharp pain, dizziness or chest pain – stop.</li>
       <li>Slow and controlled beats fast. Lower for a count of 2–3.</li>
-      <li>A day of rest between workouts lets your muscles get stronger.</li>
+      <li>Leave a day between workouts – muscles get stronger while they rest.</li>
+      <li>Start with a weight you can lift 10–15 times. Move up when that gets easy.</li>
+      <li>Warm up first: march on the spot or walk around the house for a few minutes.</li>
+      <li>Strength is half of it. The book also recommends about 30 minutes of walking or similar on most days.</li>
     </ul>
   </details>
-  <div class="credits">Exercises based on standard strength and balance training for older adults. Icons: Lucide.</div>
+  <div class="credits">Exercises and photos from <i>The CSIRO Low-Carb Diabetes Diet &amp; Lifestyle Solution</i> (pp. 268–276), with extra balance and armchair moves. For personal use. Icons: Lucide.</div>
 </div>
 
 <!-- WORKOUT OVERVIEW -->
@@ -242,13 +253,15 @@ select{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px;b
   <div class="exname" id="eName"></div>
   <div class="target" id="eTarget"></div>
   <div class="stage" id="eStage"></div>
+  <div class="note" id="eCap"></div>
+  <div class="tempo" id="eTempo"><i data-lucide="timer"></i>Each rep: lift for 2 · hold for 1 · lower for 2 seconds. Breathe out as you lift.</div>
   <ul class="cues" id="eCues"></ul>
   <details class="alt" id="eAlt"><summary>Too hard or too easy?</summary><p id="eEasier"></p><p id="eHarder"></p></details>
   <div class="last" id="eLast"></div>
 
   <div class="rest hidden" id="eRest">
     <b>Have a rest</b>
-    <div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" stroke="var(--line)" stroke-width="10" fill="none"/><circle id="restRing" cx="60" cy="60" r="52" stroke="var(--accent)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0"/></svg><b id="restNum">60</b></div>
+    <div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" stroke="var(--line)" stroke-width="10" fill="none"/><circle id="restRing" cx="60" cy="60" r="52" stroke="var(--accent)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0"/></svg><b id="restNum">90</b></div>
     <p>Catch your breath. Take as long as you need.</p>
     <button class="primary" id="restDone" style="width:100%">I'm ready</button>
   </div>
@@ -279,6 +292,9 @@ select{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px;b
     <h2>Well done!</h2>
     <p id="doneMsg"></p>
     <ul class="pbs" id="pbList"></ul>
+    <div class="q" style="margin-top:4px">How hard was the whole workout?</div>
+    <div class="rpe" id="rpe"></div>
+    <div class="rpelbl" id="rpeLbl">0 is rest, 10 is your maximum. Aim for 3 (moderate) or more.</div>
     <div class="actions" style="justify-content:center"><button class="primary" id="homeBtn" style="flex:none;padding:16px 32px">Back home</button></div>
   </div>
 </div>
@@ -316,7 +332,7 @@ select{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px;b
   <div class="addrow"><input id="wtInput" type="number" inputmode="decimal" min="0.5" max="50" step="0.5" placeholder="e.g. 3"><button class="secondary" id="wtAdd"><i data-lucide="plus"></i>Add</button></div>
   <div class="sec">Sound</div>
   <div class="toggle"><span>Beep when rest is over<small>Off is best while the TV is on</small></span><button class="sw" id="beepSw" role="switch" aria-checked="false" aria-label="Beep when rest is over"></button></div>
-  <div class="toggle"><span>Rest timer between sets<small>A gentle 60-second countdown. You can always skip it.</small></span><button class="sw" id="restSw" role="switch" aria-checked="true" aria-label="Rest timer between sets"></button></div>
+  <div class="toggle"><span>Rest timer between sets<small>A 90-second countdown (the book suggests 1–2 minutes). You can always skip it.</small></span><button class="sw" id="restSw" role="switch" aria-checked="true" aria-label="Rest timer between sets"></button></div>
   <div class="sec">Backup</div>
   <div class="note" style="margin-top:0">Your history is saved on this device only. Save a backup file now and then – you can restore it on a new phone or tablet.</div>
   <div class="actions" style="margin-top:12px;flex-wrap:wrap">
@@ -333,56 +349,74 @@ function icons(){try{window.lucide&&lucide.createIcons()}catch(e){}}
    kind: reps | hold (seconds)  ·  wt: yes | opt | no  ·  range: target reps (or seconds) per set
    photo: drop a file at photos/<key>.jpg and it shows automatically */
 const EX={
-  sitstand:{name:'Sit to stand',icon:'armchair',kind:'reps',range:[8,12],sets:2,wt:'opt',
-    cues:['Sit near the front of a firm chair, feet hip-width','Lean forward, push through your heels and stand tall','Sit back down slowly – don\'t flop'],
-    easier:'Easier: use your hands on the chair arms, or a higher seat.',harder:'Harder: hold a dumbbell at your chest, or take 3 seconds to sit down.',
-    why:'The single most useful strength move – getting out of chairs, cars and off the toilet.'},
-  wallpush:{name:'Wall push-up',icon:'hand',kind:'reps',range:[8,12],sets:2,wt:'no',
-    cues:['Hands on the wall at shoulder height, a step away','Bend your elbows to bring your chest toward the wall','Push back, keeping your body in a straight line'],
-    easier:'Easier: stand closer to the wall.',harder:'Harder: step further back, or use a kitchen bench instead of the wall.',
-    why:'Keeps your arms and chest strong for pushing yourself up – and catching yourself if you trip.'},
-  row:{name:'One-arm row',icon:'dumbbell',kind:'reps',range:[8,12],sets:2,wt:'yes',sided:true,
-    cues:['One hand on a chair seat, back flat, dumbbell in the other hand','Pull the dumbbell up toward your hip, elbow close','Lower slowly. Do all reps, then swap sides'],
-    easier:'Easier: lighter dumbbell, or fewer reps.',harder:'Harder: pause for a second at the top.',
+  /* ---- from the book (photos in photos/<key>.jpg) ---- */
+  squat:{name:'Squat to a chair',icon:'armchair',kind:'reps',range:[10,15],sets:2,wt:'opt',
+    cues:['Stand in front of a firm chair, feet shoulder-width apart','Sit your hips back and down, chest up, weight in your heels','Lightly touch the chair, then stand back up tall'],
+    easier:'Easier: sit all the way down on the chair between reps.',harder:'Harder (book version): hold a dumbbell in each hand by your sides.',
+    why:'Strong thighs and hips for getting up from chairs, the car and the floor.'},
+  pushup:{name:'Push-ups',icon:'hand',kind:'reps',range:[10,15],sets:2,wt:'no',caption:'The photo shows the knee version. Start with your hands on the wall.',
+    cues:['Start with hands on a wall at shoulder height, a step away','Bend your elbows to bring your chest toward the wall','Push back until your arms are straight. Body stays in a line'],
+    easier:'Easiest: stand closer to the wall.',harder:'Harder: hands on a kitchen bench, then on the floor from your knees (as in the photo).',
+    why:'Keeps your chest and arms strong for pushing yourself up – and catching yourself if you trip.'},
+  bentrow:{name:'Bent-over row',icon:'dumbbell',kind:'reps',range:[10,15],sets:2,wt:'yes',
+    cues:['Knees soft, lean forward from your hips, back flat, dumbbells hanging','Pull both dumbbells up to your sides, squeezing your shoulder blades','Lower slowly. Keep your head up'],
+    easier:'Back trouble? Do one arm at a time with your other hand on a chair seat. The book says skip this one if you have back problems.',harder:'Harder: pause for a second at the top.',
     why:'Strengthens your upper back so you stand taller and carry shopping more easily.'},
   calf:{name:'Calf raises',icon:'footprints',kind:'reps',range:[10,15],sets:2,wt:'no',
-    cues:['Stand holding a chair back or the bench','Rise up onto your toes as high as you can','Lower slowly back down'],
-    easier:'Easier: smaller rises, both hands on the chair.',harder:'Harder: one fingertip only for balance, or hold for 2 seconds at the top.',
+    cues:['Stand tall, feet pointing forward, one hand on a doorframe','Rise up onto the balls of your feet','Lower your heels slowly to the floor'],
+    easier:'Easier: both hands on the doorframe or a chair.',harder:'Harder: hold a dumbbell in your free hand.',
     why:'Strong calves help balance and walking – a big part of preventing falls.'},
-  bridge:{name:'Bridge',icon:'arrow-up-from-line',kind:'reps',range:[8,12],sets:2,wt:'no',
-    cues:['Lie on your back on the bed or floor, knees bent, feet flat','Squeeze your bottom and lift your hips','Hold a moment, then lower slowly'],
-    easier:'Easier: lift only a little way.',harder:'Harder: hold 3 seconds at the top each rep.',
+  lateral:{name:'Shoulder lateral raise',icon:'move-horizontal',kind:'reps',range:[10,15],sets:2,wt:'yes',
+    cues:['Dumbbells at your sides, then bend your elbows to 90°','Lift your elbows out to the sides up to shoulder height','Lower slowly. Shoulders stay down, away from your ears'],
+    easier:'Easier: do it sitting down.',harder:'Harder: keep your arms straight.',
+    why:'Strong shoulders for reaching, lifting and putting things on shelves.'},
+  bridge:{name:'Bridge',icon:'arrow-up-from-line',kind:'reps',range:[10,15],sets:2,wt:'no',
+    cues:['Lie on your back (floor or bed), knees bent, feet flat','Push through your heels and lift your hips until knees, hips and shoulders line up','Lower slowly'],
+    easier:'Easier: lift only part of the way.',harder:'Harder: lift one foot off the ground.',
     why:'Builds your bottom and lower-back muscles, which protect your hips and back.'},
+  deadlift:{name:'Deadlift',icon:'dumbbell',kind:'reps',range:[10,15],sets:2,wt:'yes',
+    cues:['Stand tall, dumbbells in front of your thighs, weight in your heels','Push your bottom back, sliding the dumbbells down your legs – back flat, chest up','Squeeze your bottom and stand back up'],
+    easier:'Easier: no dumbbells, hands sliding down your thighs, only go a little way.',harder:'Harder: the heavier dumbbells, or pause at the bottom.',
+    why:'Trains the safe way to bend and lift – picking things up off the floor without hurting your back.'},
+  lunge:{name:'Forward lunge',icon:'move-up-right',kind:'reps',range:[8,12],sets:2,wt:'opt',sided:true,
+    cues:['Stand tall holding a chair back or the bench','Take a moderate step forward and lower your back knee toward the floor','Push back up to standing. Swap legs each time'],
+    easier:'Easier: a smaller step and only go part way down – or do step-ups on the bottom stair.',harder:'Harder (book version): hold a dumbbell in each hand.',
+    why:'Builds leg strength and balance together – for stairs, kerbs and getting up off the floor.'},
+  glutekick:{name:'Glute kickbacks',icon:'move-down-left',kind:'reps',range:[10,15],sets:2,wt:'no',sided:true,caption:'The book does this on hands and knees. Standing with a chair is easier on the knees.',
+    cues:['Stand holding the back of a chair, lean forward slightly','Keep the knee bent and push one foot back and up','Lower slowly. Do all reps, then swap legs'],
+    easier:'Easier: smaller lifts.',harder:'Harder (book version): on hands and knees on the floor, as in the photo.',
+    why:'Strengthens your bottom muscles, which protect your hips and help you walk steadily.'},
+  curl:{name:'Bicep curl',icon:'dumbbell',kind:'reps',range:[10,15],sets:2,wt:'yes',unit:'reps (left + right = 1)',
+    cues:['Stand or sit tall, dumbbells by your sides, palms facing in','Curl one dumbbell up to your shoulder, turning your palm up','Lower slowly, then do the other arm'],
+    easier:'Easier: sit down, or use the lighter dumbbell.',harder:'Harder: take 3 seconds to lower.',
+    why:'Strong arms for carrying shopping, grandkids and the washing basket.'},
+  tkick:{name:'Triceps kickback',icon:'dumbbell',kind:'reps',range:[10,15],sets:2,wt:'yes',sided:true,
+    cues:['One knee and hand on a bench or sturdy chair, dumbbell in the other hand','Lift that elbow so your upper arm is level with your back','Straighten your arm behind you, then bend it back slowly. Swap sides after all reps'],
+    easier:'Easier: lighter dumbbell, or stand and lean on a table instead of kneeling.',harder:'Harder: hold for a second with the arm straight.',
+    why:'Strengthens the backs of your arms – for pushing up out of a chair.'},
+  frontraise:{name:'Front dumbbell raise',icon:'arrow-up-to-line',kind:'reps',range:[10,15],sets:2,wt:'yes',unit:'reps (left + right = 1)',
+    cues:['Stand tall, dumbbells in front of your thighs, elbows soft','Lift one arm straight in front of you to shoulder height','Lower slowly as you lift the other arm'],
+    easier:'Easier: do it sitting down, or with the lighter dumbbell.',harder:'Harder: lift both arms together.',
+    why:'Keeps your shoulders strong for lifting things in front of you.'},
+  /* ---- extra moves for balance, core and the armchair ---- */
   balance:{name:'One-leg stand',icon:'person-standing',kind:'hold',range:[10,30],sets:2,wt:'no',sided:true,
     cues:['Stand next to a chair or bench and hold on lightly','Lift one foot just off the floor','Stand tall and look ahead. Swap legs'],
     easier:'Easier: keep both hands on the support, or just a toe touching down.',harder:'Harder: one fingertip, then no hands – support always within reach.',
     why:'Balance is a skill you can train. This is one of the best ways to prevent falls.'},
-  stepup:{name:'Step-ups',icon:'move-up-right',kind:'reps',range:[8,12],sets:2,wt:'opt',sided:true,
-    cues:['Stand facing the bottom stair, holding the rail','Step up with one foot, press through the heel and stand tall','Step back down slowly. Do all reps, then swap legs'],
-    easier:'Easier: use a lower step and hold on with both hands.',harder:'Harder: hold a dumbbell in the other hand.',
-    why:'Builds leg strength for stairs, kerbs and getting on buses.'},
-  press:{name:'Shoulder press',icon:'arrow-up-to-line',kind:'reps',range:[8,12],sets:2,wt:'yes',
-    cues:['Sit tall, a dumbbell in each hand at shoulder height','Press them up until your arms are nearly straight','Lower slowly back to your shoulders'],
-    easier:'Easier: lighter dumbbells, or one arm at a time.',harder:'Harder: stand up, or take 3 seconds to lower.',
-    why:'Keeps you able to lift things onto shelves and reach overhead.'},
-  curl:{name:'Bicep curl',icon:'dumbbell',kind:'reps',range:[8,12],sets:2,wt:'yes',
-    cues:['Sit or stand tall, dumbbells by your sides, palms forward','Bend your elbows to bring the weights up','Lower slowly. Elbows stay by your sides'],
-    easier:'Easier: lighter dumbbells, or one arm at a time.',harder:'Harder: take 3 seconds to lower.',
-    why:'Strong arms for carrying shopping, grandkids and the washing basket.'},
-  sideleg:{name:'Side leg raise',icon:'move-horizontal',kind:'reps',range:[10,12],sets:2,wt:'no',sided:true,
-    cues:['Stand side-on to a chair, holding the back','Lift your outside leg out to the side, toes forward','Lower slowly. Do all reps, then swap sides'],
-    easier:'Easier: smaller lifts.',harder:'Harder: pause for 2 seconds at the top.',
-    why:'Strengthens the hip muscles that keep you steady when you walk.'},
-  kneelift:{name:'Standing knee lifts',icon:'activity',kind:'reps',range:[8,12],sets:2,wt:'no',sided:true,
-    cues:['Stand tall holding a chair back','Lift one knee up toward hip height','Lower with control. Alternate legs – count each leg'],
-    easier:'Easier: lift the knee only partway, or do it seated.',harder:'Harder: hold the knee up for 2 seconds.',
-    why:'Strengthens your hips and tummy for walking and stepping over things.'},
   heeltoe:{name:'Heel-to-toe walk',icon:'footprints',kind:'reps',range:[10,20],sets:2,wt:'no',unit:'steps',
     cues:['Stand next to the kitchen bench or a wall','Walk forward placing your heel right in front of your toes','Look ahead, not down. Touch the bench whenever you need'],
     easier:'Easier: leave a small gap between heel and toe.',harder:'Harder: fingertips off the bench for a few steps.',
     why:'Trains the balance you need for narrow paths and uneven ground.'},
+  kneelift:{name:'Standing knee lifts',icon:'activity',kind:'reps',range:[10,15],sets:2,wt:'no',sided:true,
+    cues:['Stand tall holding a chair back, tummy gently tight','Lift one knee up toward hip height','Lower with control. Alternate legs'],
+    easier:'Easier: lift the knee only partway, or do it seated.',harder:'Harder: hold the knee up for 2 seconds.',
+    why:'Works your tummy and hips together – your core for walking and stepping over things.'},
+  sitstand:{name:'Sit to stand',icon:'armchair',kind:'reps',range:[10,15],sets:2,wt:'opt',
+    cues:['Sit near the front of your chair, feet hip-width','Lean forward, push through your heels and stand tall','Sit back down slowly – don\'t flop'],
+    easier:'Easier: use your hands on the chair arms.',harder:'Harder: hold a dumbbell at your chest, or take 3 seconds to sit down.',
+    why:'The most useful strength move there is – getting out of chairs, cars and off the toilet.'},
   kneeext:{name:'Seated knee extension',icon:'armchair',kind:'reps',range:[10,15],sets:2,wt:'no',sided:true,
-    cues:['Sit tall in a chair','Straighten one knee until your leg is out in front','Hold for a second, lower slowly. Do all reps, then swap'],
+    cues:['Sit tall in your chair','Straighten one knee until your leg is out in front','Hold for a second, lower slowly. Do all reps, then swap'],
     easier:'Easier: straighten only partway.',harder:'Harder: hold for 3 seconds at the top.',
     why:'Strengthens the front of your thighs – key for knees, stairs and standing up.'},
   march:{name:'Seated march',icon:'activity',kind:'reps',range:[20,30],sets:2,wt:'no',unit:'lifts',
@@ -391,17 +425,24 @@ const EX={
     why:'Warms you up and strengthens the hips while you sit.'},
   toeheel:{name:'Seated heel and toe raises',icon:'footprints',kind:'reps',range:[15,20],sets:2,wt:'no',
     cues:['Sit with feet flat on the floor','Lift both heels up, then lower','Then lift both toes up, then lower – that\'s one'],
-    easier:'Easier: just the heel raises.',harder:'Harder: press your hands down on your knees for resistance on the heel raise.',
-    why:'Keeps ankles strong and blood moving in your legs.'}
+    easier:'Easier: just the heel raises.',harder:'Harder: press your hands down on your knees during the heel raise.',
+    why:'Keeps ankles strong and blood moving in your legs.'},
+  /* ---- retired from the plan, kept so older history still shows ---- */
+  wallpush:{name:'Wall push-up',icon:'hand',kind:'reps',range:[8,12],sets:2,wt:'no',retired:true,cues:[],easier:'',harder:'',why:''},
+  row:{name:'One-arm row',icon:'dumbbell',kind:'reps',range:[8,12],sets:2,wt:'yes',sided:true,retired:true,cues:[],easier:'',harder:'',why:''},
+  stepup:{name:'Step-ups',icon:'move-up-right',kind:'reps',range:[8,12],sets:2,wt:'opt',sided:true,retired:true,cues:[],easier:'',harder:'',why:''},
+  press:{name:'Shoulder press',icon:'arrow-up-to-line',kind:'reps',range:[8,12],sets:2,wt:'yes',retired:true,cues:[],easier:'',harder:'',why:''},
+  sideleg:{name:'Side leg raise',icon:'move-horizontal',kind:'reps',range:[10,12],sets:2,wt:'no',sided:true,retired:true,cues:[],easier:'',harder:'',why:''}
 };
 
+/* Following the CSIRO plan: 2–4 upper, 2–4 lower, 1–2 core per session, plus balance */
 const WORKOUTS=[
-  {id:'A',name:'Workout A',focus:'Legs, push and balance',icon:'armchair',desc:'Six moves for legs, chest, back and balance. About 20 minutes. You\'ll need a firm chair and a wall.',
-   list:['sitstand','wallpush','row','calf','bridge','balance']},
-  {id:'B',name:'Workout B',focus:'Stairs, arms and balance',icon:'move-up-right',desc:'Six moves for stairs, arms, hips and balance. About 20 minutes. You\'ll need the bottom stair, a chair and your dumbbells.',
-   list:['stepup','press','curl','sideleg','kneelift','heeltoe']},
-  {id:'TV',name:'TV workout',focus:'From your armchair',icon:'tv',free:true,desc:'All from a chair. Do one exercise each ad break, in any order – tap the one you want. Finish whenever you like.',
-   list:['sitstand','kneeext','curl','press','march','toeheel']}
+  {id:'A',name:'Workout A',focus:'Squat, push, row, balance',icon:'armchair',desc:'Seven moves: legs, chest, back, shoulders and balance. About 25 minutes. You\'ll need a firm chair, a wall, a doorframe and your dumbbells.',
+   list:['squat','pushup','bentrow','calf','lateral','bridge','balance']},
+  {id:'B',name:'Workout B',focus:'Lift, lunge, arms, balance',icon:'dumbbell',desc:'Eight moves: legs, bottom, arms, tummy and balance. About 25 minutes. You\'ll need a chair or bench and your dumbbells.',
+   list:['deadlift','lunge','glutekick','curl','tkick','frontraise','kneelift','heeltoe']},
+  {id:'TV',name:'TV workout',focus:'From your armchair',icon:'tv',free:true,desc:'All from a chair. Do one exercise each ad break, in any order – tap the one you want. Finish whenever you like. Handy on days you can\'t fit in A or B.',
+   list:['sitstand','kneeext','curl','lateral','frontraise','march','toeheel']}
 ];
 const WEEK_GOAL=2;
 
@@ -409,7 +450,7 @@ const WEEK_GOAL=2;
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 const SKEY='strong-sessions',DKEY='strong-draft',CKEY='strong-settings';
-const sessions=()=>load(SKEY,[]);
+const sessions=()=>load(SKEY,[]).sort((x,y)=>x.t-y.t);
 const settings=()=>Object.assign({weights:[],beep:false,rest:true},load(CKEY,{}));
 const setSettings=o=>save(CKEY,Object.assign(settings(),o));
 
@@ -425,7 +466,7 @@ const unitOf=e=>e.kind==='hold'?'seconds':(e.unit||'reps');
 const targetTxt=e=>`${e.sets} sets of ${e.range[0]}–${e.range[1]} ${unitOf(e)}${sideTxt(e)}`;
 const kg=w=>w?`${+w} kg`:'';
 /* exercises with a photo in photos/<key>.jpg – add the key here when a photo is added */
-const PHOTOS=[];
+const PHOTOS=['squat','pushup','bentrow','calf','lateral','bridge','deadlift','lunge','glutekick','curl','tkick','frontraise'];
 function photoHTML(key,cls){
   const e=EX[key];
   if(PHOTOS.includes(key))return `<img src="photos/${key}.jpg" alt="${e.name}">`;
@@ -468,7 +509,9 @@ function renderHome(){
   document.getElementById('week').innerHTML=[0,1,2,3,4,5,6].map(i=>{const d=addDays(mon,i),on=days.has(d);
     return `<div class="wday">${fmtDay(d,{weekday:'narrow'})}<div class="dot${on?' on':''}${d===today?' today':''}" aria-label="${fmtDay(d,{weekday:'long'})}${on?', worked out':''}"><i data-lucide="check"></i></div></div>`}).join('');
   const wc=weekCount(mon),st=weekStreak();
-  document.getElementById('goalLine').innerHTML=wc>=WEEK_GOAL?`<b>${wc} workouts this week</b> – goal reached!${st>1?` ${st} weeks in a row.`:''}`:`<b>${wc} of ${WEEK_GOAL}</b> workouts this week${st?` · ${st}-week streak`:''}`;
+  const yest=sessions().some(s=>iso(s.t)===addDays(today,-1)&&s.w!=='TV'),todayDone=days.has(today);
+  document.getElementById('goalLine').innerHTML=(wc>=WEEK_GOAL?`<b>${wc} workouts this week</b> – goal reached!${wc<3?' A third is even better.':''}${st>1?` ${st} weeks in a row.`:''}`:`<b>${wc} of ${WEEK_GOAL}</b> workouts this week${st?` · ${st}-week streak`:''}`)
+    +(yest&&!todayDone?'<br>You trained yesterday, so today is a rest day for those muscles. A walk is perfect.':'');
   const nx=nextAB();
   document.getElementById('workoutList').innerHTML=WORKOUTS.map(w=>`<button class="row" data-id="${w.id}"><div class="thumb"><i data-lucide="${w.icon}"></i></div>
     <div class="rowtext"><b>${w.name}</b><span>${w.list.length} exercises · ${w.focus}</span>${w.id===nx?'<em class="badge next">Up next</em>':''}</div>
@@ -536,6 +579,8 @@ function openEx(i){
   document.getElementById('eName').textContent=e.name;
   document.getElementById('eTarget').textContent=targetTxt(e);
   document.getElementById('eStage').innerHTML=photoHTML(key,'ph');
+  document.getElementById('eCap').textContent=e.caption||'';document.getElementById('eCap').classList.toggle('hidden',!e.caption);
+  document.getElementById('eTempo').classList.toggle('hidden',e.kind!=='reps'||key==='march'||key==='heeltoe');
   document.getElementById('eCues').innerHTML=e.cues.map(c=>`<li>${c}</li>`).join('');
   document.getElementById('eEasier').textContent=e.easier;document.getElementById('eHarder').textContent=e.harder;document.getElementById('eAlt').open=false;
   const h=exHistory(key),last=h[h.length-1];
@@ -573,7 +618,7 @@ function saveEx(){
 document.getElementById('logBtn').addEventListener('click',()=>{
   stopHold();const e=EX[W.list[cur]];
   pending.push({reps:val,kg:selKg||0});saveEx();renderLogger();
-  if(pending.length<e.sets&&settings().rest)showRest(e.kind==='hold'||e.sided?45:60);
+  if(pending.length<e.sets&&settings().rest)showRest(e.kind==='hold'?45:90);
 });
 document.querySelectorAll('#feel button').forEach(b=>b.addEventListener('click',()=>{feel=b.dataset.v;saveEx();renderLogger()}));
 
@@ -630,9 +675,20 @@ function finishWorkout(){
   const pbs=Object.entries(draft.ex).filter(([k,x])=>{const b=Math.max(...x.sets.map(s=>s.reps+(s.kg||0)*100));return before[k]!=null&&b>before[k]}).map(([k,x])=>{
     const e=EX[k],best=x.sets.reduce((b,s)=>s.reps+(s.kg||0)*100>b.reps+(b.kg||0)*100?s:b);return `<li><i data-lucide="star"></i><span>New best: <b>${e.name}</b> – ${best.reps} ${unitOf(e)}${best.kg?' with '+kg(best.kg):''}</span></li>`});
   document.getElementById('pbList').innerHTML=pbs.join('');
+  lastDoneT=draft.t;renderRpe(null);
   draft=null;show('doneView');
 }
 document.getElementById('homeBtn').addEventListener('click',()=>{show('home');renderHome()});
+/* session effort, 0–10 (the book's perceived-exertion scale) */
+const RPE_WORDS=['Rest','Very, very easy','Easy','Moderate','Somewhat hard','Hard','Hard','Very hard','Very hard','Very hard','Maximum'];
+let lastDoneT=null;
+function renderRpe(v){
+  const el=document.getElementById('rpe');
+  el.innerHTML=[0,1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-v="${n}" aria-pressed="${n===v}" aria-label="${n}, ${RPE_WORDS[n]}">${n}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const n=+b.dataset.v,all=sessions(),s2=all.find(x=>x.t===lastDoneT);
+    if(s2){s2.rpe=n;save(SKEY,all)}renderRpe(n)}));
+  document.getElementById('rpeLbl').textContent=v==null?'0 is rest, 10 is your maximum. Aim for 3 (moderate) or more.':`${v} – ${RPE_WORDS[v]}${v<3?'. Next time, try a few more reps or the heavier dumbbell.':v>=8?'. That\'s plenty – ease off a little next time.':'. Good work.'}`;
+}
 
 /* ---------- charts (hand-built SVG, single hue, tap a bar/point for its value) ---------- */
 function barChart(el,ro,data,{goal=null,fmt=v=>v,label=d=>d.label,detail=d=>`${d.label}: ${fmt(d.v)}`}={}){
@@ -679,8 +735,8 @@ function renderProgress(){
   const weeks=[];for(let i=9;i>=0;i--){const m=addDays(mon,-7*i);weeks.push({label:fmtDay(m,{day:'numeric',month:'numeric'}),v:weekCount(m),m})}
   barChart('cWeeks','rWeeks',weeks,{goal:WEEK_GOAL,detail:d=>`Week of <b>${fmtDay(d.m,{day:'numeric',month:'long'})}</b>: <b>${d.v}</b> workout${d.v===1?'':'s'}`});
   const last=all.slice(-12).map(s=>({label:fmtDay(iso(s.t),{day:'numeric',month:'numeric'}),v:repsIn(s),s}));
-  barChart('cReps','rReps',last,{detail:d=>`<b>${fmtDay(iso(d.s.t))}</b> · ${WORKOUTS.find(w=>w.id===d.s.w).name}: <b>${d.v}</b> reps across ${Object.keys(d.s.ex).length} exercises`});
-  const pick=document.getElementById('exPick'),keys=Object.keys(EX),cur2=pick.value;
+  barChart('cReps','rReps',last,{detail:d=>`<b>${fmtDay(iso(d.s.t))}</b> · ${WORKOUTS.find(w=>w.id===d.s.w).name}: <b>${d.v}</b> reps across ${Object.keys(d.s.ex).length} exercises${d.s.rpe!=null?` · effort ${d.s.rpe}/10 (${RPE_WORDS[d.s.rpe].toLowerCase()})`:''}`});
+  const pick=document.getElementById('exPick'),keys=Object.keys(EX).filter(k=>!EX[k].retired||exHistory(k).length),cur2=pick.value;
   pick.innerHTML=keys.map(k=>{const n=exHistory(k).length;return `<option value="${k}">${EX[k].name}${n?` (${n})`:''}</option>`}).join('');
   pick.value=cur2&&keys.includes(cur2)?cur2:(keys.find(k=>exHistory(k).length)||keys[0]);
   renderExChart();
