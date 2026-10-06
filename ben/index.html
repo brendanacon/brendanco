@@ -824,10 +824,10 @@
             <button class="feed-btn primary" onclick="saveFeedUrl()">Save & Fetch</button>
 
             <hr>
-            <h3>OpenAI API Key</h3>
+            <h3>Anthropic API Key</h3>
             <label for="apiKeyInput">API Key</label>
-            <input type="password" id="apiKeyInput" placeholder="sk-..." />
-            <p class="hint">Your OpenAI API key for AI-powered responses. Stored locally in your browser only. Never sent anywhere except OpenAI.</p>
+            <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+            <p class="hint">Your Anthropic API key for AI-powered responses (Claude Opus 5.5). Stored locally in your browser only. Never sent anywhere except Anthropic.</p>
             <button class="feed-btn primary" onclick="saveApiKey()">Save Key</button>
 
             <hr>
@@ -940,7 +940,9 @@
 
         // --- Constants ---
         const URL_KEY = 'ben-chat-feed-url';
-        const API_KEY_KEY = 'ben-chat-openai-key';
+        const API_KEY_KEY = 'ben-chat-anthropic-key';
+        const CLAUDE_MODEL = 'claude-opus-5-5';
+        const CLAUDE_EFFORT = 'medium';
         const LAST_FETCH_KEY = 'ben-chat-last-fetch';
         const DB_NAME = 'ben-chat-archive';
         const DB_VERSION = 1;
@@ -2280,7 +2282,7 @@
         }
 
         // =====================================================
-        // OpenAI Integration
+        // Claude (Anthropic) Integration
         // =====================================================
         async function chatWithAI(query, searchResults, opts) {
             opts = opts || {};
@@ -2338,24 +2340,30 @@
             const stream = addStreamingMessage();
 
             try {
-                const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+                const resp = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + apiKey
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        // Required for calling the API straight from a browser page
+                        'anthropic-dangerous-direct-browser-access': 'true',
+                        // If a safety classifier declines, re-run on Anthropic's recommended fallback model
+                        'anthropic-beta': 'server-side-fallback-2026-07-01'
                     },
                     body: JSON.stringify({
-                        model: 'gpt-5.5',
-                        messages: [
-                            { role: 'system', content: systemPrompt }
-                        ].concat(conversationHistory).concat([
+                        model: CLAUDE_MODEL,
+                        max_tokens: 16000,
+                        system: systemPrompt,
+                        messages: conversationHistory.concat([
                             { role: 'user', content: query }
                         ]),
                         stream: true,
-                        // gpt-5.5 reasons by default and reasoning tokens count toward this cap,
-                        // so keep effort low and leave headroom; the word-count prompt sets length.
-                        reasoning_effort: 'low',
-                        max_completion_tokens: 2500
+                        // Thinking is always on for Opus 5.5; effort is the only depth control.
+                        // The word-count prompt sets answer length.
+                        thinking: { type: 'adaptive' },
+                        output_config: { effort: CLAUDE_EFFORT },
+                        fallbacks: 'default'
                     })
                 });
 
@@ -2363,9 +2371,9 @@
                     const errText = await resp.text();
                     stream.finish();
                     if (resp.status === 401) {
-                        addBenMessage('OpenAI API key is invalid. Please update it in Settings.');
+                        addBenMessage('Anthropic API key is invalid. Please update it in Settings.');
                     } else {
-                        addBenMessage('OpenAI API error: HTTP ' + resp.status + '. ' + escapeHTML(errText.substring(0, 200)));
+                        addBenMessage('Claude API error: HTTP ' + resp.status + '. ' + escapeHTML(errText.substring(0, 200)));
                     }
                     return;
                 }
@@ -2373,6 +2381,8 @@
                 const reader = resp.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
+                let stopReason = null;
+                let streamError = null;
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -2384,31 +2394,47 @@
 
                     for (const line of lines) {
                         const trimmed = line.trim();
-                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
-                        const data = trimmed.slice(6);
-                        if (data === '[DONE]') break;
+                        if (!trimmed.startsWith('data: ')) continue; // skip "event:" lines and blanks
 
-                        try {
-                            const parsed = JSON.parse(data);
-                            const content = parsed.choices && parsed.choices[0] && parsed.choices[0].delta && parsed.choices[0].delta.content;
-                            if (content) {
-                                stream.append(content);
-                            }
-                        } catch(e) {}
+                        let evt;
+                        try { evt = JSON.parse(trimmed.slice(6)); } catch(e) { continue; }
+
+                        if (evt.type === 'content_block_delta' && evt.delta && evt.delta.type === 'text_delta') {
+                            stream.append(evt.delta.text); // thinking deltas are ignored
+                        } else if (evt.type === 'message_delta' && evt.delta && evt.delta.stop_reason) {
+                            stopReason = evt.delta.stop_reason;
+                        } else if (evt.type === 'error') {
+                            streamError = (evt.error && evt.error.message) || 'stream error';
+                        }
                     }
+                }
+
+                if (streamError) {
+                    stream.finish();
+                    addBenMessage('Claude API error: ' + escapeHTML(streamError));
+                    return;
+                }
+                if (stopReason === 'refusal') {
+                    stream.finish();
+                    addBenMessage('Claude declined to answer that one. Try rephrasing the question.');
+                    return;
                 }
 
                 stream.finish(sources);
 
                 // Record this exchange in conversation history (keep last 3 pairs)
-                conversationHistory.push({ role: 'user', content: query });
-                conversationHistory.push({ role: 'assistant', content: stream.getText() });
+                // The API rejects empty assistant turns, so only record exchanges that produced text
+                const replyText = stream.getText();
+                if (replyText && replyText.trim()) {
+                    conversationHistory.push({ role: 'user', content: query });
+                    conversationHistory.push({ role: 'assistant', content: replyText });
+                }
                 while (conversationHistory.length > 6) {
                     conversationHistory.shift();
                 }
             } catch(e) {
                 stream.finish();
-                addBenMessage('Failed to connect to OpenAI: ' + escapeHTML(e.message));
+                addBenMessage('Failed to connect to Claude: ' + escapeHTML(e.message));
             }
         }
 
@@ -2465,7 +2491,7 @@
                 if (r.article.date) response += ' <span class="article-date">(' + escapeHTML(r.article.date) + ')</span>';
                 response += '</div>';
             });
-            response += '<br><div style="font-size:12px;color:#999;">Add your OpenAI API key in Settings for AI-powered conversational answers.</div>';
+            response += '<br><div style="font-size:12px;color:#999;">Add your Anthropic API key in Settings for AI-powered conversational answers.</div>';
             addBenMessage(response);
         };
 
