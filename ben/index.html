@@ -826,7 +826,9 @@
             <hr>
             <h3>Anthropic API Key</h3>
             <label for="apiKeyInput">API Key</label>
-            <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+            <!-- type="text" + CSS masking, not type="password": iOS Safari treats password fields as
+                 logins and can autofill a saved password or a "strong password" over the pasted key -->
+            <input type="text" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore style="-webkit-text-security: disc;" />
             <p class="hint">Your Anthropic API key for AI-powered responses (Claude Opus 5.5). Stored locally in your browser only. Never sent anywhere except Anthropic.</p>
             <button class="feed-btn primary" onclick="saveApiKey()">Save Key</button>
 
@@ -1364,11 +1366,69 @@
             refreshFeed();
         };
 
-        window.saveApiKey = function() {
-            const key = apiKeyInput.value.trim();
+        // API keys are plain ASCII (sk-ant-api03-...). Strip whitespace and invisible characters
+        // that sneak in when copying on a phone (zero-width spaces, BOMs, line breaks).
+        function cleanApiKey(raw) {
+            return (raw || '').replace(/[\s​-‍⁠﻿]/g, '');
+        }
+
+        // Masked summary to compare against the key hint shown in the Anthropic Console.
+        function describeApiKey(key) {
+            if (!key) return 'no key saved';
+            return key.slice(0, 14) + '…' + key.slice(-4) + ' (' + key.length + ' characters)';
+        }
+
+        // Catch keys that can never work before they're sent.
+        function apiKeyProblem(key) {
+            if (/^sk-ant-oat/.test(key)) return 'This is a Claude subscription (OAuth) token, not an API key. A Claude.ai plan doesn\'t include API access — create a key at console.anthropic.com → API Keys.';
+            if (!/^sk-ant-/.test(key)) return 'Anthropic API keys start with "sk-ant-". This looks like a different key (OpenAI keys start with "sk-" or "sk-proj-").';
+            if (/[^A-Za-z0-9_-]/.test(key)) return 'The key contains characters an API key never has (e.g. a "—" dash or curly quote from autocorrect). Copy it again from the Console.';
+            if (key.length < 60) return 'The key looks truncated (full keys are around 100 characters). Copy the whole key again.';
+            return null;
+        }
+
+        // Free check (no tokens used): can this key see the model the chat uses?
+        async function testApiKey(key) {
+            try {
+                const resp = await fetch('https://api.anthropic.com/v1/models/' + CLAUDE_MODEL, {
+                    headers: {
+                        'x-api-key': key,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    }
+                });
+                if (resp.ok) return { ok: true };
+                let message = '';
+                try { const j = await resp.json(); message = (j.error && j.error.message) || ''; } catch(e) {}
+                return { ok: false, status: resp.status, message: message || resp.statusText };
+            } catch(e) {
+                return { ok: false, status: 0, message: e.message || 'network error' };
+            }
+        }
+
+        window.saveApiKey = async function() {
+            const key = cleanApiKey(apiKeyInput.value);
             if (!key) return;
+            apiKeyInput.value = key;
             localStorage.setItem(API_KEY_KEY, key);
-            addBenMessage('API key saved. Your responses will now be powered by AI.');
+            const problem = apiKeyProblem(key);
+            if (problem) {
+                addBenMessage('Saved key: <code>' + escapeHTML(describeApiKey(key)) + '</code><br>⚠️ ' + escapeHTML(problem));
+                return;
+            }
+            addBenMessage('Checking key <code>' + escapeHTML(describeApiKey(key)) + '</code> with Anthropic...');
+            const result = await testApiKey(key);
+            if (result.ok) {
+                addBenMessage('✅ Key works and has access to Claude Opus 5.5. Your responses will now be powered by AI.');
+            } else if (result.status === 401) {
+                addBenMessage('❌ Anthropic rejected this key: "' + escapeHTML(result.message) + '"<br>' +
+                    'Compare <code>' + escapeHTML(describeApiKey(key)) + '</code> with the key hint at console.anthropic.com → API Keys. ' +
+                    'If it doesn\'t match, or the key was deleted or disabled, create a new key and paste the whole thing.');
+            } else if (result.status === 404) {
+                addBenMessage('⚠️ The key is valid, but this account can\'t see Claude Opus 5.5 (' + escapeHTML(result.message) + ').');
+            } else {
+                addBenMessage('⚠️ Couldn\'t verify the key (' + (result.status ? 'HTTP ' + result.status + ': ' : '') + escapeHTML(result.message) + '). It\'s saved; try asking a question.');
+            }
         };
 
         window.saveElevenLabsSettings = function() {
@@ -2286,7 +2346,7 @@
         // =====================================================
         async function chatWithAI(query, searchResults, opts) {
             opts = opts || {};
-            const apiKey = localStorage.getItem(API_KEY_KEY);
+            const apiKey = cleanApiKey(localStorage.getItem(API_KEY_KEY));
             if (!apiKey) return null;
 
             // Build context from top search results
@@ -2371,7 +2431,12 @@
                     const errText = await resp.text();
                     stream.finish();
                     if (resp.status === 401) {
-                        addBenMessage('Anthropic API key is invalid. Please update it in Settings.');
+                        let apiMsg = '';
+                        try { const j = JSON.parse(errText); apiMsg = (j.error && j.error.message) || ''; } catch(e) {}
+                        const problem = apiKeyProblem(apiKey);
+                        addBenMessage('Anthropic rejected the API key' + (apiMsg ? ': "' + escapeHTML(apiMsg) + '"' : '.') +
+                            '<br>Key in use: <code>' + escapeHTML(describeApiKey(apiKey)) + '</code>' +
+                            (problem ? '<br>⚠️ ' + escapeHTML(problem) : '<br>Compare it with the key hint at console.anthropic.com → API Keys, then re-paste it in Settings and tap Save Key to test it.'));
                     } else {
                         addBenMessage('Claude API error: HTTP ' + resp.status + '. ' + escapeHTML(errText.substring(0, 200)));
                     }
