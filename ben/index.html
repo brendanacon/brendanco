@@ -20,6 +20,13 @@
             box-sizing: border-box;
         }
 
+        /* No sideways page scrolling on phones; overflow-x: clip (unlike hidden) doesn't
+           turn the root into a scroll container or break position: sticky/fixed */
+        html, body {
+            overflow-x: clip;
+            overscroll-behavior-x: none;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #fafafa;
@@ -231,6 +238,11 @@
             border-radius: 12px;
             height: 420px;
             overflow-y: auto;
+            /* Vertical scrolling only: without this, overflow-y:auto makes overflow-x auto too,
+               so one long unbroken word in a reply lets the whole chat swipe sideways */
+            overflow-x: hidden;
+            overscroll-behavior-x: none;
+            touch-action: pan-y pinch-zoom;
             padding: 20px;
             margin-bottom: 16px;
             scroll-behavior: smooth;
@@ -284,6 +296,12 @@
             color: #1a1a1a;
             font-size: 14px;
             line-height: 1.6;
+        }
+
+        /* Break long words/URLs so a bubble never grows wider than its max-width */
+        .msg-bubble {
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .chat-message .msg-sender {
@@ -365,7 +383,9 @@
             background: rgba(0,0,0,0.06);
             padding: 8px 10px;
             border-radius: 6px;
-            overflow-x: auto;
+            /* Wrap code instead of scrolling it sideways */
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
             margin: 6px 0;
         }
         .msg-bubble pre code {
