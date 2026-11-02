@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en-AU"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><meta name="googlebot" content="noindex, nofollow"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Everlab Start v3</title>
+<title>Everlab Start v4</title>
 
 <style>
 /* Modelled on start.everlab.com.au's own UI: white page, one sans family, centred questions,
@@ -2321,6 +2321,42 @@ main.chg .layout .col{outline:2px dashed #e8823a;outline-offset:14px;border-radi
 
 .nr-trust{flex-direction:column!important;gap:4px!important;align-items:center!important;text-align:center}
 .nr-trust>span:first-child{letter-spacing:2px}
+
+/* ===== v4 ===== */
+.syc-cap{display:block;font-size:12.5px;line-height:1.4;color:#6e6e6e;margin-top:-4px}
+.syc-so{margin:4px 0 0;padding:12px 0 0;border-top:1px solid #0000001a;font-size:13.5px;line-height:1.45;color:#181818}
+@media (max-width:760px){.syc-cap{font-size:11.5px}.syc-so{font-size:12.5px;padding-top:8px;margin-top:0}}
+.tz-cw{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.tz-u{font-family:var(--f-ui);font-size:11px;letter-spacing:.04em;color:var(--muted);line-height:1}
+.tz-row.warn .tz-u{color:#c2410c}
+@media (max-width:899px){
+  /* instructions and option notes stay visible on phones; the page scrolls instead */
+  body:not([data-fit="0"]) .layout:not(.co-frame):not(.doc) .view > .sub{display:block!important}
+  body:not([data-fit="0"]) .opt .desc{display:block!important}
+  .layout:not(.doc) .col{scrollbar-width:thin}
+  .layout:not(.doc) .col::-webkit-scrollbar{display:block;width:3px}
+  .layout:not(.doc) .col::-webkit-scrollbar-thumb{background:#00000033;border-radius:9px}
+}
+.more-cue{position:fixed;left:50%;z-index:7;transform:translate(-50%,6px);display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:50px;
+  background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--fg);font:inherit;font-size:13px;font-weight:500;
+  padding:7px 14px;box-shadow:0 6px 20px #0000001f;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;cursor:pointer}
+.more-cue.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.more-cue svg{width:12px;height:12px}
+.more-fade{position:fixed;left:0;right:0;height:44px;z-index:5;pointer-events:none;background:linear-gradient(to top,var(--bg),transparent);opacity:0;transition:opacity .25s ease}
+.more-fade.on{opacity:1}
+@media (min-width:900px){.more-cue,.more-fade{display:none}}
+
+/* v4.1 plan teaser: count first, warning on the right */
+.tz-row{grid-template-columns:76px minmax(0,1fr) 22px!important}
+.tz-cw{align-items:flex-start!important}
+.tz-c{text-align:left!important}
+.tz-n{justify-self:end}
+@media (max-width:760px){.tz-row{grid-template-columns:64px minmax(0,1fr) 20px!important;gap:10px!important}}
+
+/* v4.1 dark mode: components that stay white keep light-mode text colours inside them */
+:root[data-theme="dark"] :is(.co2-panel .co2-order,.pay,.stripe,.why-tip){--bg:#ffffff;--surface:#ffffff;--fg:#181818;--muted:#545454;--line:#0000001a;--soft:#0000000a;--accent:#181818;--on-accent:#f4f4f3;--sel:#cdd7bc;--sel-line:#3f6b35;--ok:#13794a;--focus:#2261bb;color:#181818;color-scheme:light}
+:root[data-theme="dark"] .co2-press img{filter:grayscale(1) brightness(0) invert(1);opacity:.55}
+:root[data-theme="dark"] .rp-col{background:var(--surface)}
 /* ===== membership card ===== */
 .mcard{--w:320px;width:var(--w);max-width:100%;aspect-ratio:320/202;font-size:calc(var(--w) / 16);border-radius:calc(var(--w) * .075);position:relative;overflow:hidden;isolation:isolate;color:#fff;flex:none;
   background:radial-gradient(130% 120% at 50% -5%,#ffe0a0 0%,#ffb04a 22%,#f6862a 44%,#d9601f 64%,#9c3d17 84%,#5a2311 100%);text-align:left;
@@ -2673,18 +2709,18 @@ const REASON_PRI = {
 };
 const STEPS = [
   { id: "landing", type: "landing", img: "q7" },
-  { id: "reason", type: "multi", opts: REASONS, layout: "plain", noneLabel: "Not sure yet", q: () => "What brought you to Everlab today?", sub: "Choose any that apply. It helps us tailor the questions and build a plan that fits you.", review: "glen-j" },
+  { id: "reason", type: "multi", opts: REASONS, layout: "plain", noneLabel: "Not sure yet", q: () => "What brought you to Everlab today?", sub: "Pick as many as you like. It helps us tailor the questions and build a plan that fits you.", review: "glen-j" },
   { id: "sex", type: "single", opts: SEX, layout: "grid", q: () => `What was your sex at birth?`, sub: "Cholesterol, blood sugar and hormone markers differ by sex, so your panel does too.", review: "katy-p" },
   { id: "age", type: "single", opts: AGES, layout: "grid", q: () => "How old are you?", sub: "Together with your sex, age changes which markers matter most.", insight: INSIGHT.sex, review: "dax-e" },
   { id: "story-decade", type: "story", story: "decade", when: () => !inline() && !!((DECADE[one("sex")] || {})[one("age")]) },
   { id: "pregnancy", type: "single", when: () => female() && ageN() <= 3, opts: [["yes", "Yes, I am currently pregnant"], ["no", "No, I am not currently pregnant"]], q: () => "Are you currently pregnant?", sub: "Pregnancy is a unique health stage requiring specialised care. Our priority is ensuring you receive the right guidance on this journey.", review: "jennifer-g" },
   { id: "pregnancy-x", type: "ineligible", when: () => female() && ageN() <= 3 && has("pregnancy","yes"), q: "Unfortunately, our programme isn't designed for pregnancy.", sub: "We're sorry we can't support you right now.", keep: "Our programme is not designed for pregnant women at this time. We'd love to support you after your pregnancy. Leave your details below and we'll reach out when you might be ready." },
-  { id: "background", type: "multi", opts: BACKGROUND, layout: "cols", noneLabel: "Prefer not to say", other: { value: "mixed", label: "How would you describe it?", placeholder: "Optional" }, q: () => "Which background best describes you?", sub: "Some conditions are more common in certain backgrounds. Choose any that apply.", insight: firstOf(INSIGHT.background, INSIGHT.age), review: "andrea-r" },
+  { id: "background", type: "multi", opts: BACKGROUND, layout: "cols", noneLabel: "Prefer not to say", other: { value: "mixed", label: "How would you describe it?", placeholder: "Optional" }, q: () => "What's your family background?", sub: "Where your family comes from, even if you were born in Australia. Some conditions are more common in certain backgrounds. Pick as many as you like.", insight: firstOf(INSIGHT.background, INSIGHT.age), review: "andrea-r" },
   { id: "goals", type: "multi", opts: GOALS, layout: "cols", noneLabel: "Not sure yet", q: () => `Which health areas are a priority for you?`, sub: "Pick as many as you like.", insight: firstOf(INSIGHT.goals, INSIGHT.family), review: "glen-j" },
-  { id: "history", optional: true, type: "multi", opts: HISTORY, layout: "cols", noneLabel: "No health concerns to note", q: () => "Any past health concerns we should factor into your plan?", sub: "This helps identify patterns and areas that may benefit from closer monitoring or targeted tests." },
-  { id: "symptoms", when: () => (S.ans.reason || []).includes("symptoms"), optional: true, type: "multi", opts: SYMPTOMS, layout: "cols", noneLabel: "Nothing right now", q: () => "Which areas would you like to improve?", sub: "Pick any that apply. Your doctor looks for the testable causes behind each one." },
+  { id: "history", optional: true, type: "multi", opts: HISTORY, layout: "cols", noneLabel: "No health concerns to note", q: () => "Any past health concerns we should factor into your plan?", sub: "Pick as many as you like. This helps identify patterns and areas that may benefit from closer monitoring or targeted tests." },
+  { id: "symptoms", when: () => (S.ans.reason || []).includes("symptoms"), optional: true, type: "multi", opts: SYMPTOMS, layout: "cols", noneLabel: "Nothing right now", q: () => "Which areas would you like to improve?", sub: "Pick as many as you like. Your doctor looks for the testable causes behind each one." },
   { id: "story-dream", type: "story", story: "dream", when: () => !inline() },
-  { id: "family", type: "multi", opts: FAMILY, noneLabel: "None that I know of", q: () => "Have any close family members had these?", sub: "Parents, brothers, sisters or children. It changes what we test first.", insight: firstOf(INSIGHT.family, INSIGHT.background, INSIGHT.age), review: "lynne-p" },
+  { id: "family", type: "multi", opts: FAMILY, noneLabel: "None that I know of", q: () => "Have any close family members had these?", sub: "Think parents, brothers, sisters or children. Pick as many as you like.", insight: firstOf(INSIGHT.family, INSIGHT.background, INSIGHT.age), review: "lynne-p" },
   { id: "story-records", type: "story", story: "records", when: () => !inline() },
   { id: "illness", type: "single", opts: [["yes", "Yes, I am currently undergoing treatment"], ["no", "No, I am not currently undergoing treatment"]], q: () => "Are you currently undergoing treatment for any serious illness?", sub: "This includes anything requiring specialist care, such as cancer, heart disease, advanced organ conditions, or major neurological concerns.", _old: "Anything needing specialist care, such as cancer, heart disease or a major neurological condition.", insight: INSIGHT.goals, review: "peter-h" },
   { id: "illness-x", type: "ineligible", when: () => has("illness","yes"), q: "Unfortunately, we can't support you during active treatment.", sub: "Your health and safety come first.", keep: "Our program isn’t appropriate for individuals currently undergoing active treatment for cancer or other serious illness. We’d love to support you once treatment is complete. Leave your details below and we’ll be in touch to see how we can help when the time is right." },
@@ -2818,7 +2854,7 @@ function fitDesktop() {
   if (document.querySelector(".layout.doc")) { b.dataset.fit = 0; const bar = document.querySelector(".actions"), col = document.querySelector(".layout .col"); if (col) col.style.paddingBottom = bar && getComputedStyle(bar).position === "fixed" ? (bar.offsetHeight + 72) + "px" : ""; return; }
   /* On phones the action bar is pinned over the content; reserve its real height so nothing sits underneath it. */
   const col = document.querySelector(".layout .col"), bar = document.querySelector(".actions");
-  if (col) col.style.paddingBottom = bar && getComputedStyle(bar).position === "fixed" && bar.offsetHeight ? (bar.offsetHeight + 16) + "px" : "";
+  if (col) col.style.paddingBottom = bar && getComputedStyle(bar).position === "fixed" && bar.offsetHeight ? (bar.offsetHeight + 44) + "px" : "";
   /* never scale type down (levels 4-6): past level 3 the column scrolls instead */
   const sd = document.querySelector(".side"), pc = sd && sd.querySelector(".pcard");
   if (pc && innerWidth >= 900) for (let l = 0; l <= 4; l++) { pc.dataset.fit = l; if (sd.scrollHeight <= sd.clientHeight + 1 && pc.getBoundingClientRect().bottom <= sd.getBoundingClientRect().bottom + 1) break; }
@@ -3271,7 +3307,7 @@ function emRisk(I) {
     ["bowel", "Bowel cancer", F.includes("cancer") || T.includes("cancer"), o41, [
       [F.includes("cancer"), "You told us cancer runs in your family."], [T.includes("cancer"), "You put cancer screening on your list."],
       [o41, `You’re aged ${b}, when bowel screening is recommended every two years${ab === 3 ? ", from age 45" : ab === 6 ? ", to age 74" : ""}.`]],
-      `About ${sexTxt} is diagnosed with bowel cancer by age 85. Screening looks for early signs, before any symptom.`],
+      `About ${sexTxt} is diagnosed with bowel cancer by age 85. Screening looks for early signs, before any symptom.${F.includes("cancer") || T.includes("cancer") ? " The screening list below covers the other cancer checks for your age." : ""}`],
     ["skin", "Skin cancer", false, o41, [[o41, `You’re aged ${b}. A skin cancer risk check is recommended for every adult, then as your doctor advises.`]],
       "Your doctor can add Skin Check+, a full-body skin assessment with imaging to identify lesions."],
     ["gut", "Liver and gut", T.includes("digestive"), fl.g_diet, [[T.includes("digestive"), "You put gut health on your list."], [fl.g_diet, "You told us nutrition is a focus."]],
@@ -3312,10 +3348,10 @@ function emCompare(I, mine) {
   const head = at >= 0 ? `<div class="rp-k">For someone like you</div><div class="em-big">${big}</div><p class="em-of">of Australians aged ${EM.absBand[EM.idx[I.age]]}${sexLbl ? sexLbl + "," : ""} ${D.what}</p>`
     : `<div class="rp-k">Australian adults</div><div class="em-big">${big}</div><p class="em-of">of Australian adults${sexLbl ? sexLbl + "," : ""} ${D.what}</p>`;
   if (mine) { const f2 = why ? `Shown because ${why}.` : "High cholesterol has no symptoms, so a blood test is the only way to know.";
-    return `<div class="em-cmp">${head}<div class="rp-k em-ct">${D.title}${sexLbl}</div><ul class="em-bars">${bars}</ul>${at >= 0 ? `<small class="rp-muted">Your closest age group in black.</small>` : ""}
+    return `<div class="em-cmp">${head}<div class="rp-k em-ct">${D.title}${sexLbl}</div><ul class="em-bars">${bars}</ul>${at >= 0 ? `<small class="rp-muted">Your closest age group is highlighted.</small>` : ""}
     <p class="em-foot">${esc(f2)} Your <button type="button" class="link em-go">Baseline testing</button> uncovers your own numbers, so you and your Everlab doctor can see what to prioritise.</p></div>`; }
   const foot = why ? `Shown because ${why}.` : at >= 0 ? "Shown for your age group: high cholesterol causes no symptoms." : "High cholesterol causes no symptoms. A blood test is the only way to see it.";
-  return `<div class="em-cmp">${head}<div class="rp-k em-ct">${D.title}${sexLbl}</div><ul class="em-bars">${bars}</ul>${at >= 0 ? `<small class="rp-muted">Your closest age group in black.</small>` : ""}
+  return `<div class="em-cmp">${head}<div class="rp-k em-ct">${D.title}${sexLbl}</div><ul class="em-bars">${bars}</ul>${at >= 0 ? `<small class="rp-muted">Your closest age group is highlighted.</small>` : ""}
     <p class="em-foot">${esc(foot)} To get your own results, <button type="button" class="link em-go">start your Everlab Baseline</button>.</p></div>`;
 }
 function emSchedule(I) {
@@ -3715,9 +3751,9 @@ R.story = step => {
     const d = DECADE[one("sex")][one("age")], hi = bandFor("chol"), vals = CHOL[sx], mx = 60, rv = ageN() >= 3 ? "dax-e" : "katy-p";
     left = `<span class="sy-k">Your story so far</span><h1>${esc(d[0])}.</h1><p class="sub">${esc(d[3])}</p>`;
     bg = IMG.txBlood;
-    card = `<span class="syc-k">How you compare</span><b class="syc-t">High cholesterol, Australian ${sx}</b>
+    card = `<span class="syc-k">How you compare</span><b class="syc-t">High cholesterol, Australian ${sx}</b><span class="syc-cap">Share with high cholesterol, by age. Your age group is highlighted.</span>
       <div class="syc-bars">${CHOL.bands.map((b, i) => `<div class="syc-bar${i === hi ? " you" : ""}" style="--h:${Math.round(vals[i] / mx * 100)}%;--hf:${(vals[i] / mx).toFixed(3)};--i:${i}"><span class="syc-v">${i === hi ? Math.round(vals[i]) + "%" : ""}</span><i></i><em>${b}</em></div>`).join("")}</div>
-      <div class="syc-foot"><span class="syc-big">1.8×</span><span>Men are almost twice as likely as women to have diabetes on a blood test.</span></div>
+      <p class="syc-so">High cholesterol has no symptoms, so most people don't know they have it. Your Baseline blood panel shows where you sit.</p>
       <small class="syc-src">Source: ABS, National Health Measures Survey 2022-24</small>`;
     left += `<div class="sy-bottom">${storyQuote(rv)}</div>`;
   } else if (step.story === "records") {
@@ -3755,7 +3791,7 @@ R.story = step => {
     /* an example chat with the app's AI, matched to what they told us */
     const fam = (S.ans.family || []);
     const CHAT = {
-      heart: ["My ApoB came back above optimal. What should I change first?", "Start with what you eat. Aim for 30g of fibre a day from oats, legumes and psyllium, and swap butter for olive oil. Your doctor has set a retest for 3 months to see what moved."],
+      heart: ["My ApoB came back high. What should I change first?", "Start with what you eat. Aim for 30g of fibre a day from oats, legumes and psyllium, and swap butter for olive oil. Your doctor has set a retest for 3 months to see what moved."],
       brain: ["Is there anything I can do now to protect my brain long term?", "More than most people think. Blood pressure, blood sugar and sleep are three of the biggest levers, and your panel showed your HbA1c creeping up. Your doctor's plan starts there, with a retest in 3 months."],
       cancer: ["Which cancer screening should I be doing at my age?", "Bowel screening every 2 years is the big one for you, plus a skin check. Your doctor has added both to your plan and set reminders, so nothing slips."],
       metabolic: ["My fasting glucose is borderline. What can I do about it?", "Eat protein and fibre before carbs at each meal, and take a 10-minute walk after dinner. Your doctor will retest in 3 months and adjust the plan."],
@@ -3765,7 +3801,7 @@ R.story = step => {
       reproductive: one("sex") === "female" ? ["My cycle has changed this year. Is that worth checking?", "Worth a look. Your FSH has crept up over your last few results, which can come before cycle changes. Your doctor wants to read it alongside oestradiol before suggesting next steps."]
         : ["Could my testosterone be affecting how I feel?", "Possibly. Yours sits at the low end of normal and has drifted down since 2022. Your doctor's plan starts with sleep and strength training, then checks it again."],
       genetic: ["High cholesterol runs in my family. Could it be genetic?", "It might be. Your LDL has been high since your twenties, which is one sign of an inherited cause. Your doctor can tell you whether a genetic test is worth it."],
-      broad: ["Which of my results should I focus on first?", "Start with vitamin D and LDL. Both are off optimal and easy to move. Your doctor has set them as your first two goals, with a retest in 12 weeks."]
+      broad: ["Which of my results should I focus on first?", "Start with vitamin D and LDL. Both are outside the ideal range and easy to move. Your doctor has set them as your first two goals, with a retest in 12 weeks."]
     };
     const FAMC = { heart: "heart", diabetes: "metabolic", cancer: "cancer", neuro: "brain", thyroid: "hormones" };
     const k = goals.find(g => CHAT[g]) || "broad";
@@ -3778,25 +3814,25 @@ R.story = step => {
     const g = (goals.length ? goals : ["broad"]).slice(0, 3);
     const ACT = { heart: "Measure ApoB", cancer: "Age-matched cancer screening", metabolic: "Check blood sugar and insulin", hormones: "Map your hormones", brain: "Track early brain-health markers", energy: "Find what's draining your energy", bioage: "Measure your biological age", broad: "A full baseline, head to toe" };
     left = `<span class="sy-k">What you'll get</span><h1>A health plan built around you.</h1>
-      <p class="sub">Your doctor looks at your biology, lifestyle, goals, screening history and family history, then builds a plan with protocols that only make sense for you.</p>
+      <p class="sub">Your doctor looks at your biology, lifestyle, goals, screening history and family history, then builds a plan with protocols that only make sense for you. Here's an example of what one could look like.</p>
       <div class="sy-bottom">${storyQuote("glen-j")}</div>`;
     bg = IMG.txRed;
     const sexH = one("sex") === "male" ? "Bring testosterone into optimal range" : one("sex") === "female" ? "Bring oestradiol and progesterone into balance" : "Bring sex hormones into optimal range";
     const PLAN = {
-      heart: ["Protect your heart and arteries", "Your panel showed ApoB above optimal, so the plan targets what builds plaque.", ["Lower ApoB below 0.8 g/L", "Bring triglycerides under 1.0 mmol/L", "150 minutes of zone 2 cardio a week"]],
-      metabolic: ["Improve blood sugar control", "Your panel showed HbA1c at the top of the range, so the plan steadies it before it climbs.", ["Lower HbA1c below 5.4%", "Keep fasting insulin under 10 mU/L", "Walk 10 minutes after every meal"]],
-      cancer: ["Cut the cancer risks you can control", "Your panel showed your liver enzymes above optimal, often a sign of alcohol, so the plan starts there.", ["Bring GGT under 30 U/L", "Keep hs-CRP under 1 mg/L", "Cut alcohol to under 10 drinks a week"]],
-      hormones: ["Rebalance your hormones", "Your panel showed thyroid and sex hormones off optimal, so the plan targets the drivers.", [sexH, "Keep TSH between 0.5 and 2.5 mIU/L", "Strength train twice a week"]],
-      brain: ["Protect long-term brain health", "Your panel showed homocysteine above optimal, one of the blood markers linked to brain health.", ["Lower homocysteine below 10 µmol/L", "Lower HbA1c below 5.4%", "150 minutes of cardio a week"]],
-      energy: ["Lift your day-to-day energy", "Your panel showed low ferritin, a common and fixable cause of fatigue.", ["Raise ferritin above 50 µg/L", "Raise vitamin D above 75 nmol/L", "Sleep 7 to 9 hours a night"]],
+      heart: ["Protect your heart and arteries", "If your blood test shows ApoB higher than ideal, the plan targets what builds plaque.", ["Lower ApoB below 0.8 g/L", "Bring triglycerides under 1.0 mmol/L", "150 minutes of zone 2 cardio a week"]],
+      metabolic: ["Improve blood sugar control", "If your blood test shows HbA1c at the top of the range, the plan steadies it before it climbs.", ["Lower HbA1c below 5.4%", "Keep fasting insulin under 10 mU/L", "Walk 10 minutes after every meal"]],
+      cancer: ["Cut the cancer risks you can control", "If your blood test shows liver enzymes higher than ideal, often a sign of alcohol, the plan starts there.", ["Bring GGT under 30 U/L", "Keep hs-CRP under 1 mg/L", "Cut alcohol to under 10 drinks a week"]],
+      hormones: ["Rebalance your hormones", "If your blood test shows thyroid or sex hormones outside the ideal range, the plan targets the drivers.", [sexH, "Keep TSH between 0.5 and 2.5 mIU/L", "Strength train twice a week"]],
+      brain: ["Protect long-term brain health", "If your blood test shows homocysteine higher than ideal, a marker linked to brain health, the plan starts there.", ["Lower homocysteine below 10 µmol/L", "Lower HbA1c below 5.4%", "150 minutes of cardio a week"]],
+      energy: ["Lift your day-to-day energy", "If your blood test shows low ferritin, a common and fixable cause of fatigue, the plan starts there.", ["Raise ferritin above 50 µg/L", "Raise vitamin D above 75 nmol/L", "Sleep 7 to 9 hours a night"]],
       bioage: ["Slow how fast you age", "The plan targets the biggest levers on how fast you age.", ["Lower ApoB below 0.8 g/L", "Lower HbA1c below 5.4%", "Strength train twice a week"]],
-      reproductive: one("sex") === "female" ? ["Support your reproductive health", "Your panel showed your hormones shifting, so the plan targets the markers behind your cycle.", ["Bring oestradiol and progesterone into balance", "Raise ferritin above 50 µg/L", "Sleep 7 to 9 hours a night"]]
-        : ["Support your reproductive health", "Your panel showed testosterone at the low end, so the plan targets what drives it.", ["Bring testosterone into optimal range", "Bring SHBG into optimal range", "Cut alcohol to under 10 drinks a week"]],
+      reproductive: one("sex") === "female" ? ["Support your reproductive health", "If your blood test shows your hormones shifting, the plan targets the markers behind your cycle.", ["Bring oestradiol and progesterone into balance", "Raise ferritin above 50 µg/L", "Sleep 7 to 9 hours a night"]]
+        : ["Support your reproductive health", "If your blood test shows testosterone at the low end, the plan targets what drives it.", ["Bring testosterone into optimal range", "Bring SHBG into optimal range", "Cut alcohol to under 10 drinks a week"]],
       genetic: ["Understand your inherited risk", "Inherited conditions often show up first in your blood panel, so the plan starts there.", ["Keep LDL below 2.6 mmol/L", "Keep kidney function, eGFR, above 90", "Ask your doctor if genetic testing is worth it"]],
-      broad: ["Act on your top flags", "Your panel flagged a few markers off optimal, so the plan starts with the biggest one.", ["Lower ApoB below 0.8 g/L", "Raise vitamin D above 75 nmol/L", "Eat 30g of fibre a day"]]
+      broad: ["Act on your top flags", "If your blood test flags a few markers outside the ideal range, the plan starts with the biggest one.", ["Lower ApoB below 0.8 g/L", "Raise vitamin D above 75 nmol/L", "Eat 30g of fibre a day"]]
     };
     const P = PLAN[g[0]] || PLAN.broad, TH = [IMG.txRed, IMG.txBlood, IMG.th_marker2], thumb = (a, i) => /cardio|walk|exercise/i.test(a) ? IMG.th_move : /strength|muscle/i.test(a) ? IMG.th_strength : /sleep/i.test(a) ? IMG.th_sleep : /fibre|protein|carbs|eat /i.test(a) ? IMG.th_food : /alcohol/i.test(a) ? IMG.th_alcohol : /ask your doctor/i.test(a) ? IMG.th_neutral : TH[i % 3];
-    card = `<span class="syc-k">Goal</span><b class="syc-t">${esc(P[0])}</b><p class="syc-p">${esc(P[1])}</p><hr>
+    card = `<span class="syc-k">Example plan</span><b class="syc-t">${esc(P[0])}</b><p class="syc-p">${esc(P[1])}</p><hr>
       <b class="syc-sub">Action plan</b>
       <ul class="syc-acts">${P[2].map((a, i) => `<li style="--i:${i}"><span class="syc-th" style="background-image:url(${thumb(a, i)})"></span><span>${a}</span></li>`).join("")}</ul>
 `;
@@ -3962,7 +3998,7 @@ R.plan = () => {
     <p class="sub plan-sub">Built from your answers and Australian clinical guidelines. Your Everlab doctor will build on this when you meet. Here's a quick preview.</p>
     <button type="button" class="teaser" id="teaser" aria-label="Open your full health report">
       <span class="tz-head"><span class="rp-k">${first ? "Prepared for " + esc(first) : "Your health report"}</span></span>
-      ${rows.map(([t, n, d], i) => { const w = i === 0 && n > 0; return `<span class="tz-row${w ? " warn" : ""}" style="--d:${i * 110}ms"><span class="tz-n">${w ? WARN_SVG : String(i + 1).padStart(2, "0")}</span><span class="tz-t"><b>${esc(t)}${w ? `<span class="tz-flag">Flagged</span>` : ""}</b><small>${esc(d)}</small></span><span class="tz-c" data-to="${n}">0</span></span>`; }).join("")}
+      ${rows.map(([t, n, d], i) => { const w = i === 0 && n > 0; return `<span class="tz-row${w ? " warn" : ""}" style="--d:${i * 110}ms"><span class="tz-cw"><span class="tz-c" data-to="${n}">0</span><small class="tz-u">${[["risk","risks"],["screening","screenings"],["question","questions"]][i][n === 1 ? 0 : 1]}</small></span><span class="tz-t"><b>${esc(t)}</b><small>${esc(d)}</small></span><span class="tz-n" aria-label="${w ? "Flagged" : ""}">${w ? WARN_SVG : ""}</span></span>`; }).join("")}
     </button>`;
   const open = () => { track("report_opened", { from: "plan" }); go(1); };
   $("#teaser").onclick = open;
@@ -4556,6 +4592,30 @@ if (!document.documentElement.dataset.theme) document.documentElement.dataset.th
 let PC_IMG = "";
 const personImg = () => one("sex") === "male" ? "man1" : one("sex") === "female" ? "int3" : "int5";
 function syncCardImg() { const k = personImg(); if (k !== PC_IMG) { PC_IMG = k; document.documentElement.style.setProperty("--pc-img", `url(${IMG[k]})`); } }
+
+/* v4: on phones, show when a page has more below, and hide the cue once you reach the end */
+(function () {
+  const cue = document.createElement("button"); cue.type = "button"; cue.className = "more-cue"; cue.setAttribute("aria-hidden", "true"); cue.tabIndex = -1;
+  cue.innerHTML = `More below<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>`;
+  const fade = document.createElement("div"); fade.className = "more-fade";
+  document.body.append(fade, cue);
+  let bound = null;
+  const update = () => {
+    const col = document.querySelector(".layout .col"), bar = document.querySelector(".actions");
+    const ok = innerWidth < 900 && col && !document.querySelector(".layout.doc") && bar && getComputedStyle(bar).position === "fixed" && bar.offsetHeight;
+    if (!ok) { cue.classList.remove("on"); fade.classList.remove("on"); return; }
+    if (bound !== col) { bound = col; col.addEventListener("scroll", update, { passive: true }); }
+    const top = bar.getBoundingClientRect().top;
+    cue.style.bottom = (innerHeight - top + 12) + "px"; fade.style.bottom = (innerHeight - top) + "px";
+    const more = col.scrollHeight - col.clientHeight - col.scrollTop > 60;
+    cue.classList.toggle("on", more); fade.classList.toggle("on", more);
+  };
+  cue.onclick = () => { const col = document.querySelector(".layout .col"); if (col) col.scrollBy({ top: Math.round(col.clientHeight * .6), behavior: "smooth" }); };
+  const _fit = fitDesktop;
+  fitDesktop = function () { const r = _fit.apply(this, arguments); requestAnimationFrame(update); return r; };
+  addEventListener("resize", () => requestAnimationFrame(update));
+  window.__moreCue = update;
+})();
 remapAt();
 render(true);
 if (DEVICE === "mobile") phoneOpen();
